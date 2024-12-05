@@ -1,6 +1,6 @@
 # Project settings
 PROJECT_NAME           = "Vehicle Control Unit"
-PROJECT_NUMBER        = "1.4"
+PROJECT_NUMBER        = "1.7"
 PROJECT_BRIEF        = "ESP32-based Electric Vehicle Control System"
 OUTPUT_DIRECTORY     = docs
 
