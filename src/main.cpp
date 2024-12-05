@@ -9,6 +9,7 @@
  * - System monitoring
  * 
  * Uses dual-core ESP32:
+ *  IS Stupid
  * Core 0: CAN communication and fast control loops
  * Core 1: State management and system control
  */
