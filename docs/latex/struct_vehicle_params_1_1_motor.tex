@@ -1,0 +1,109 @@
+\doxysection{Vehicle\+Params\+::Motor Struct Reference}
+\hypertarget{struct_vehicle_params_1_1_motor}{}\label{struct_vehicle_params_1_1_motor}\index{VehicleParams::Motor@{VehicleParams::Motor}}
+
+
+\doxylink{struct_vehicle_params_1_1_motor}{Motor} \doxylink{struct_vehicle_params_1_1_control}{Control} Parameters Defines torque limits and control characteristics.  
+
+
+
+
+{\ttfamily \#include $<$vehicle\+\_\+parameters.\+h$>$}
+
+\doxysubsubsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+static constexpr int \mbox{\hyperlink{struct_vehicle_params_1_1_motor_ae9414c3611811b6cbf786de61c3ef9e3}{MAX\+\_\+\+TRQ}} = 850
+\begin{DoxyCompactList}\small\item\em Maximum motor torque (Nm) \end{DoxyCompactList}\item 
+static constexpr int \mbox{\hyperlink{struct_vehicle_params_1_1_motor_a3b439fc6c5bb426683d474a9c4b9bc53}{MAX\+\_\+\+REQ\+\_\+\+TRQ}} = 850
+\begin{DoxyCompactList}\small\item\em Maximum request torque (Nm) \end{DoxyCompactList}\item 
+static constexpr int \mbox{\hyperlink{struct_vehicle_params_1_1_motor_ac24cfcb5d4bb226ff1e67cfd393c3ea6}{MAX\+\_\+\+REVERSE\+\_\+\+TRQ}} = 220
+\begin{DoxyCompactList}\small\item\em Maximum reverse torque (Nm) \end{DoxyCompactList}\item 
+static constexpr float \mbox{\hyperlink{struct_vehicle_params_1_1_motor_a8554f216b195524900c5b9f4b6762106}{MAX\+\_\+\+ACCEL\+\_\+\+STEP}} = 8.\+0f
+\begin{DoxyCompactList}\small\item\em Torque ramp-\/up limit (Nm/cycle) \end{DoxyCompactList}\item 
+static constexpr float \mbox{\hyperlink{struct_vehicle_params_1_1_motor_a6969e3e63468c5bc0585ff8e4d977b5e}{MAX\+\_\+\+DECEL\+\_\+\+STEP}} = 25.\+0f
+\begin{DoxyCompactList}\small\item\em Torque ramp-\/down limit (Nm/cycle) \end{DoxyCompactList}\item 
+static constexpr float \mbox{\hyperlink{struct_vehicle_params_1_1_motor_a9b143ca81ef8ca4c8ba7c32840360c3f}{TORQUE\+\_\+\+DEADBAND\+\_\+\+HIGH}} = 25.\+0f
+\begin{DoxyCompactList}\small\item\em Upper deadband threshold (Nm) \end{DoxyCompactList}\item 
+static constexpr float \mbox{\hyperlink{struct_vehicle_params_1_1_motor_a7aa6e22c3bf087d38644139ff31719ee}{TORQUE\+\_\+\+DEADBAND\+\_\+\+LOW}} = 18.\+0f
+\begin{DoxyCompactList}\small\item\em Lower deadband threshold (Nm) \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\doxylink{struct_vehicle_params_1_1_motor}{Motor} \doxylink{struct_vehicle_params_1_1_control}{Control} Parameters Defines torque limits and control characteristics. 
+
+\doxysubsection{Member Data Documentation}
+\Hypertarget{struct_vehicle_params_1_1_motor_a8554f216b195524900c5b9f4b6762106}\index{VehicleParams::Motor@{VehicleParams::Motor}!MAX\_ACCEL\_STEP@{MAX\_ACCEL\_STEP}}
+\index{MAX\_ACCEL\_STEP@{MAX\_ACCEL\_STEP}!VehicleParams::Motor@{VehicleParams::Motor}}
+\doxysubsubsection{\texorpdfstring{MAX\_ACCEL\_STEP}{MAX\_ACCEL\_STEP}}
+{\footnotesize\ttfamily \label{struct_vehicle_params_1_1_motor_a8554f216b195524900c5b9f4b6762106} 
+float Vehicle\+Params\+::\+Motor\+::\+MAX\+\_\+\+ACCEL\+\_\+\+STEP = 8.\+0f\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+
+
+Torque ramp-\/up limit (Nm/cycle) 
+
+\Hypertarget{struct_vehicle_params_1_1_motor_a6969e3e63468c5bc0585ff8e4d977b5e}\index{VehicleParams::Motor@{VehicleParams::Motor}!MAX\_DECEL\_STEP@{MAX\_DECEL\_STEP}}
+\index{MAX\_DECEL\_STEP@{MAX\_DECEL\_STEP}!VehicleParams::Motor@{VehicleParams::Motor}}
+\doxysubsubsection{\texorpdfstring{MAX\_DECEL\_STEP}{MAX\_DECEL\_STEP}}
+{\footnotesize\ttfamily \label{struct_vehicle_params_1_1_motor_a6969e3e63468c5bc0585ff8e4d977b5e} 
+float Vehicle\+Params\+::\+Motor\+::\+MAX\+\_\+\+DECEL\+\_\+\+STEP = 25.\+0f\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+
+
+Torque ramp-\/down limit (Nm/cycle) 
+
+\Hypertarget{struct_vehicle_params_1_1_motor_a3b439fc6c5bb426683d474a9c4b9bc53}\index{VehicleParams::Motor@{VehicleParams::Motor}!MAX\_REQ\_TRQ@{MAX\_REQ\_TRQ}}
+\index{MAX\_REQ\_TRQ@{MAX\_REQ\_TRQ}!VehicleParams::Motor@{VehicleParams::Motor}}
+\doxysubsubsection{\texorpdfstring{MAX\_REQ\_TRQ}{MAX\_REQ\_TRQ}}
+{\footnotesize\ttfamily \label{struct_vehicle_params_1_1_motor_a3b439fc6c5bb426683d474a9c4b9bc53} 
+int Vehicle\+Params\+::\+Motor\+::\+MAX\+\_\+\+REQ\+\_\+\+TRQ = 850\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+
+
+Maximum request torque (Nm) 
+
+\Hypertarget{struct_vehicle_params_1_1_motor_ac24cfcb5d4bb226ff1e67cfd393c3ea6}\index{VehicleParams::Motor@{VehicleParams::Motor}!MAX\_REVERSE\_TRQ@{MAX\_REVERSE\_TRQ}}
+\index{MAX\_REVERSE\_TRQ@{MAX\_REVERSE\_TRQ}!VehicleParams::Motor@{VehicleParams::Motor}}
+\doxysubsubsection{\texorpdfstring{MAX\_REVERSE\_TRQ}{MAX\_REVERSE\_TRQ}}
+{\footnotesize\ttfamily \label{struct_vehicle_params_1_1_motor_ac24cfcb5d4bb226ff1e67cfd393c3ea6} 
+int Vehicle\+Params\+::\+Motor\+::\+MAX\+\_\+\+REVERSE\+\_\+\+TRQ = 220\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+
+
+Maximum reverse torque (Nm) 
+
+\Hypertarget{struct_vehicle_params_1_1_motor_ae9414c3611811b6cbf786de61c3ef9e3}\index{VehicleParams::Motor@{VehicleParams::Motor}!MAX\_TRQ@{MAX\_TRQ}}
+\index{MAX\_TRQ@{MAX\_TRQ}!VehicleParams::Motor@{VehicleParams::Motor}}
+\doxysubsubsection{\texorpdfstring{MAX\_TRQ}{MAX\_TRQ}}
+{\footnotesize\ttfamily \label{struct_vehicle_params_1_1_motor_ae9414c3611811b6cbf786de61c3ef9e3} 
+int Vehicle\+Params\+::\+Motor\+::\+MAX\+\_\+\+TRQ = 850\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+
+
+Maximum motor torque (Nm) 
+
+\Hypertarget{struct_vehicle_params_1_1_motor_a9b143ca81ef8ca4c8ba7c32840360c3f}\index{VehicleParams::Motor@{VehicleParams::Motor}!TORQUE\_DEADBAND\_HIGH@{TORQUE\_DEADBAND\_HIGH}}
+\index{TORQUE\_DEADBAND\_HIGH@{TORQUE\_DEADBAND\_HIGH}!VehicleParams::Motor@{VehicleParams::Motor}}
+\doxysubsubsection{\texorpdfstring{TORQUE\_DEADBAND\_HIGH}{TORQUE\_DEADBAND\_HIGH}}
+{\footnotesize\ttfamily \label{struct_vehicle_params_1_1_motor_a9b143ca81ef8ca4c8ba7c32840360c3f} 
+float Vehicle\+Params\+::\+Motor\+::\+TORQUE\+\_\+\+DEADBAND\+\_\+\+HIGH = 25.\+0f\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+
+
+Upper deadband threshold (Nm) 
+
+\Hypertarget{struct_vehicle_params_1_1_motor_a7aa6e22c3bf087d38644139ff31719ee}\index{VehicleParams::Motor@{VehicleParams::Motor}!TORQUE\_DEADBAND\_LOW@{TORQUE\_DEADBAND\_LOW}}
+\index{TORQUE\_DEADBAND\_LOW@{TORQUE\_DEADBAND\_LOW}!VehicleParams::Motor@{VehicleParams::Motor}}
+\doxysubsubsection{\texorpdfstring{TORQUE\_DEADBAND\_LOW}{TORQUE\_DEADBAND\_LOW}}
+{\footnotesize\ttfamily \label{struct_vehicle_params_1_1_motor_a7aa6e22c3bf087d38644139ff31719ee} 
+float Vehicle\+Params\+::\+Motor\+::\+TORQUE\+\_\+\+DEADBAND\+\_\+\+LOW = 18.\+0f\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+
+
+Lower deadband threshold (Nm) 
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{vehicle__parameters_8h}{vehicle\+\_\+parameters.\+h}}\end{DoxyCompactItemize}

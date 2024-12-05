@@ -1,0 +1,36 @@
+\doxysection{src/state\+\_\+manager.cpp File Reference}
+\hypertarget{state__manager_8cpp}{}\label{state__manager_8cpp}\index{src/state\_manager.cpp@{src/state\_manager.cpp}}
+
+
+Implementation of the vehicle state management system.  
+
+
+{\ttfamily \#include "{}state\+\_\+manager.\+h"{}}\newline
+{\ttfamily \#include "{}config.\+h"{}}\newline
+{\ttfamily \#include $<$esp\+\_\+sleep.\+h$>$}\newline
+Include dependency graph for state\+\_\+manager.\+cpp\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=335pt]{state__manager_8cpp__incl}
+\end{center}
+\end{figure}
+
+
+\doxysubsection{Detailed Description}
+Implementation of the vehicle state management system. 
+
+Manages the vehicle\textquotesingle{}s operational states and transitions\+:
+\begin{DoxyItemize}
+\item STANDBY\+: Low power state with minimal systems active
+\item RUN\+: Normal driving operation with motor systems enabled
+\item CHARGING\+: Battery charging state with charger enabled
+\end{DoxyItemize}
+
+Handles critical safety systems including\+:
+\begin{DoxyItemize}
+\item Battery precharge sequence
+\item Contactor control
+\item Cooling system management
+\item System wake-\/up and sleep control 
+\end{DoxyItemize}

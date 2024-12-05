@@ -1,0 +1,85 @@
+\doxysection{BMSData Struct Reference}
+\hypertarget{struct_b_m_s_data}{}\label{struct_b_m_s_data}\index{BMSData@{BMSData}}
+
+
+Battery Management System data structure Contains battery state information from BMS.  
+
+
+
+
+{\ttfamily \#include $<$can\+\_\+manager.\+h$>$}
+
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{struct_b_m_s_data_a810ba65ff0942ec181d30386fd84b8fc}{soc}}
+\begin{DoxyCompactList}\small\item\em State of charge (\%) \end{DoxyCompactList}\item 
+uint16\+\_\+t \mbox{\hyperlink{struct_b_m_s_data_a819267dd37863376c52e7b950cac63be}{voltage}}
+\begin{DoxyCompactList}\small\item\em Battery voltage (V) \end{DoxyCompactList}\item 
+int16\+\_\+t \mbox{\hyperlink{struct_b_m_s_data_a1984aa4c2560c153ebc65e9ab693d14c}{current}}
+\begin{DoxyCompactList}\small\item\em Battery current (A) \end{DoxyCompactList}\item 
+uint16\+\_\+t \mbox{\hyperlink{struct_b_m_s_data_ab33e0a27e69403fba2e9e9391af2d152}{max\+Discharge}}
+\begin{DoxyCompactList}\small\item\em Maximum discharge current (A) \end{DoxyCompactList}\item 
+uint8\+\_\+t \mbox{\hyperlink{struct_b_m_s_data_a49100c6896b3e1736c12facf09c9a8b9}{max\+Charge}}
+\begin{DoxyCompactList}\small\item\em Maximum charge current (A) \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Battery Management System data structure Contains battery state information from BMS. 
+
+\doxysubsection{Member Data Documentation}
+\Hypertarget{struct_b_m_s_data_a1984aa4c2560c153ebc65e9ab693d14c}\index{BMSData@{BMSData}!current@{current}}
+\index{current@{current}!BMSData@{BMSData}}
+\doxysubsubsection{\texorpdfstring{current}{current}}
+{\footnotesize\ttfamily \label{struct_b_m_s_data_a1984aa4c2560c153ebc65e9ab693d14c} 
+int16\+\_\+t BMSData\+::current}
+
+
+
+Battery current (A) 
+
+\Hypertarget{struct_b_m_s_data_a49100c6896b3e1736c12facf09c9a8b9}\index{BMSData@{BMSData}!maxCharge@{maxCharge}}
+\index{maxCharge@{maxCharge}!BMSData@{BMSData}}
+\doxysubsubsection{\texorpdfstring{maxCharge}{maxCharge}}
+{\footnotesize\ttfamily \label{struct_b_m_s_data_a49100c6896b3e1736c12facf09c9a8b9} 
+uint8\+\_\+t BMSData\+::max\+Charge}
+
+
+
+Maximum charge current (A) 
+
+\Hypertarget{struct_b_m_s_data_ab33e0a27e69403fba2e9e9391af2d152}\index{BMSData@{BMSData}!maxDischarge@{maxDischarge}}
+\index{maxDischarge@{maxDischarge}!BMSData@{BMSData}}
+\doxysubsubsection{\texorpdfstring{maxDischarge}{maxDischarge}}
+{\footnotesize\ttfamily \label{struct_b_m_s_data_ab33e0a27e69403fba2e9e9391af2d152} 
+uint16\+\_\+t BMSData\+::max\+Discharge}
+
+
+
+Maximum discharge current (A) 
+
+\Hypertarget{struct_b_m_s_data_a810ba65ff0942ec181d30386fd84b8fc}\index{BMSData@{BMSData}!soc@{soc}}
+\index{soc@{soc}!BMSData@{BMSData}}
+\doxysubsubsection{\texorpdfstring{soc}{soc}}
+{\footnotesize\ttfamily \label{struct_b_m_s_data_a810ba65ff0942ec181d30386fd84b8fc} 
+uint8\+\_\+t BMSData\+::soc}
+
+
+
+State of charge (\%) 
+
+\Hypertarget{struct_b_m_s_data_a819267dd37863376c52e7b950cac63be}\index{BMSData@{BMSData}!voltage@{voltage}}
+\index{voltage@{voltage}!BMSData@{BMSData}}
+\doxysubsubsection{\texorpdfstring{voltage}{voltage}}
+{\footnotesize\ttfamily \label{struct_b_m_s_data_a819267dd37863376c52e7b950cac63be} 
+uint16\+\_\+t BMSData\+::voltage}
+
+
+
+Battery voltage (V) 
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{can__manager_8h}{can\+\_\+manager.\+h}}\end{DoxyCompactItemize}

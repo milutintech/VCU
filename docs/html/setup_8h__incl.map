@@ -1,0 +1,35 @@
+<map id="include/setup.h" name="include/setup.h">
+<area shape="rect" id="Node000001" title="System Initialization and Safety Configuration." alt="" coords="206,5,316,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="56,300,133,326"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="207,34,157,50,103,74,53,109,32,130,14,154,9,172,9,198,14,225,25,251,41,272,61,289,58,293,37,275,20,253,9,227,4,198,4,172,9,151,28,126,50,104,101,70,155,45,205,29"/>
+<area shape="rect" id="Node000003" href="$state__manager_8h.html" title="Vehicle State Management System." alt="" coords="40,153,157,178"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="250,33,125,144,121,140,246,29"/>
+<area shape="rect" id="Node000006" href="$can__manager_8h.html" title="CAN Communication Manager for Vehicle Control System." alt="" coords="206,79,316,105"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="264,31,264,63,258,63,258,31"/>
+<area shape="rect" id="Node000009" href="$vehicle__control_8h.html" title="Vehicle Control System for Electric Vehicle." alt="" coords="499,153,618,178"/>
+<area shape="poly" id="edge14_Node000001_Node000009" title=" " alt="" coords="287,29,521,143,519,148,285,34"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="624,226,714,252"/>
+<area shape="poly" id="edge21_Node000001_Node000012" title=" " alt="" coords="317,23,387,36,470,60,513,77,556,97,596,122,632,151,653,180,666,211,661,213,649,182,629,155,593,126,553,102,511,81,468,65,385,41,316,28"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="101,179,98,285,93,285,95,179"/>
+<area shape="rect" id="Node000004" href="$config_8h.html" title=" " alt="" coords="302,226,369,252"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="139,176,288,221,286,226,138,181"/>
+<area shape="rect" id="Node000005" href="$vehicle__parameters_8h.html" title="Vehicle Configuration Parameters and Operating Limits." alt="" coords="132,226,278,252"/>
+<area shape="poly" id="edge6_Node000003_Node000005" title=" " alt="" coords="118,177,176,215,173,220,115,181"/>
+<area shape="poly" id="edge5_Node000004_Node000002" title=" " alt="" coords="302,253,148,298,147,293,301,248"/>
+<area shape="poly" id="edge8_Node000006_Node000002" title=" " alt="" coords="207,102,102,121,57,136,41,145,30,154,21,170,19,187,22,205,28,223,49,258,74,287,69,291,45,261,23,226,16,207,14,187,16,169,26,151,38,141,55,131,101,116,206,97"/>
+<area shape="poly" id="edge13_Node000006_Node000003" title=" " alt="" coords="235,108,141,148,139,144,232,103"/>
+<area shape="poly" id="edge11_Node000006_Node000004" title=" " alt="" coords="317,98,367,116,390,131,409,151,414,171,406,189,391,206,373,220,370,216,388,202,402,186,408,170,404,154,387,135,365,121,315,103"/>
+<area shape="poly" id="edge12_Node000006_Node000005" title=" " alt="" coords="310,103,344,115,375,132,386,142,392,154,393,166,387,180,371,193,345,206,281,225,279,220,343,201,368,189,383,177,388,165,387,155,382,145,372,136,342,120,308,108"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="181,153,235,178"/>
+<area shape="poly" id="edge9_Node000006_Node000007" title=" " alt="" coords="254,106,228,142,224,138,250,103"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="259,153,372,178"/>
+<area shape="poly" id="edge10_Node000006_Node000008" title=" " alt="" coords="272,103,300,139,295,142,268,107"/>
+<area shape="poly" id="edge15_Node000009_Node000002" title=" " alt="" coords="534,181,434,229,409,243,382,255,320,273,257,288,148,307,147,302,256,283,319,268,380,249,406,238,432,224,532,176"/>
+<area shape="poly" id="edge18_Node000009_Node000004" title=" " alt="" coords="521,181,385,225,384,220,520,176"/>
+<area shape="poly" id="edge19_Node000009_Node000005" title=" " alt="" coords="499,181,281,225,279,220,498,176"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="444,226,502,252"/>
+<area shape="poly" id="edge16_Node000009_Node000010" title=" " alt="" coords="546,181,501,218,497,214,542,177"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="525,226,600,252"/>
+<area shape="poly" id="edge17_Node000009_Node000011" title=" " alt="" coords="562,178,564,211,558,211,556,179"/>
+<area shape="poly" id="edge20_Node000009_Node000012" title=" " alt="" coords="579,177,639,215,636,220,576,181"/>
+</map>

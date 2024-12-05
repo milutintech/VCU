@@ -1,0 +1,32 @@
+\doxysection{src/can\+\_\+manager.cpp File Reference}
+\hypertarget{can__manager_8cpp}{}\label{can__manager_8cpp}\index{src/can\_manager.cpp@{src/can\_manager.cpp}}
+
+
+Implementation of CAN communication management system.  
+
+
+{\ttfamily \#include "{}can\+\_\+manager.\+h"{}}\newline
+{\ttfamily \#include "{}state\+\_\+manager.\+h"{}}\newline
+{\ttfamily \#include $<$esp\+\_\+task\+\_\+wdt.\+h$>$}\newline
+{\ttfamily \#include "{}config.\+h"{}}\newline
+Include dependency graph for can\+\_\+manager.\+cpp\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{can__manager_8cpp__incl}
+\end{center}
+\end{figure}
+
+
+\doxysubsection{Detailed Description}
+Implementation of CAN communication management system. 
+
+Handles all CAN bus communication between vehicle subsystems including\+:
+\begin{DoxyItemize}
+\item Message transmission and reception
+\item Data parsing and scaling
+\item Communication timing
+\item System state coordination
+\end{DoxyItemize}
+
+Uses MCP2515 CAN controller via SPI interface. 

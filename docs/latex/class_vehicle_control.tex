@@ -1,0 +1,503 @@
+\doxysection{Vehicle\+Control Class Reference}
+\hypertarget{class_vehicle_control}{}\label{class_vehicle_control}\index{VehicleControl@{VehicleControl}}
+
+
+{\ttfamily \#include $<$vehicle\+\_\+control.\+h$>$}
+
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{class_vehicle_control_a58a56e235f86e223c10a168e13f6a81f}{Vehicle\+Control}} (ADS1115 \&\mbox{\hyperlink{class_vehicle_control_a5b359885d36fd5b369b5fe9ba245e26f}{ads}})
+\begin{DoxyCompactList}\small\item\em Constructs the vehicle control system. \end{DoxyCompactList}\item 
+int16\+\_\+t \mbox{\hyperlink{class_vehicle_control_a4a40ba078d06a53fb52153d80c01ae69}{calculate\+Torque}} ()
+\begin{DoxyCompactList}\small\item\em Calculates motor torque based on current driving mode and conditions. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_vehicle_control_a7a598d53412fde2f576e731976bf1629}{set\+Motor\+Speed}} (float speed)
+\begin{DoxyCompactList}\small\item\em Updates current motor speed. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_vehicle_control_a6a0ec19cf7b6ede44ff761bfcfe4207c}{set\+Current\+Gear}} (\mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cd}{Gear\+State}} gear)
+\begin{DoxyCompactList}\small\item\em Sets current gear state (Drive/\+Neutral/\+Reverse) \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_vehicle_control_a84d97a2f0b89b4e85f54a62871bf621e}{set\+Driving\+Mode}} (\mbox{\hyperlink{config_8h_a785f94b7f1a29eb5a7001c09bad64c01}{Drive\+Mode}} mode)
+\begin{DoxyCompactList}\small\item\em Sets driving mode (Legacy/\+Regen/\+OPD) \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{class_vehicle_control_ab46abdeb60d341fa0547ab07f007037f}{is\+DMCEnabled}} () const
+\begin{DoxyCompactList}\small\item\em Checks if DMC (motor controller) is enabled. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_vehicle_control_aeeead8dc56ced72558564016510265e4}{set\+OPDEnabled}} (bool enabled)
+\item 
+void \mbox{\hyperlink{class_vehicle_control_a874a9f63a0ed236f177518c5ca4c8e28}{set\+Regen\+Enabled}} (bool enabled)
+\item 
+void \mbox{\hyperlink{class_vehicle_control_acc1490071b408dc62e2ec309715e1ce0}{set\+Gear\+Ratio}} (\mbox{\hyperlink{config_8h_ac5e05c5a7d57d23d56fbc19df0ecf645}{Gear\+Ratio}} ratio)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+static constexpr float \mbox{\hyperlink{class_vehicle_control_a80eda80a14c3c360773c8086d0300f7f}{MAX\+\_\+\+VEHICLE\+\_\+\+SPEED}} = 120.\+0f
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+int32\+\_\+t \mbox{\hyperlink{class_vehicle_control_aaa67e6a454776e4134c9c8799104d075}{sample\+Pedal\+Position}} ()
+\begin{DoxyCompactList}\small\item\em Samples pedal position from \doxylink{namespace_a_d_c}{ADC}. \end{DoxyCompactList}\item 
+float \mbox{\hyperlink{class_vehicle_control_aab4410aea7677f92f31aafbf87a27979}{calculate\+Vehicle\+Speed}} ()
+\begin{DoxyCompactList}\small\item\em Calculates current vehicle speed based on motor RPM and gear ratios. \end{DoxyCompactList}\item 
+int16\+\_\+t \mbox{\hyperlink{class_vehicle_control_aee3609644506e5b76ac02108f7d5d07b}{handle\+Legacy\+Mode}} (float throttle\+Position)
+\begin{DoxyCompactList}\small\item\em Handle Legacy driving mode. \end{DoxyCompactList}\item 
+int16\+\_\+t \mbox{\hyperlink{class_vehicle_control_a4399007eb8ef230f01e6227e2a7bae78}{handle\+Regen\+Mode}} (float throttle\+Position, float speed)
+\begin{DoxyCompactList}\small\item\em Handle Regenerative driving mode. \end{DoxyCompactList}\item 
+int16\+\_\+t \mbox{\hyperlink{class_vehicle_control_a2f07a054eade29547b88842b35bb65c3}{handle\+OPDMode}} (float throttle\+Position, float speed)
+\begin{DoxyCompactList}\small\item\em Handle One Pedal Drive mode. \end{DoxyCompactList}\item 
+float \mbox{\hyperlink{class_vehicle_control_aa8e205ba6872b201ea8a00470c4fa2ac}{calculate\+Coast\+Upper\+Bound}} (float speed)
+\item 
+float \mbox{\hyperlink{class_vehicle_control_ad4c6b681f6a2afc16f956c5611819d97}{calculate\+Coast\+Lower\+Bound}} (float speed)
+\item 
+float \mbox{\hyperlink{class_vehicle_control_a7f9a52358ede7c2106524c824f238a8d}{calculate\+Max\+Regenerative\+Torque}} (float speed)
+\item 
+float \mbox{\hyperlink{class_vehicle_control_a8e1f3cbeef05da62109a83d2d4c7c026}{calculate\+Max\+Drive\+Torque}} (float speed)
+\item 
+int16\+\_\+t \mbox{\hyperlink{class_vehicle_control_a5cb0e6e6505a509172f20331ff84942e}{apply\+Torque\+Limits}} (int16\+\_\+t requested\+Torque)
+\begin{DoxyCompactList}\small\item\em Applies rate limiting and maximum torque constraints. \end{DoxyCompactList}\item 
+int16\+\_\+t \mbox{\hyperlink{class_vehicle_control_a30cf56fd18bf83a739cf93f9ce411197}{apply\+Deadband\+Hysteresis}} (int16\+\_\+t torque)
+\begin{DoxyCompactList}\small\item\em Applies deadband hysteresis to prevent torque oscillation. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+ADS1115 \& \mbox{\hyperlink{class_vehicle_control_a5b359885d36fd5b369b5fe9ba245e26f}{ads}}
+\item 
+\mbox{\hyperlink{config_8h_a785f94b7f1a29eb5a7001c09bad64c01}{Drive\+Mode}} \mbox{\hyperlink{class_vehicle_control_abfc6ce11a4e233ef219d263436f85ea7}{current\+Driving\+Mode}}
+\item 
+\mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cd}{Gear\+State}} \mbox{\hyperlink{class_vehicle_control_a45a0e34140d9e5c07e98ae707cc33d0d}{current\+Gear}}
+\item 
+\mbox{\hyperlink{config_8h_ac5e05c5a7d57d23d56fbc19df0ecf645}{Gear\+Ratio}} \mbox{\hyperlink{class_vehicle_control_af6fe4aa401a18c4fe479a051817a089b}{current\+Gear\+Ratio}}
+\item 
+bool \mbox{\hyperlink{class_vehicle_control_a31ba729072fde5c4b6ea6e54f5b3fd9b}{is\+OPDEnabled}}
+\item 
+bool \mbox{\hyperlink{class_vehicle_control_a407b8ad28e14e934e93929f9b6d90628}{is\+Regen\+Enabled}}
+\item 
+bool \mbox{\hyperlink{class_vehicle_control_a104e3171491dfa479f76ccc36502679b}{enable\+DMC}}
+\item 
+bool \mbox{\hyperlink{class_vehicle_control_a903dc2b6279d04f50eb8c2c33f9cf537}{was\+In\+Deadband}}
+\item 
+bool \mbox{\hyperlink{class_vehicle_control_a691c84d9e1b5ad1eee5147433f0c6726}{was\+Enabled}}
+\item 
+float \mbox{\hyperlink{class_vehicle_control_a0cdfc88cd1fcab4476cba7dff02817ff}{last\+Torque}}
+\item 
+float \mbox{\hyperlink{class_vehicle_control_a688b949933676e0ca5db45863020a0e7}{motor\+Speed}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{class_vehicle_control_a58a56e235f86e223c10a168e13f6a81f}\index{VehicleControl@{VehicleControl}!VehicleControl@{VehicleControl}}
+\index{VehicleControl@{VehicleControl}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{VehicleControl()}{VehicleControl()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a58a56e235f86e223c10a168e13f6a81f} 
+Vehicle\+Control\+::\+Vehicle\+Control (\begin{DoxyParamCaption}\item[{ADS1115 \&}]{ads}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [explicit]}}
+
+
+
+Constructs the vehicle control system. 
+
+Constructor -\/ initializes vehicle control system.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ads} & Reference to ADS1115 \doxylink{namespace_a_d_c}{ADC} for pedal position reading\\
+\hline
+{\em ads} & Reference to \doxylink{namespace_a_d_c}{ADC} for pedal position reading\\
+\hline
+\end{DoxyParams}
+Initializes control system with safe defaults\+:
+\begin{DoxyItemize}
+\item REGEN drive mode enabled
+\item Zero torque output
+\item Safety systems active 
+\end{DoxyItemize}
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_vehicle_control_a30cf56fd18bf83a739cf93f9ce411197}\index{VehicleControl@{VehicleControl}!applyDeadbandHysteresis@{applyDeadbandHysteresis}}
+\index{applyDeadbandHysteresis@{applyDeadbandHysteresis}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{applyDeadbandHysteresis()}{applyDeadbandHysteresis()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a30cf56fd18bf83a739cf93f9ce411197} 
+int16\+\_\+t Vehicle\+Control\+::apply\+Deadband\+Hysteresis (\begin{DoxyParamCaption}\item[{int16\+\_\+t}]{torque}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Applies deadband hysteresis to prevent torque oscillation. 
+
+Apply deadband hysteresis to torque output.
+
+
+\begin{DoxyParams}{Parameters}
+{\em torque} & Input torque value \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Processed torque with hysteresis
+\end{DoxyReturn}
+
+\begin{DoxyParams}{Parameters}
+{\em torque} & Input torque value \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Processed torque with deadband hysteresis
+\end{DoxyReturn}
+Prevents oscillation around zero torque\+:
+\begin{DoxyItemize}
+\item Higher threshold to exit deadband
+\item Lower threshold to enter deadband 
+\end{DoxyItemize}\Hypertarget{class_vehicle_control_a5cb0e6e6505a509172f20331ff84942e}\index{VehicleControl@{VehicleControl}!applyTorqueLimits@{applyTorqueLimits}}
+\index{applyTorqueLimits@{applyTorqueLimits}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{applyTorqueLimits()}{applyTorqueLimits()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a5cb0e6e6505a509172f20331ff84942e} 
+int16\+\_\+t Vehicle\+Control\+::apply\+Torque\+Limits (\begin{DoxyParamCaption}\item[{int16\+\_\+t}]{requested\+Torque}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Applies rate limiting and maximum torque constraints. 
+
+Apply rate limiting to torque changes.
+
+
+\begin{DoxyParams}{Parameters}
+{\em requested\+Torque} & Raw calculated torque \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Limited torque value
+\end{DoxyReturn}
+
+\begin{DoxyParams}{Parameters}
+{\em requested\+Torque} & Raw calculated torque \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Rate-\/limited torque value
+\end{DoxyReturn}
+Implements different limits for\+:
+\begin{DoxyItemize}
+\item Acceleration (slower)
+\item Deceleration (faster) 
+\end{DoxyItemize}\Hypertarget{class_vehicle_control_ad4c6b681f6a2afc16f956c5611819d97}\index{VehicleControl@{VehicleControl}!calculateCoastLowerBound@{calculateCoastLowerBound}}
+\index{calculateCoastLowerBound@{calculateCoastLowerBound}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{calculateCoastLowerBound()}{calculateCoastLowerBound()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_ad4c6b681f6a2afc16f956c5611819d97} 
+float Vehicle\+Control\+::calculate\+Coast\+Lower\+Bound (\begin{DoxyParamCaption}\item[{float}]{speed}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_aa8e205ba6872b201ea8a00470c4fa2ac}\index{VehicleControl@{VehicleControl}!calculateCoastUpperBound@{calculateCoastUpperBound}}
+\index{calculateCoastUpperBound@{calculateCoastUpperBound}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{calculateCoastUpperBound()}{calculateCoastUpperBound()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_aa8e205ba6872b201ea8a00470c4fa2ac} 
+float Vehicle\+Control\+::calculate\+Coast\+Upper\+Bound (\begin{DoxyParamCaption}\item[{float}]{speed}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_a8e1f3cbeef05da62109a83d2d4c7c026}\index{VehicleControl@{VehicleControl}!calculateMaxDriveTorque@{calculateMaxDriveTorque}}
+\index{calculateMaxDriveTorque@{calculateMaxDriveTorque}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{calculateMaxDriveTorque()}{calculateMaxDriveTorque()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a8e1f3cbeef05da62109a83d2d4c7c026} 
+float Vehicle\+Control\+::calculate\+Max\+Drive\+Torque (\begin{DoxyParamCaption}\item[{float}]{speed}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_a7f9a52358ede7c2106524c824f238a8d}\index{VehicleControl@{VehicleControl}!calculateMaxRegenerativeTorque@{calculateMaxRegenerativeTorque}}
+\index{calculateMaxRegenerativeTorque@{calculateMaxRegenerativeTorque}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{calculateMaxRegenerativeTorque()}{calculateMaxRegenerativeTorque()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a7f9a52358ede7c2106524c824f238a8d} 
+float Vehicle\+Control\+::calculate\+Max\+Regenerative\+Torque (\begin{DoxyParamCaption}\item[{float}]{speed}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_a4a40ba078d06a53fb52153d80c01ae69}\index{VehicleControl@{VehicleControl}!calculateTorque@{calculateTorque}}
+\index{calculateTorque@{calculateTorque}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{calculateTorque()}{calculateTorque()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a4a40ba078d06a53fb52153d80c01ae69} 
+int16\+\_\+t Vehicle\+Control\+::calculate\+Torque (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Calculates motor torque based on current driving mode and conditions. 
+
+Calculate motor torque demand based on driving mode and conditions.
+
+\begin{DoxyReturn}{Returns}
+Calculated torque demand in Nm (-\/850 to 850)
+
+Calculated torque demand in Nm (range\+: -\/850 to 850)
+\end{DoxyReturn}
+Main control flow\+:
+\begin{DoxyEnumerate}
+\item Sample pedal position
+\item Apply gamma correction
+\item Process based on driving mode
+\item Apply safety limits
+\item Handle deadband 
+\end{DoxyEnumerate}\Hypertarget{class_vehicle_control_aab4410aea7677f92f31aafbf87a27979}\index{VehicleControl@{VehicleControl}!calculateVehicleSpeed@{calculateVehicleSpeed}}
+\index{calculateVehicleSpeed@{calculateVehicleSpeed}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{calculateVehicleSpeed()}{calculateVehicleSpeed()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_aab4410aea7677f92f31aafbf87a27979} 
+float Vehicle\+Control\+::calculate\+Vehicle\+Speed (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Calculates current vehicle speed based on motor RPM and gear ratios. 
+
+Calculate current vehicle speed from motor speed.
+
+\begin{DoxyReturn}{Returns}
+Vehicle speed in kph
+
+Vehicle speed in kph
+\end{DoxyReturn}
+Considers\+:
+\begin{DoxyItemize}
+\item Current gear ratio
+\item Differential ratio
+\item Wheel circumference 
+\end{DoxyItemize}\Hypertarget{class_vehicle_control_aee3609644506e5b76ac02108f7d5d07b}\index{VehicleControl@{VehicleControl}!handleLegacyMode@{handleLegacyMode}}
+\index{handleLegacyMode@{handleLegacyMode}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{handleLegacyMode()}{handleLegacyMode()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_aee3609644506e5b76ac02108f7d5d07b} 
+int16\+\_\+t Vehicle\+Control\+::handle\+Legacy\+Mode (\begin{DoxyParamCaption}\item[{float}]{throttle\+Position}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Handle Legacy driving mode. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em throttle\+Position} & Processed pedal position (0-\/100\%) \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Calculated torque for legacy mode
+\end{DoxyReturn}
+Simple linear torque mapping based on pedal position. Direction depends on selected gear. \Hypertarget{class_vehicle_control_a2f07a054eade29547b88842b35bb65c3}\index{VehicleControl@{VehicleControl}!handleOPDMode@{handleOPDMode}}
+\index{handleOPDMode@{handleOPDMode}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{handleOPDMode()}{handleOPDMode()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a2f07a054eade29547b88842b35bb65c3} 
+int16\+\_\+t Vehicle\+Control\+::handle\+OPDMode (\begin{DoxyParamCaption}\item[{float}]{throttle\+Position}{, }\item[{float}]{speed}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Handle One Pedal Drive mode. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em throttle\+Position} & Processed pedal position (0-\/100\%) \\
+\hline
+{\em speed} & Current vehicle speed in kph \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Calculated torque for OPD mode
+\end{DoxyReturn}
+Features\+:
+\begin{DoxyItemize}
+\item Speed-\/dependent pedal mapping
+\item Built-\/in regenerative braking
+\item Anti-\/rollback protection
+\item Dynamic torque limiting 
+\end{DoxyItemize}\Hypertarget{class_vehicle_control_a4399007eb8ef230f01e6227e2a7bae78}\index{VehicleControl@{VehicleControl}!handleRegenMode@{handleRegenMode}}
+\index{handleRegenMode@{handleRegenMode}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{handleRegenMode()}{handleRegenMode()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a4399007eb8ef230f01e6227e2a7bae78} 
+int16\+\_\+t Vehicle\+Control\+::handle\+Regen\+Mode (\begin{DoxyParamCaption}\item[{float}]{throttle\+Position}{, }\item[{float}]{speed}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Handle Regenerative driving mode. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em throttle\+Position} & Processed pedal position (0-\/100\%) \\
+\hline
+{\em speed} & Current vehicle speed in kph \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Calculated torque for regen mode
+\end{DoxyReturn}
+Implements three zones\+:
+\begin{DoxyEnumerate}
+\item Regenerative braking (low pedal)
+\item Coast (mid pedal)
+\item Acceleration (high pedal) 
+\end{DoxyEnumerate}\Hypertarget{class_vehicle_control_ab46abdeb60d341fa0547ab07f007037f}\index{VehicleControl@{VehicleControl}!isDMCEnabled@{isDMCEnabled}}
+\index{isDMCEnabled@{isDMCEnabled}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{isDMCEnabled()}{isDMCEnabled()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_ab46abdeb60d341fa0547ab07f007037f} 
+bool Vehicle\+Control\+::is\+DMCEnabled (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const}
+
+
+
+Checks if DMC (motor controller) is enabled. 
+
+Check if motor controller is enabled.
+
+\begin{DoxyReturn}{Returns}
+true if DMC is enabled 
+\end{DoxyReturn}
+\Hypertarget{class_vehicle_control_aaa67e6a454776e4134c9c8799104d075}\index{VehicleControl@{VehicleControl}!samplePedalPosition@{samplePedalPosition}}
+\index{samplePedalPosition@{samplePedalPosition}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{samplePedalPosition()}{samplePedalPosition()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_aaa67e6a454776e4134c9c8799104d075} 
+int32\+\_\+t Vehicle\+Control\+::sample\+Pedal\+Position (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Samples pedal position from \doxylink{namespace_a_d_c}{ADC}. 
+
+Sample pedal position from \doxylink{namespace_a_d_c}{ADC}.
+
+\begin{DoxyReturn}{Returns}
+Raw \doxylink{namespace_a_d_c}{ADC} value averaged over 4 samples
+
+Averaged \doxylink{namespace_a_d_c}{ADC} reading for pedal position
+\end{DoxyReturn}
+Takes 4 samples and averages them to reduce noise. Uses dedicated \doxylink{namespace_a_d_c}{ADC} channel for pedal position. \Hypertarget{class_vehicle_control_a6a0ec19cf7b6ede44ff761bfcfe4207c}\index{VehicleControl@{VehicleControl}!setCurrentGear@{setCurrentGear}}
+\index{setCurrentGear@{setCurrentGear}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{setCurrentGear()}{setCurrentGear()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a6a0ec19cf7b6ede44ff761bfcfe4207c} 
+void Vehicle\+Control\+::set\+Current\+Gear (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cd}{Gear\+State}}}]{gear}{}\end{DoxyParamCaption})}
+
+
+
+Sets current gear state (Drive/\+Neutral/\+Reverse) 
+
+Set current gear state.
+
+
+\begin{DoxyParams}{Parameters}
+{\em gear} & New gear state\\
+\hline
+{\em gear} & New gear state (DRIVE/\+NEUTRAL/\+REVERSE) \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_vehicle_control_a84d97a2f0b89b4e85f54a62871bf621e}\index{VehicleControl@{VehicleControl}!setDrivingMode@{setDrivingMode}}
+\index{setDrivingMode@{setDrivingMode}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{setDrivingMode()}{setDrivingMode()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a84d97a2f0b89b4e85f54a62871bf621e} 
+void Vehicle\+Control\+::set\+Driving\+Mode (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{config_8h_a785f94b7f1a29eb5a7001c09bad64c01}{Drive\+Mode}}}]{mode}{}\end{DoxyParamCaption})}
+
+
+
+Sets driving mode (Legacy/\+Regen/\+OPD) 
+
+Set current driving mode.
+
+
+\begin{DoxyParams}{Parameters}
+{\em mode} & New driving mode\\
+\hline
+{\em mode} & New driving mode (LEGACY/\+REGEN/\+OPD) \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_vehicle_control_acc1490071b408dc62e2ec309715e1ce0}\index{VehicleControl@{VehicleControl}!setGearRatio@{setGearRatio}}
+\index{setGearRatio@{setGearRatio}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{setGearRatio()}{setGearRatio()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_acc1490071b408dc62e2ec309715e1ce0} 
+void Vehicle\+Control\+::set\+Gear\+Ratio (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{config_8h_ac5e05c5a7d57d23d56fbc19df0ecf645}{Gear\+Ratio}}}]{ratio}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_vehicle_control_a7a598d53412fde2f576e731976bf1629}\index{VehicleControl@{VehicleControl}!setMotorSpeed@{setMotorSpeed}}
+\index{setMotorSpeed@{setMotorSpeed}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{setMotorSpeed()}{setMotorSpeed()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a7a598d53412fde2f576e731976bf1629} 
+void Vehicle\+Control\+::set\+Motor\+Speed (\begin{DoxyParamCaption}\item[{float}]{speed}{}\end{DoxyParamCaption})}
+
+
+
+Updates current motor speed. 
+
+Update current motor speed.
+
+
+\begin{DoxyParams}{Parameters}
+{\em speed} & Motor speed in RPM\\
+\hline
+{\em speed} & New motor speed in RPM \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_vehicle_control_aeeead8dc56ced72558564016510265e4}\index{VehicleControl@{VehicleControl}!setOPDEnabled@{setOPDEnabled}}
+\index{setOPDEnabled@{setOPDEnabled}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{setOPDEnabled()}{setOPDEnabled()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_aeeead8dc56ced72558564016510265e4} 
+void Vehicle\+Control\+::set\+OPDEnabled (\begin{DoxyParamCaption}\item[{bool}]{enabled}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_vehicle_control_a874a9f63a0ed236f177518c5ca4c8e28}\index{VehicleControl@{VehicleControl}!setRegenEnabled@{setRegenEnabled}}
+\index{setRegenEnabled@{setRegenEnabled}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{setRegenEnabled()}{setRegenEnabled()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a874a9f63a0ed236f177518c5ca4c8e28} 
+void Vehicle\+Control\+::set\+Regen\+Enabled (\begin{DoxyParamCaption}\item[{bool}]{enabled}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+\doxysubsection{Member Data Documentation}
+\Hypertarget{class_vehicle_control_a5b359885d36fd5b369b5fe9ba245e26f}\index{VehicleControl@{VehicleControl}!ads@{ads}}
+\index{ads@{ads}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{ads}{ads}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a5b359885d36fd5b369b5fe9ba245e26f} 
+ADS1115\& Vehicle\+Control\+::ads\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_abfc6ce11a4e233ef219d263436f85ea7}\index{VehicleControl@{VehicleControl}!currentDrivingMode@{currentDrivingMode}}
+\index{currentDrivingMode@{currentDrivingMode}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{currentDrivingMode}{currentDrivingMode}}
+{\footnotesize\ttfamily \label{class_vehicle_control_abfc6ce11a4e233ef219d263436f85ea7} 
+\mbox{\hyperlink{config_8h_a785f94b7f1a29eb5a7001c09bad64c01}{Drive\+Mode}} Vehicle\+Control\+::current\+Driving\+Mode\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_a45a0e34140d9e5c07e98ae707cc33d0d}\index{VehicleControl@{VehicleControl}!currentGear@{currentGear}}
+\index{currentGear@{currentGear}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{currentGear}{currentGear}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a45a0e34140d9e5c07e98ae707cc33d0d} 
+\mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cd}{Gear\+State}} Vehicle\+Control\+::current\+Gear\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_af6fe4aa401a18c4fe479a051817a089b}\index{VehicleControl@{VehicleControl}!currentGearRatio@{currentGearRatio}}
+\index{currentGearRatio@{currentGearRatio}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{currentGearRatio}{currentGearRatio}}
+{\footnotesize\ttfamily \label{class_vehicle_control_af6fe4aa401a18c4fe479a051817a089b} 
+\mbox{\hyperlink{config_8h_ac5e05c5a7d57d23d56fbc19df0ecf645}{Gear\+Ratio}} Vehicle\+Control\+::current\+Gear\+Ratio\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_a104e3171491dfa479f76ccc36502679b}\index{VehicleControl@{VehicleControl}!enableDMC@{enableDMC}}
+\index{enableDMC@{enableDMC}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{enableDMC}{enableDMC}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a104e3171491dfa479f76ccc36502679b} 
+bool Vehicle\+Control\+::enable\+DMC\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_a31ba729072fde5c4b6ea6e54f5b3fd9b}\index{VehicleControl@{VehicleControl}!isOPDEnabled@{isOPDEnabled}}
+\index{isOPDEnabled@{isOPDEnabled}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{isOPDEnabled}{isOPDEnabled}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a31ba729072fde5c4b6ea6e54f5b3fd9b} 
+bool Vehicle\+Control\+::is\+OPDEnabled\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_a407b8ad28e14e934e93929f9b6d90628}\index{VehicleControl@{VehicleControl}!isRegenEnabled@{isRegenEnabled}}
+\index{isRegenEnabled@{isRegenEnabled}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{isRegenEnabled}{isRegenEnabled}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a407b8ad28e14e934e93929f9b6d90628} 
+bool Vehicle\+Control\+::is\+Regen\+Enabled\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_a0cdfc88cd1fcab4476cba7dff02817ff}\index{VehicleControl@{VehicleControl}!lastTorque@{lastTorque}}
+\index{lastTorque@{lastTorque}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{lastTorque}{lastTorque}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a0cdfc88cd1fcab4476cba7dff02817ff} 
+float Vehicle\+Control\+::last\+Torque\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_a80eda80a14c3c360773c8086d0300f7f}\index{VehicleControl@{VehicleControl}!MAX\_VEHICLE\_SPEED@{MAX\_VEHICLE\_SPEED}}
+\index{MAX\_VEHICLE\_SPEED@{MAX\_VEHICLE\_SPEED}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{MAX\_VEHICLE\_SPEED}{MAX\_VEHICLE\_SPEED}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a80eda80a14c3c360773c8086d0300f7f} 
+float Vehicle\+Control\+::\+MAX\+\_\+\+VEHICLE\+\_\+\+SPEED = 120.\+0f\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\Hypertarget{class_vehicle_control_a688b949933676e0ca5db45863020a0e7}\index{VehicleControl@{VehicleControl}!motorSpeed@{motorSpeed}}
+\index{motorSpeed@{motorSpeed}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{motorSpeed}{motorSpeed}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a688b949933676e0ca5db45863020a0e7} 
+float Vehicle\+Control\+::motor\+Speed\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_a691c84d9e1b5ad1eee5147433f0c6726}\index{VehicleControl@{VehicleControl}!wasEnabled@{wasEnabled}}
+\index{wasEnabled@{wasEnabled}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{wasEnabled}{wasEnabled}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a691c84d9e1b5ad1eee5147433f0c6726} 
+bool Vehicle\+Control\+::was\+Enabled\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_a903dc2b6279d04f50eb8c2c33f9cf537}\index{VehicleControl@{VehicleControl}!wasInDeadband@{wasInDeadband}}
+\index{wasInDeadband@{wasInDeadband}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{wasInDeadband}{wasInDeadband}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a903dc2b6279d04f50eb8c2c33f9cf537} 
+bool Vehicle\+Control\+::was\+In\+Deadband\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{vehicle__control_8h}{vehicle\+\_\+control.\+h}}\item 
+src/\mbox{\hyperlink{vehicle__control_8cpp}{vehicle\+\_\+control.\+cpp}}\end{DoxyCompactItemize}

@@ -1,0 +1,58 @@
+\doxysection{include/\+Serial\+Console.h File Reference}
+\hypertarget{_serial_console_8h}{}\label{_serial_console_8h}\index{include/SerialConsole.h@{include/SerialConsole.h}}
+
+
+Debug Console Interface for Vehicle Control System.  
+
+
+{\ttfamily \#include $<$Arduino.\+h$>$}\newline
+{\ttfamily \#include "{}can\+\_\+manager.\+h"{}}\newline
+{\ttfamily \#include "{}state\+\_\+manager.\+h"{}}\newline
+{\ttfamily \#include "{}vehicle\+\_\+control.\+h"{}}\newline
+{\ttfamily \#include "{}config.\+h"{}}\newline
+Include dependency graph for Serial\+Console.\+h\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{_serial_console_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=282pt]{_serial_console_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{class_serial_console}{Serial\+Console}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Debug Console Interface for Vehicle Control System. 
+
+Provides comprehensive debug interface for\+:
+\begin{DoxyItemize}
+\item Real-\/time system monitoring
+\item Parameter adjustment
+\item Diagnostics and testing
+\item State control
+\end{DoxyItemize}
+
+Command Structure\+:
+\begin{DoxyItemize}
+\item GET commands\+: get\+:$<$system$>$\+:$<$parameter$>$
+\item SET commands\+: set\+:$<$system$>$\+:$<$parameter$>$\+:
+\end{DoxyItemize}
+
+Supported Systems\+:
+\begin{DoxyItemize}
+\item NLG (Charger)\+: State, voltage, current, temperature
+\item BMS\+: SOC, voltage, current limits
+\item DMC (Motor)\+: Temperature, status, torque
+\item BSC (DC-\/\+DC)\+: Voltage, current, mode
+\item VCU\+: State, drive mode, system control 
+\end{DoxyItemize}

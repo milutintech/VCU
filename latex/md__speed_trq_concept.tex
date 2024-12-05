@@ -1,0 +1,20 @@
+\chapter{Code State}
+\hypertarget{md__speed_trq_concept}{}\label{md__speed_trq_concept}\index{Code State@{Code State}}
+\label{md__speed_trq_concept_autotoc_md0}%
+\Hypertarget{md__speed_trq_concept_autotoc_md0}%
+\hypertarget{md__speed_trq_concept_autotoc_md1}{}\doxysection{\texorpdfstring{09.\+11.\+2023}{09.\+11.\+2023}}\label{md__speed_trq_concept_autotoc_md1}
+\begin{quote}
+Testen mit ADAC Testen Pcan View \end{quote}
+\hypertarget{md__speed_trq_concept_autotoc_md2}{}\doxysubsection{\texorpdfstring{Torque and Speed controll curve}{Torque and Speed controll curve}}\label{md__speed_trq_concept_autotoc_md2}
+\hypertarget{md__speed_trq_concept_autotoc_md3}{}\doxysection{\texorpdfstring{Onroad}{Onroad}}\label{md__speed_trq_concept_autotoc_md3}
+\hypertarget{md__speed_trq_concept_autotoc_md4}{}\doxysection{\texorpdfstring{DMC}{DMC}}\label{md__speed_trq_concept_autotoc_md4}
+Läuft im drehmoment regulierten Modus. 0 -\/ 655.\+34\+Nm und 0 -\/ -\/655.\+36\+Nm ~\newline
+ 16Bit wert .02Nm schritte 32767 -\/ -\/32768\hypertarget{md__speed_trq_concept_autotoc_md5}{}\doxysection{\texorpdfstring{ESP32}{ESP32}}\label{md__speed_trq_concept_autotoc_md5}
+Kriegt 12 bit wert 0 -\/ 4096\hypertarget{md__speed_trq_concept_autotoc_md6}{}\doxysection{\texorpdfstring{Umrechnung}{Umrechnung}}\label{md__speed_trq_concept_autotoc_md6}
+Input muss Umgewandelt und dann mit einem Vorwärts sig oder Rüchwärts sig ge signed werden
+
+also 12 bit wert in 16 bit signed int
+
+beginnen mit map funktion
+
+y = map(potiwert, 0, 4096, 0, 32767); y = y \texorpdfstring{$\vert$}{|} (fdbk\+Sig \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 15) 

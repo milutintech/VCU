@@ -1,0 +1,42 @@
+\doxysection{include/state\+\_\+manager.h File Reference}
+\hypertarget{state__manager_8h}{}\label{state__manager_8h}\index{include/state\_manager.h@{include/state\_manager.h}}
+
+
+Vehicle State Management System.  
+
+
+{\ttfamily \#include $<$Arduino.\+h$>$}\newline
+{\ttfamily \#include "{}config.\+h"{}}\newline
+{\ttfamily \#include "{}vehicle\+\_\+parameters.\+h"{}}\newline
+Include dependency graph for state\+\_\+manager.\+h\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=293pt]{state__manager_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{state__manager_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{class_state_manager}{State\+Manager}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Vehicle State Management System. 
+
+Manages the vehicle\textquotesingle{}s operational states (Standby, Run, Charging) and handles\+:
+\begin{DoxyItemize}
+\item State transitions and safety checks
+\item Battery system control and precharging
+\item Cooling system management
+\item Charging system coordination
+\item Wake-\/up and sleep management 
+\end{DoxyItemize}

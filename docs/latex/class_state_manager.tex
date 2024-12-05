@@ -1,0 +1,635 @@
+\doxysection{State\+Manager Class Reference}
+\hypertarget{class_state_manager}{}\label{class_state_manager}\index{StateManager@{StateManager}}
+
+
+{\ttfamily \#include $<$state\+\_\+manager.\+h$>$}
+
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{class_state_manager_a3e2be96d935eb56813b096a885d58587}{State\+Manager}} ()
+\begin{DoxyCompactList}\small\item\em Constructor -\/ initializes state manager with safe defaults. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_state_manager_a81d6c48d941963ab5be7a1e642c26d98}{update}} ()
+\begin{DoxyCompactList}\small\item\em Main state machine update function Called regularly to manage state transitions and system controls. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_state_manager_ae698ee0fb986e6b7790d6a17c9a26b82}{handle\+Wakeup}} ()
+\begin{DoxyCompactList}\small\item\em Handles system wake-\/up from sleep Determines wake-\/up source and transitions to appropriate state. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{config_8h_a75c52206c3c79acb62c0fddc66df3676}{Vehicle\+State}} \mbox{\hyperlink{class_state_manager_abee5d1a12b2e2e2c65c7bb57fbf2afde}{get\+Current\+State}} () const
+\begin{DoxyCompactList}\small\item\em Gets current vehicle state. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_state_manager_ae5c5c65a30ed18704ead8ab6bac0e608}{transition\+To\+Standby}} ()
+\begin{DoxyCompactList}\small\item\em Transitions to STANDBY state Disables all systems and prepares for sleep. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_state_manager_a4c7d5023fa1afaa5a6ae7a176c106895}{transition\+To\+Run}} ()
+\begin{DoxyCompactList}\small\item\em Transitions to RUN state Enables drive systems and motor controller. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_state_manager_a5de7e06f9dbe763fb6e7d96a959b1f21}{transition\+To\+Charging}} ()
+\begin{DoxyCompactList}\small\item\em Transitions to CHARGING state Enables charging systems and prepares battery. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_state_manager_ae7b7fe0bbdc1018e0683e0d4a1e90df6}{arm\+Battery}} (bool arm)
+\begin{DoxyCompactList}\small\item\em Controls battery system state. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_state_manager_a9de72e8814ed32c0f4fb620eec8d41d8}{arm\+Cooling\+Sys}} (bool arm)
+\begin{DoxyCompactList}\small\item\em Controls cooling system. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_state_manager_a948dd49f7218e33117d6348f791bbd55}{charge\+Manage}} ()
+\begin{DoxyCompactList}\small\item\em Manages charging process Handles charging states, connector locking, and charge completion. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{class_state_manager_ac51f9905f1fb6b8ecf03b89a35a63ca9}{is\+Battery\+Armed}} () const
+\begin{DoxyCompactList}\small\item\em Checks if battery system is armed. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{class_state_manager_aabaa37dcac44049607ea3ae8b64a3335}{is\+Pre\+Charged}} () const
+\begin{DoxyCompactList}\small\item\em Checks if precharge is complete. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{class_state_manager_a84ea8f71fb6d763cdbc205ebcbd6a232}{is\+Charging}} () const
+\begin{DoxyCompactList}\small\item\em Checks if vehicle is actively charging. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{class_state_manager_a48081c08f644ed48a0cca561310db878}{is\+Connector\+Locked}} () const
+\begin{DoxyCompactList}\small\item\em Checks if charge connector is locked. \end{DoxyCompactList}\item 
+uint8\+\_\+t \mbox{\hyperlink{class_state_manager_afdfb122418abcbf5d99e85cf547fc4c0}{get\+Wakeup\+Reason}} ()
+\begin{DoxyCompactList}\small\item\em Gets the wake-\/up source. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_state_manager_a12174d1a76e2fa12eb0c1d16b55764f5}{set\+Battery\+Voltage}} (uint16\+\_\+t voltage)
+\item 
+void \mbox{\hyperlink{class_state_manager_a24a16da5b3f05f322340dc935650d87e}{set\+Inverter\+Temp}} (float temp)
+\item 
+void \mbox{\hyperlink{class_state_manager_af14813c64481da905dc9e53877a9cc8a}{set\+Motor\+Temp}} (float temp)
+\item 
+void \mbox{\hyperlink{class_state_manager_a126ef9445ee529fa3d83be0d4bd825e4}{set\+Cooling\+Request}} (uint8\+\_\+t request)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{class_state_manager_a89c8beceadb6aba3725d3a583a4f01d3}{handle\+Standby\+State}} ()
+\begin{DoxyCompactList}\small\item\em Handles system behavior in STANDBY state Manages low-\/power mode and wake-\/up monitoring. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_state_manager_a1f16a49ecbbb069166eb2883a7ff4591}{handle\+Run\+State}} ()
+\begin{DoxyCompactList}\small\item\em Handles system behavior in RUN state Manages drive systems and operational monitoring. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_state_manager_abfcbdbaff125ae6d962549882335e9e8}{handle\+Charging\+State}} ()
+\begin{DoxyCompactList}\small\item\em Handles system behavior in CHARGING state Manages charging process and battery monitoring. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_state_manager_abc0fc265ea74e974fdf4eb4c369adb87}{handle\+Connector\+Unlock}} ()
+\begin{DoxyCompactList}\small\item\em Handles charge connector unlocking Manages safe connector release sequence. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_state_manager_ab4d30fe38f27a5dbd12363e959b70fdf}{handle\+Persistent\+Unlock}} (unsigned long \&unlock\+Timeout)
+\begin{DoxyCompactList}\small\item\em Handles persistent unlock request. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{config_8h_a75c52206c3c79acb62c0fddc66df3676}{Vehicle\+State}} \mbox{\hyperlink{class_state_manager_abdcc20b128f2755ebff3592e52a1cbf2}{current\+State}}
+\item 
+bool \mbox{\hyperlink{class_state_manager_a911c4a5f4c4fc5d8d166409a6dd6feb5}{battery\+Armed}}
+\item 
+bool \mbox{\hyperlink{class_state_manager_a854c82f75852c57160a46a6bce3b5901}{has\+Pre\+Charged}}
+\item 
+bool \mbox{\hyperlink{class_state_manager_a43b93b091b97ec4b1c2224d20e3e74e5}{nlg\+Charged}}
+\item 
+bool \mbox{\hyperlink{class_state_manager_a406040789a1b551912daeea93c5072ec}{connector\+Locked}}
+\item 
+bool \mbox{\hyperlink{class_state_manager_a976d42b3968564a0456c073b36894c8e}{unlock\+Persist}}
+\item 
+bool \mbox{\hyperlink{class_state_manager_a3aa030b95942adb7986b3319abc4e02c}{con\+Ulock\+Interrupt}}
+\item 
+bool \mbox{\hyperlink{class_state_manager_a48537ec445ff8d66cb9977f8820cf5dd}{enable\+BSC}}
+\item 
+bool \mbox{\hyperlink{class_state_manager_a99c5ac54d6186c257e7cf59041a12d5e}{mode\+BSC}}
+\item 
+bool \mbox{\hyperlink{class_state_manager_adf75c08507f42721af2ac30dba129cd0}{error\+Latch}}
+\item 
+bool \mbox{\hyperlink{class_state_manager_acb440cdcaed11f13b73941b7adafe1a8}{enable\+DMC}}
+\item 
+\mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cd}{Gear\+State}} \mbox{\hyperlink{class_state_manager_a2c40afa83f250c64421aca80f1e4eab8}{current\+Gear}} = \mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cda31ba17aa58cdb681423f07ca21a6efc7}{Gear\+State\+::\+NEUTRAL}}
+\item 
+bool \mbox{\hyperlink{class_state_manager_a789a97e89fc4c11e4541abc2e3b08ea4}{unlock\+Connector\+Request}} = false
+\item 
+uint16\+\_\+t \mbox{\hyperlink{class_state_manager_a48cb157ae9ca2f82a324c668db37f9e5}{battery\+Voltage}}
+\item 
+float \mbox{\hyperlink{class_state_manager_aa57c6c93846cc017830e9847919af81f}{inverter\+Temp}}
+\item 
+float \mbox{\hyperlink{class_state_manager_aa10509cf3a8d459cf85e7b43658aa53f}{motor\+Temp}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{class_state_manager_a0851805b171942f25e6f1f40849ed94e}{cooling\+Request}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{class_state_manager_ac860df5618ddc4e8601cc3bf26539d4d}{charger\+State}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{class_state_manager_adacb6ae71caafe77cf8b3d9599e908f7}{charger\+State\+Demand}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{class_state_manager_a9c4bd962a0a27709da96637aab1bc549}{charge\+Led\+Demand}}
+\item 
+float \mbox{\hyperlink{class_state_manager_a6ea9ae4e08f875031d5a008fc5736fc8}{hv\+Voltage\+Actual}}
+\item 
+uint16\+\_\+t \mbox{\hyperlink{class_state_manager_a1b8041afd24d472be63a42f2d83a3cc3}{hv\+Voltage}}
+\item 
+unsigned long \mbox{\hyperlink{class_state_manager_a750dcf6d290875102ea4b588c4e4ee61}{last\+Mode\+Change\+Time}}
+\item 
+unsigned long \mbox{\hyperlink{class_state_manager_a459c7d3909d464353eae07ecbaa1b450}{last\+Precharge\+Attempt}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{class_state_manager_a3e2be96d935eb56813b096a885d58587}\index{StateManager@{StateManager}!StateManager@{StateManager}}
+\index{StateManager@{StateManager}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{StateManager()}{StateManager()}}
+{\footnotesize\ttfamily \label{class_state_manager_a3e2be96d935eb56813b096a885d58587} 
+State\+Manager\+::\+State\+Manager (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Constructor -\/ initializes state manager with safe defaults. 
+
+Sets initial system state to STANDBY and ensures all subsystems start in a safe, disabled state. 
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_state_manager_ae7b7fe0bbdc1018e0683e0d4a1e90df6}\index{StateManager@{StateManager}!armBattery@{armBattery}}
+\index{armBattery@{armBattery}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{armBattery()}{armBattery()}}
+{\footnotesize\ttfamily \label{class_state_manager_ae7b7fe0bbdc1018e0683e0d4a1e90df6} 
+void State\+Manager\+::arm\+Battery (\begin{DoxyParamCaption}\item[{bool}]{arm}{}\end{DoxyParamCaption})}
+
+
+
+Controls battery system state. 
+
+Control battery system state and precharge.
+
+
+\begin{DoxyParams}{Parameters}
+{\em arm} & true to enable battery system, false to disable Manages precharge sequence and contactors\\
+\hline
+{\em arm} & true to enable battery system, false to disable\\
+\hline
+\end{DoxyParams}
+Controls battery power system including\+:
+\begin{DoxyItemize}
+\item Precharge sequence management
+\item Contactor control
+\item Mode switching
+\item Error handling 
+\end{DoxyItemize}\Hypertarget{class_state_manager_a9de72e8814ed32c0f4fb620eec8d41d8}\index{StateManager@{StateManager}!armCoolingSys@{armCoolingSys}}
+\index{armCoolingSys@{armCoolingSys}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{armCoolingSys()}{armCoolingSys()}}
+{\footnotesize\ttfamily \label{class_state_manager_a9de72e8814ed32c0f4fb620eec8d41d8} 
+void State\+Manager\+::arm\+Cooling\+Sys (\begin{DoxyParamCaption}\item[{bool}]{arm}{}\end{DoxyParamCaption})}
+
+
+
+Controls cooling system. 
+
+Control cooling system operation.
+
+
+\begin{DoxyParams}{Parameters}
+{\em arm} & true to enable cooling, false to disable Manages pump and fan control based on temperature\\
+\hline
+{\em arm} & true to enable cooling, false to disable\\
+\hline
+\end{DoxyParams}
+Manages cooling system based on\+:
+\begin{DoxyItemize}
+\item Temperature thresholds
+\item Cooling requests
+\item Battery system state 
+\end{DoxyItemize}\Hypertarget{class_state_manager_a948dd49f7218e33117d6348f791bbd55}\index{StateManager@{StateManager}!chargeManage@{chargeManage}}
+\index{chargeManage@{chargeManage}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{chargeManage()}{chargeManage()}}
+{\footnotesize\ttfamily \label{class_state_manager_a948dd49f7218e33117d6348f791bbd55} 
+void State\+Manager\+::charge\+Manage (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Manages charging process Handles charging states, connector locking, and charge completion. 
+
+Manage charging process state machine.
+
+Controls charging sequence including\+:
+\begin{DoxyItemize}
+\item State transitions
+\item LED indicators
+\item Connector locking
+\item Charge completion 
+\end{DoxyItemize}\Hypertarget{class_state_manager_abee5d1a12b2e2e2c65c7bb57fbf2afde}\index{StateManager@{StateManager}!getCurrentState@{getCurrentState}}
+\index{getCurrentState@{getCurrentState}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{getCurrentState()}{getCurrentState()}}
+{\footnotesize\ttfamily \label{class_state_manager_abee5d1a12b2e2e2c65c7bb57fbf2afde} 
+\mbox{\hyperlink{config_8h_a75c52206c3c79acb62c0fddc66df3676}{Vehicle\+State}} State\+Manager\+::get\+Current\+State (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets current vehicle state. 
+
+\begin{DoxyReturn}{Returns}
+Current Vehicle\+State (STANDBY/\+RUN/\+CHARGING) 
+\end{DoxyReturn}
+\Hypertarget{class_state_manager_afdfb122418abcbf5d99e85cf547fc4c0}\index{StateManager@{StateManager}!getWakeupReason@{getWakeupReason}}
+\index{getWakeupReason@{getWakeupReason}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{getWakeupReason()}{getWakeupReason()}}
+{\footnotesize\ttfamily \label{class_state_manager_afdfb122418abcbf5d99e85cf547fc4c0} 
+uint8\+\_\+t State\+Manager\+::get\+Wakeup\+Reason (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Gets the wake-\/up source. 
+
+Get system wake-\/up source.
+
+\begin{DoxyReturn}{Returns}
+Wake-\/up pin or source identifier
+
+Wake-\/up pin identifier
+\end{DoxyReturn}
+Determines which GPIO triggered the wake-\/up event \Hypertarget{class_state_manager_abfcbdbaff125ae6d962549882335e9e8}\index{StateManager@{StateManager}!handleChargingState@{handleChargingState}}
+\index{handleChargingState@{handleChargingState}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{handleChargingState()}{handleChargingState()}}
+{\footnotesize\ttfamily \label{class_state_manager_abfcbdbaff125ae6d962549882335e9e8} 
+void State\+Manager\+::handle\+Charging\+State (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Handles system behavior in CHARGING state Manages charging process and battery monitoring. 
+
+Handle system behavior in CHARGING state.
+
+Manages charging operation\+:
+\begin{DoxyItemize}
+\item Controls charger power
+\item Manages battery state
+\item Handles connector locking
+\item Controls cooling system 
+\end{DoxyItemize}\Hypertarget{class_state_manager_abc0fc265ea74e974fdf4eb4c369adb87}\index{StateManager@{StateManager}!handleConnectorUnlock@{handleConnectorUnlock}}
+\index{handleConnectorUnlock@{handleConnectorUnlock}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{handleConnectorUnlock()}{handleConnectorUnlock()}}
+{\footnotesize\ttfamily \label{class_state_manager_abc0fc265ea74e974fdf4eb4c369adb87} 
+void State\+Manager\+::handle\+Connector\+Unlock (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Handles charge connector unlocking Manages safe connector release sequence. 
+
+Handle connector unlock interrupt.
+
+Processes connector unlock requests\+:
+\begin{DoxyItemize}
+\item Validates connector state
+\item Updates charge completion status
+\item Manages state transitions 
+\end{DoxyItemize}\Hypertarget{class_state_manager_ab4d30fe38f27a5dbd12363e959b70fdf}\index{StateManager@{StateManager}!handlePersistentUnlock@{handlePersistentUnlock}}
+\index{handlePersistentUnlock@{handlePersistentUnlock}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{handlePersistentUnlock()}{handlePersistentUnlock()}}
+{\footnotesize\ttfamily \label{class_state_manager_ab4d30fe38f27a5dbd12363e959b70fdf} 
+void State\+Manager\+::handle\+Persistent\+Unlock (\begin{DoxyParamCaption}\item[{unsigned long \&}]{unlock\+Timeout}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Handles persistent unlock request. 
+
+Handle persistent connector unlock request.
+
+
+\begin{DoxyParams}{Parameters}
+{\em unlock\+Timeout} & Reference to unlock timeout counter\\
+\hline
+{\em unlock\+Timeout} & Reference to unlock timeout counter\\
+\hline
+\end{DoxyParams}
+Manages connector unlocking sequence including\+:
+\begin{DoxyItemize}
+\item Timeout handling
+\item State transitions
+\item Charging system shutdown 
+\end{DoxyItemize}\Hypertarget{class_state_manager_a1f16a49ecbbb069166eb2883a7ff4591}\index{StateManager@{StateManager}!handleRunState@{handleRunState}}
+\index{handleRunState@{handleRunState}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{handleRunState()}{handleRunState()}}
+{\footnotesize\ttfamily \label{class_state_manager_a1f16a49ecbbb069166eb2883a7ff4591} 
+void State\+Manager\+::handle\+Run\+State (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Handles system behavior in RUN state Manages drive systems and operational monitoring. 
+
+Handle system behavior in RUN state.
+
+Manages normal driving operation\+:
+\begin{DoxyItemize}
+\item Maintains system enables
+\item Controls cooling system
+\item Manages battery power
+\item Updates status indicators
+\end{DoxyItemize}
+
+\begin{DoxyNote}{Note}
+Transitions to STANDBY if ignition is turned off 
+\end{DoxyNote}
+\Hypertarget{class_state_manager_a89c8beceadb6aba3725d3a583a4f01d3}\index{StateManager@{StateManager}!handleStandbyState@{handleStandbyState}}
+\index{handleStandbyState@{handleStandbyState}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{handleStandbyState()}{handleStandbyState()}}
+{\footnotesize\ttfamily \label{class_state_manager_a89c8beceadb6aba3725d3a583a4f01d3} 
+void State\+Manager\+::handle\+Standby\+State (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Handles system behavior in STANDBY state Manages low-\/power mode and wake-\/up monitoring. 
+
+Handle system behavior in STANDBY state.
+
+Manages low-\/power standby state\+:
+\begin{DoxyItemize}
+\item Disables all major systems
+\item Monitors wake-\/up sources
+\item Enters deep sleep if no active inputs 
+\end{DoxyItemize}\Hypertarget{class_state_manager_ae698ee0fb986e6b7790d6a17c9a26b82}\index{StateManager@{StateManager}!handleWakeup@{handleWakeup}}
+\index{handleWakeup@{handleWakeup}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{handleWakeup()}{handleWakeup()}}
+{\footnotesize\ttfamily \label{class_state_manager_ae698ee0fb986e6b7790d6a17c9a26b82} 
+void State\+Manager\+::handle\+Wakeup (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Handles system wake-\/up from sleep Determines wake-\/up source and transitions to appropriate state. 
+
+Process wake-\/up event and determine initial state.
+
+Checks wake-\/up source and transitions to appropriate state\+:
+\begin{DoxyItemize}
+\item CHARGING if woken by charger
+\item RUN if woken by ignition
+\item STANDBY if no wake signals present 
+\end{DoxyItemize}\Hypertarget{class_state_manager_ac51f9905f1fb6b8ecf03b89a35a63ca9}\index{StateManager@{StateManager}!isBatteryArmed@{isBatteryArmed}}
+\index{isBatteryArmed@{isBatteryArmed}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{isBatteryArmed()}{isBatteryArmed()}}
+{\footnotesize\ttfamily \label{class_state_manager_ac51f9905f1fb6b8ecf03b89a35a63ca9} 
+bool State\+Manager\+::is\+Battery\+Armed (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Checks if battery system is armed. 
+
+\begin{DoxyReturn}{Returns}
+true if battery system is active and ready 
+\end{DoxyReturn}
+\Hypertarget{class_state_manager_a84ea8f71fb6d763cdbc205ebcbd6a232}\index{StateManager@{StateManager}!isCharging@{isCharging}}
+\index{isCharging@{isCharging}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{isCharging()}{isCharging()}}
+{\footnotesize\ttfamily \label{class_state_manager_a84ea8f71fb6d763cdbc205ebcbd6a232} 
+bool State\+Manager\+::is\+Charging (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Checks if vehicle is actively charging. 
+
+\begin{DoxyReturn}{Returns}
+true if in CHARGING state 
+\end{DoxyReturn}
+\Hypertarget{class_state_manager_a48081c08f644ed48a0cca561310db878}\index{StateManager@{StateManager}!isConnectorLocked@{isConnectorLocked}}
+\index{isConnectorLocked@{isConnectorLocked}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{isConnectorLocked()}{isConnectorLocked()}}
+{\footnotesize\ttfamily \label{class_state_manager_a48081c08f644ed48a0cca561310db878} 
+bool State\+Manager\+::is\+Connector\+Locked (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Checks if charge connector is locked. 
+
+\begin{DoxyReturn}{Returns}
+true if connector is locked 
+\end{DoxyReturn}
+\Hypertarget{class_state_manager_aabaa37dcac44049607ea3ae8b64a3335}\index{StateManager@{StateManager}!isPreCharged@{isPreCharged}}
+\index{isPreCharged@{isPreCharged}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{isPreCharged()}{isPreCharged()}}
+{\footnotesize\ttfamily \label{class_state_manager_aabaa37dcac44049607ea3ae8b64a3335} 
+bool State\+Manager\+::is\+Pre\+Charged (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Checks if precharge is complete. 
+
+\begin{DoxyReturn}{Returns}
+true if precharge sequence finished successfully 
+\end{DoxyReturn}
+\Hypertarget{class_state_manager_a12174d1a76e2fa12eb0c1d16b55764f5}\index{StateManager@{StateManager}!setBatteryVoltage@{setBatteryVoltage}}
+\index{setBatteryVoltage@{setBatteryVoltage}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{setBatteryVoltage()}{setBatteryVoltage()}}
+{\footnotesize\ttfamily \label{class_state_manager_a12174d1a76e2fa12eb0c1d16b55764f5} 
+void State\+Manager\+::set\+Battery\+Voltage (\begin{DoxyParamCaption}\item[{uint16\+\_\+t}]{voltage}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_state_manager_a126ef9445ee529fa3d83be0d4bd825e4}\index{StateManager@{StateManager}!setCoolingRequest@{setCoolingRequest}}
+\index{setCoolingRequest@{setCoolingRequest}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{setCoolingRequest()}{setCoolingRequest()}}
+{\footnotesize\ttfamily \label{class_state_manager_a126ef9445ee529fa3d83be0d4bd825e4} 
+void State\+Manager\+::set\+Cooling\+Request (\begin{DoxyParamCaption}\item[{uint8\+\_\+t}]{request}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_state_manager_a24a16da5b3f05f322340dc935650d87e}\index{StateManager@{StateManager}!setInverterTemp@{setInverterTemp}}
+\index{setInverterTemp@{setInverterTemp}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{setInverterTemp()}{setInverterTemp()}}
+{\footnotesize\ttfamily \label{class_state_manager_a24a16da5b3f05f322340dc935650d87e} 
+void State\+Manager\+::set\+Inverter\+Temp (\begin{DoxyParamCaption}\item[{float}]{temp}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_state_manager_af14813c64481da905dc9e53877a9cc8a}\index{StateManager@{StateManager}!setMotorTemp@{setMotorTemp}}
+\index{setMotorTemp@{setMotorTemp}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{setMotorTemp()}{setMotorTemp()}}
+{\footnotesize\ttfamily \label{class_state_manager_af14813c64481da905dc9e53877a9cc8a} 
+void State\+Manager\+::set\+Motor\+Temp (\begin{DoxyParamCaption}\item[{float}]{temp}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_state_manager_a5de7e06f9dbe763fb6e7d96a959b1f21}\index{StateManager@{StateManager}!transitionToCharging@{transitionToCharging}}
+\index{transitionToCharging@{transitionToCharging}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{transitionToCharging()}{transitionToCharging()}}
+{\footnotesize\ttfamily \label{class_state_manager_a5de7e06f9dbe763fb6e7d96a959b1f21} 
+void State\+Manager\+::transition\+To\+Charging (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Transitions to CHARGING state Enables charging systems and prepares battery. 
+
+Transition to CHARGING state.
+
+Initializes charging operation\+:
+\begin{DoxyItemize}
+\item Sets charging state
+\item Prepares charging system 
+\end{DoxyItemize}\Hypertarget{class_state_manager_a4c7d5023fa1afaa5a6ae7a176c106895}\index{StateManager@{StateManager}!transitionToRun@{transitionToRun}}
+\index{transitionToRun@{transitionToRun}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{transitionToRun()}{transitionToRun()}}
+{\footnotesize\ttfamily \label{class_state_manager_a4c7d5023fa1afaa5a6ae7a176c106895} 
+void State\+Manager\+::transition\+To\+Run (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Transitions to RUN state Enables drive systems and motor controller. 
+
+Transition to RUN state.
+
+Initializes driving operation\+:
+\begin{DoxyItemize}
+\item Sets operational state
+\item Resets charging flags 
+\end{DoxyItemize}\Hypertarget{class_state_manager_ae5c5c65a30ed18704ead8ab6bac0e608}\index{StateManager@{StateManager}!transitionToStandby@{transitionToStandby}}
+\index{transitionToStandby@{transitionToStandby}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{transitionToStandby()}{transitionToStandby()}}
+{\footnotesize\ttfamily \label{class_state_manager_ae5c5c65a30ed18704ead8ab6bac0e608} 
+void State\+Manager\+::transition\+To\+Standby (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Transitions to STANDBY state Disables all systems and prepares for sleep. 
+
+Transition to STANDBY state.
+
+Performs safe shutdown sequence\+:
+\begin{DoxyItemize}
+\item Disables all systems
+\item Resets state flags
+\item Prepares for sleep 
+\end{DoxyItemize}\Hypertarget{class_state_manager_a81d6c48d941963ab5be7a1e642c26d98}\index{StateManager@{StateManager}!update@{update}}
+\index{update@{update}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{update()}{update()}}
+{\footnotesize\ttfamily \label{class_state_manager_a81d6c48d941963ab5be7a1e642c26d98} 
+void State\+Manager\+::update (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Main state machine update function Called regularly to manage state transitions and system controls. 
+
+Main state machine update function.
+
+Updates system based on current state\+:
+\begin{DoxyItemize}
+\item STANDBY\+: Monitor wake sources, manage sleep
+\item RUN\+: Handle driving operations
+\item CHARGING\+: Manage charging process 
+\end{DoxyItemize}
+
+\doxysubsection{Member Data Documentation}
+\Hypertarget{class_state_manager_a911c4a5f4c4fc5d8d166409a6dd6feb5}\index{StateManager@{StateManager}!batteryArmed@{batteryArmed}}
+\index{batteryArmed@{batteryArmed}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{batteryArmed}{batteryArmed}}
+{\footnotesize\ttfamily \label{class_state_manager_a911c4a5f4c4fc5d8d166409a6dd6feb5} 
+bool State\+Manager\+::battery\+Armed\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a48cb157ae9ca2f82a324c668db37f9e5}\index{StateManager@{StateManager}!batteryVoltage@{batteryVoltage}}
+\index{batteryVoltage@{batteryVoltage}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{batteryVoltage}{batteryVoltage}}
+{\footnotesize\ttfamily \label{class_state_manager_a48cb157ae9ca2f82a324c668db37f9e5} 
+uint16\+\_\+t State\+Manager\+::battery\+Voltage\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a9c4bd962a0a27709da96637aab1bc549}\index{StateManager@{StateManager}!chargeLedDemand@{chargeLedDemand}}
+\index{chargeLedDemand@{chargeLedDemand}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{chargeLedDemand}{chargeLedDemand}}
+{\footnotesize\ttfamily \label{class_state_manager_a9c4bd962a0a27709da96637aab1bc549} 
+uint8\+\_\+t State\+Manager\+::charge\+Led\+Demand\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_ac860df5618ddc4e8601cc3bf26539d4d}\index{StateManager@{StateManager}!chargerState@{chargerState}}
+\index{chargerState@{chargerState}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{chargerState}{chargerState}}
+{\footnotesize\ttfamily \label{class_state_manager_ac860df5618ddc4e8601cc3bf26539d4d} 
+uint8\+\_\+t State\+Manager\+::charger\+State\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_adacb6ae71caafe77cf8b3d9599e908f7}\index{StateManager@{StateManager}!chargerStateDemand@{chargerStateDemand}}
+\index{chargerStateDemand@{chargerStateDemand}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{chargerStateDemand}{chargerStateDemand}}
+{\footnotesize\ttfamily \label{class_state_manager_adacb6ae71caafe77cf8b3d9599e908f7} 
+uint8\+\_\+t State\+Manager\+::charger\+State\+Demand\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a406040789a1b551912daeea93c5072ec}\index{StateManager@{StateManager}!connectorLocked@{connectorLocked}}
+\index{connectorLocked@{connectorLocked}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{connectorLocked}{connectorLocked}}
+{\footnotesize\ttfamily \label{class_state_manager_a406040789a1b551912daeea93c5072ec} 
+bool State\+Manager\+::connector\+Locked\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a3aa030b95942adb7986b3319abc4e02c}\index{StateManager@{StateManager}!conUlockInterrupt@{conUlockInterrupt}}
+\index{conUlockInterrupt@{conUlockInterrupt}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{conUlockInterrupt}{conUlockInterrupt}}
+{\footnotesize\ttfamily \label{class_state_manager_a3aa030b95942adb7986b3319abc4e02c} 
+bool State\+Manager\+::con\+Ulock\+Interrupt\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a0851805b171942f25e6f1f40849ed94e}\index{StateManager@{StateManager}!coolingRequest@{coolingRequest}}
+\index{coolingRequest@{coolingRequest}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{coolingRequest}{coolingRequest}}
+{\footnotesize\ttfamily \label{class_state_manager_a0851805b171942f25e6f1f40849ed94e} 
+uint8\+\_\+t State\+Manager\+::cooling\+Request\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a2c40afa83f250c64421aca80f1e4eab8}\index{StateManager@{StateManager}!currentGear@{currentGear}}
+\index{currentGear@{currentGear}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{currentGear}{currentGear}}
+{\footnotesize\ttfamily \label{class_state_manager_a2c40afa83f250c64421aca80f1e4eab8} 
+\mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cd}{Gear\+State}} State\+Manager\+::current\+Gear = \mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cda31ba17aa58cdb681423f07ca21a6efc7}{Gear\+State\+::\+NEUTRAL}}\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_abdcc20b128f2755ebff3592e52a1cbf2}\index{StateManager@{StateManager}!currentState@{currentState}}
+\index{currentState@{currentState}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{currentState}{currentState}}
+{\footnotesize\ttfamily \label{class_state_manager_abdcc20b128f2755ebff3592e52a1cbf2} 
+\mbox{\hyperlink{config_8h_a75c52206c3c79acb62c0fddc66df3676}{Vehicle\+State}} State\+Manager\+::current\+State\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a48537ec445ff8d66cb9977f8820cf5dd}\index{StateManager@{StateManager}!enableBSC@{enableBSC}}
+\index{enableBSC@{enableBSC}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{enableBSC}{enableBSC}}
+{\footnotesize\ttfamily \label{class_state_manager_a48537ec445ff8d66cb9977f8820cf5dd} 
+bool State\+Manager\+::enable\+BSC\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_acb440cdcaed11f13b73941b7adafe1a8}\index{StateManager@{StateManager}!enableDMC@{enableDMC}}
+\index{enableDMC@{enableDMC}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{enableDMC}{enableDMC}}
+{\footnotesize\ttfamily \label{class_state_manager_acb440cdcaed11f13b73941b7adafe1a8} 
+bool State\+Manager\+::enable\+DMC\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_adf75c08507f42721af2ac30dba129cd0}\index{StateManager@{StateManager}!errorLatch@{errorLatch}}
+\index{errorLatch@{errorLatch}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{errorLatch}{errorLatch}}
+{\footnotesize\ttfamily \label{class_state_manager_adf75c08507f42721af2ac30dba129cd0} 
+bool State\+Manager\+::error\+Latch\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a854c82f75852c57160a46a6bce3b5901}\index{StateManager@{StateManager}!hasPreCharged@{hasPreCharged}}
+\index{hasPreCharged@{hasPreCharged}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{hasPreCharged}{hasPreCharged}}
+{\footnotesize\ttfamily \label{class_state_manager_a854c82f75852c57160a46a6bce3b5901} 
+bool State\+Manager\+::has\+Pre\+Charged\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a1b8041afd24d472be63a42f2d83a3cc3}\index{StateManager@{StateManager}!hvVoltage@{hvVoltage}}
+\index{hvVoltage@{hvVoltage}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{hvVoltage}{hvVoltage}}
+{\footnotesize\ttfamily \label{class_state_manager_a1b8041afd24d472be63a42f2d83a3cc3} 
+uint16\+\_\+t State\+Manager\+::hv\+Voltage\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a6ea9ae4e08f875031d5a008fc5736fc8}\index{StateManager@{StateManager}!hvVoltageActual@{hvVoltageActual}}
+\index{hvVoltageActual@{hvVoltageActual}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{hvVoltageActual}{hvVoltageActual}}
+{\footnotesize\ttfamily \label{class_state_manager_a6ea9ae4e08f875031d5a008fc5736fc8} 
+float State\+Manager\+::hv\+Voltage\+Actual\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_aa57c6c93846cc017830e9847919af81f}\index{StateManager@{StateManager}!inverterTemp@{inverterTemp}}
+\index{inverterTemp@{inverterTemp}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{inverterTemp}{inverterTemp}}
+{\footnotesize\ttfamily \label{class_state_manager_aa57c6c93846cc017830e9847919af81f} 
+float State\+Manager\+::inverter\+Temp\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a750dcf6d290875102ea4b588c4e4ee61}\index{StateManager@{StateManager}!lastModeChangeTime@{lastModeChangeTime}}
+\index{lastModeChangeTime@{lastModeChangeTime}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{lastModeChangeTime}{lastModeChangeTime}}
+{\footnotesize\ttfamily \label{class_state_manager_a750dcf6d290875102ea4b588c4e4ee61} 
+unsigned long State\+Manager\+::last\+Mode\+Change\+Time\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a459c7d3909d464353eae07ecbaa1b450}\index{StateManager@{StateManager}!lastPrechargeAttempt@{lastPrechargeAttempt}}
+\index{lastPrechargeAttempt@{lastPrechargeAttempt}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{lastPrechargeAttempt}{lastPrechargeAttempt}}
+{\footnotesize\ttfamily \label{class_state_manager_a459c7d3909d464353eae07ecbaa1b450} 
+unsigned long State\+Manager\+::last\+Precharge\+Attempt\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a99c5ac54d6186c257e7cf59041a12d5e}\index{StateManager@{StateManager}!modeBSC@{modeBSC}}
+\index{modeBSC@{modeBSC}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{modeBSC}{modeBSC}}
+{\footnotesize\ttfamily \label{class_state_manager_a99c5ac54d6186c257e7cf59041a12d5e} 
+bool State\+Manager\+::mode\+BSC\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_aa10509cf3a8d459cf85e7b43658aa53f}\index{StateManager@{StateManager}!motorTemp@{motorTemp}}
+\index{motorTemp@{motorTemp}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{motorTemp}{motorTemp}}
+{\footnotesize\ttfamily \label{class_state_manager_aa10509cf3a8d459cf85e7b43658aa53f} 
+float State\+Manager\+::motor\+Temp\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a43b93b091b97ec4b1c2224d20e3e74e5}\index{StateManager@{StateManager}!nlgCharged@{nlgCharged}}
+\index{nlgCharged@{nlgCharged}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{nlgCharged}{nlgCharged}}
+{\footnotesize\ttfamily \label{class_state_manager_a43b93b091b97ec4b1c2224d20e3e74e5} 
+bool State\+Manager\+::nlg\+Charged\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a789a97e89fc4c11e4541abc2e3b08ea4}\index{StateManager@{StateManager}!unlockConnectorRequest@{unlockConnectorRequest}}
+\index{unlockConnectorRequest@{unlockConnectorRequest}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{unlockConnectorRequest}{unlockConnectorRequest}}
+{\footnotesize\ttfamily \label{class_state_manager_a789a97e89fc4c11e4541abc2e3b08ea4} 
+bool State\+Manager\+::unlock\+Connector\+Request = false\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_state_manager_a976d42b3968564a0456c073b36894c8e}\index{StateManager@{StateManager}!unlockPersist@{unlockPersist}}
+\index{unlockPersist@{unlockPersist}!StateManager@{StateManager}}
+\doxysubsubsection{\texorpdfstring{unlockPersist}{unlockPersist}}
+{\footnotesize\ttfamily \label{class_state_manager_a976d42b3968564a0456c073b36894c8e} 
+bool State\+Manager\+::unlock\+Persist\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{state__manager_8h}{state\+\_\+manager.\+h}}\item 
+src/\mbox{\hyperlink{state__manager_8cpp}{state\+\_\+manager.\+cpp}}\end{DoxyCompactItemize}
