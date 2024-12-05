@@ -1,0 +1,101 @@
+\doxysection{vehicle\+\_\+parameters.\+h}
+\hypertarget{vehicle__parameters_8h_source}{}\label{vehicle__parameters_8h_source}\index{include/vehicle\_parameters.h@{include/vehicle\_parameters.h}}
+\mbox{\hyperlink{vehicle__parameters_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespace_vehicle_params}{VehicleParams}}\ \{}
+\DoxyCodeLine{00021\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_vehicle_params_1_1_battery}{Battery}}\ \{}
+\DoxyCodeLine{00022\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_battery_a31c279a4f740cb4484c30d509936803b}{MIN\_VOLTAGE}}\ =\ 360;\ \ \ \ \ }
+\DoxyCodeLine{00023\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_battery_a59cd9801c68c9ea45ddbd7bb31eddcc3}{NOM\_VOLTAGE}}\ =\ 382;\ \ \ \ \ }
+\DoxyCodeLine{00024\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_battery_a29bdffae1103ee00de49433fc17caef0}{MAX\_VOLTAGE}}\ =\ 436;\ \ \ \ \ }
+\DoxyCodeLine{00025\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_battery_a2cb53fea7926d683a237757840213570}{MAX\_DMC\_CURRENT}}\ =\ 300;\ }
+\DoxyCodeLine{00026\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_battery_a1aadb42468e3daa5cb91893e222a9b0c}{MAX\_NLG\_CURRENT}}\ =\ 72;\ \ }
+\DoxyCodeLine{00027\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_battery_abd141f82164e239c421f242dfe6ad1d4}{PRECHARGE\_CURRENT}}\ =\ 20;}
+\DoxyCodeLine{00028\ \ \ \ \ \};}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00034\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_vehicle_params_1_1_temperature}{Temperature}}\ \{}
+\DoxyCodeLine{00035\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_temperature_a9831a8d6b5634e918a299018fb423243}{INV\_HIGH}}\ =\ 65.0f;\ \ \ }
+\DoxyCodeLine{00036\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_temperature_a1d1d232aafb61ba406bdd974b00c62f0}{MOT\_HIGH}}\ =\ 80.0f;\ \ \ }
+\DoxyCodeLine{00037\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_temperature_a1c7266f93514a365deb508df1253b50a}{INV\_LOW}}\ =\ 40.0f;\ \ \ \ }
+\DoxyCodeLine{00038\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_temperature_a3a8e60e39c0f173c34910fed4036c0fc}{MOT\_LOW}}\ =\ 50.0f;\ \ \ \ }
+\DoxyCodeLine{00039\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_temperature_a3c80fa1cd256457e9bedbb0c4b9cc0c4}{NLG\_MAX}}\ =\ 80.0f;\ \ \ \ }
+\DoxyCodeLine{00040\ \ \ \ \ \};}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_vehicle_params_1_1_motor}{Motor}}\ \{}
+\DoxyCodeLine{00047\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_motor_ae9414c3611811b6cbf786de61c3ef9e3}{MAX\_TRQ}}\ =\ 850;\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00048\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_motor_a3b439fc6c5bb426683d474a9c4b9bc53}{MAX\_REQ\_TRQ}}\ =\ 850;\ \ \ \ \ }
+\DoxyCodeLine{00049\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_motor_ac24cfcb5d4bb226ff1e67cfd393c3ea6}{MAX\_REVERSE\_TRQ}}\ =\ 220;\ }
+\DoxyCodeLine{00050\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_motor_a8554f216b195524900c5b9f4b6762106}{MAX\_ACCEL\_STEP}}\ =\ 8.0f;\ \ \ }
+\DoxyCodeLine{00051\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_motor_a6969e3e63468c5bc0585ff8e4d977b5e}{MAX\_DECEL\_STEP}}\ =\ 25.0f;\ \ }
+\DoxyCodeLine{00052\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_motor_a9b143ca81ef8ca4c8ba7c32840360c3f}{TORQUE\_DEADBAND\_HIGH}}\ =\ 25.0f;\ }
+\DoxyCodeLine{00053\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_motor_a7aa6e22c3bf087d38644139ff31719ee}{TORQUE\_DEADBAND\_LOW}}\ =\ 18.0f;\ \ }
+\DoxyCodeLine{00054\ \ \ \ \ \};}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00060\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_vehicle_params_1_1_power}{Power}}\ \{}
+\DoxyCodeLine{00061\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_power_a5d0b258f64e224788ef483eb5f6f543c}{DMC\_DC\_MOT}}\ =\ 600;\ \ \ \ \ }
+\DoxyCodeLine{00062\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_power_a2db6a122e08de7f548e49e288d50d697}{DMC\_DC\_GEN}}\ =\ 420;\ \ \ \ \ }
+\DoxyCodeLine{00063\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_power_a68c79be909ee64d84e55b8ea6fe97b74}{BSC\_LV\_BUCK}}\ =\ 100;\ \ \ \ }
+\DoxyCodeLine{00064\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_power_ab52ab7853be8a4df312a006279cf42eb}{BSC\_LV\_BOOST}}\ =\ 100;\ \ \ }
+\DoxyCodeLine{00065\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_power_a9c452ad6490eb648b52a2d51a2b88a2b}{NLG\_MAX\_AC}}\ =\ 32;\ \ \ \ \ \ }
+\DoxyCodeLine{00066\ \ \ \ \ \};}
+\DoxyCodeLine{00067\ }
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_vehicle_params_1_1_transmission}{Transmission}}\ \{}
+\DoxyCodeLine{00073\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_transmission_a72adb9f8a245696fa959983f24cafcf5}{NORMAL\_RATIO}}\ =\ 1.2f;\ \ \ \ \ }
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_transmission_aa0efbcd12f990bd8c73a72af882903cc}{REDUCED\_RATIO}}\ =\ 2.1f;\ \ \ \ }
+\DoxyCodeLine{00075\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_transmission_aa917e726a1fa899cebb16be042228c77}{DIFF\_RATIO}}\ =\ 3.9f;\ \ \ \ \ \ \ }
+\DoxyCodeLine{00076\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_transmission_a2fdbe398f75ae9f357106d5c134b9ae2}{WHEEL\_CIRC}}\ =\ 2.08f;\ \ \ \ \ \ }
+\DoxyCodeLine{00077\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_transmission_a8de5beeca87629a1bd91044d886460d9}{RPM\_SHIFT\_THRESHOLD}}\ =\ 100.0f;\ }
+\DoxyCodeLine{00078\ \ \ \ \ \};}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_vehicle_params_1_1_control}{Control}}\ \{}
+\DoxyCodeLine{00085\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_control_a64a6317e3278137ad1705a430b3544ba}{PEDAL\_GAMMA}}\ =\ 1.5f;\ \ \ \ \ \ }
+\DoxyCodeLine{00086\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_control_adca137e9929af662fec68b63ad4ca154}{SPEED\_FACTOR}}\ =\ 1.2f;\ \ \ \ \ }
+\DoxyCodeLine{00087\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_control_a33ab93ff996bdf8dfb2ae910ae66cd40}{MIN\_PEDAL\_THRESHOLD}}\ =\ 2.0f;\ }
+\DoxyCodeLine{00088\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_control_a0520f92f4e577a64151b9ccf514688ac}{COAST\_POSITION\_MIN}}\ =\ 20.0f;\ }
+\DoxyCodeLine{00089\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_control_a2be573ba12cb77be130730e10e039152}{COAST\_POSITION\_MAX}}\ =\ 50.0f;\ }
+\DoxyCodeLine{00090\ \ \ \ \ \};}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00096\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_vehicle_params_1_1_regen}{Regen}}\ \{}
+\DoxyCodeLine{00097\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_regen_a9cc8820d9787d2393940817319b64a3b}{FADE\_START}}\ =\ 400.0f;\ \ \ \ }
+\DoxyCodeLine{00098\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_regen_acccd156f3fc446fcb287c3557ebe1ae6}{ZERO\_SPEED}}\ =\ 0.5f;\ \ \ \ \ \ }
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_regen_a315bf27ee0fd53e65da3cc257811c993}{MIN\_SPEED}}\ =\ 100.0f;\ \ \ \ \ }
+\DoxyCodeLine{00100\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_regen_ac7f4a342021e4298a1dea6ffb62aeb3a}{END\_POINT}}\ =\ 35.0f;\ \ \ \ \ \ }
+\DoxyCodeLine{00101\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_regen_aaad6767d3b51a5537d9e56d4b5810de7}{COAST\_END}}\ =\ 40.0f;\ \ \ \ \ \ }
+\DoxyCodeLine{00102\ \ \ \ \ \};}
+\DoxyCodeLine{00103\ }
+\DoxyCodeLine{00108\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d}{OPD}}\ \{}
+\DoxyCodeLine{00109\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_ad74504c9db636f62e2f52e84887a1f36}{MAX\_SPEED}}\ =\ 120.0;\ \ \ \ \ }
+\DoxyCodeLine{00110\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_acb5f72a8340c76c8d671f1ea53ffe947}{COAST\_RANGE}}\ =\ 10.0;\ \ \ \ }
+\DoxyCodeLine{00111\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_a1a8014c8c28e4fd2252eb6f42ae157ed}{PHI}}\ =\ 35.0;\ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00112\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_a9089992fb3c38a11d5cd1d85606299b5}{SHAPE\_FACTOR}}\ =\ 2.0;\ \ \ \ }
+\DoxyCodeLine{00113\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_a9f8867b92d11b7b8163722695cb742a9}{ROLLBACK\_SPEED}}\ =\ 3.0;\ \ }
+\DoxyCodeLine{00114\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_a7027a7b67adf17a486ff65de0951cf8f}{ROLLBACK\_TORQUE}}\ =\ 15.0;}
+\DoxyCodeLine{00115\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_aea32e951b3557e55f2bbbbb394168515}{MAX\_REGEN}}\ =\ 80.0;\ \ \ \ \ \ }
+\DoxyCodeLine{00116\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_ab4e2161ec32d9909ff034e09bbd43c4b}{MAX\_DRIVE}}\ =\ 100.0;\ \ \ \ \ }
+\DoxyCodeLine{00117\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_ad0c18ef0d3e52bb2725727905c1d2fae}{BRAKE\_LIGHT\_THRESHOLD}}\ =\ 20.0;\ }
+\DoxyCodeLine{00118\ \ \ \ \ \};}
+\DoxyCodeLine{00119\ }
+\DoxyCodeLine{00124\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_vehicle_params_1_1_timing}{Timing}}\ \{}
+\DoxyCodeLine{00125\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{struct_vehicle_params_1_1_timing_a3447c351fdeb2a03268ed457438e8201}{FAST\_CYCLE\_MS}}\ =\ 10;\ \ \ \ }
+\DoxyCodeLine{00126\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{struct_vehicle_params_1_1_timing_a621373cf59f4b9f2204e530d27d01bad}{SLOW\_CYCLE\_MS}}\ =\ 50;\ \ \ \ }
+\DoxyCodeLine{00127\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{struct_vehicle_params_1_1_timing_a092d069772be517c7b5799f38d244af3}{NLG\_UNLOCK\_TIMEOUT}}\ =\ 3000;\ }
+\DoxyCodeLine{00128\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{struct_vehicle_params_1_1_timing_aade931d0b80c96936287a31b30fa4e84}{PRECHARGE\_TIMEOUT}}\ =\ 5000;\ \ }
+\DoxyCodeLine{00129\ \ \ \ \ \};}
+\DoxyCodeLine{00130\ \ \ \ \ }
+\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{namespace_a_d_c}{ADC}}\ \{}
+\DoxyCodeLine{00136\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_a_d_c_aeb74d29cc63ea8c82c611f82c1aeba65}{MIN\_POT\_VALUE}}\ =\ 15568;\ \ \ }
+\DoxyCodeLine{00137\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_a_d_c_af6ce4a79ab68ce50aad908252f214e03}{MAX\_POT\_VALUE}}\ =\ 11200;\ \ \ }
+\DoxyCodeLine{00138\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_a_d_c_a892a9b543c66d82c8a958dc9f9789e5c}{POT\_DEADBAND}}\ =\ 0.02f;\ \ }
+\DoxyCodeLine{00139\ \ \ \ \ \};}
+\DoxyCodeLine{00140\ }
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_vehicle_params_1_1_limits}{Limits}}\ \{}
+\DoxyCodeLine{00146\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_limits_afaf47ce9ca55bbbe2e544e3562f46829}{MAX\_SPEED}}\ =\ 120.0f;\ \ \ \ \ }
+\DoxyCodeLine{00147\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_limits_a512951a7957fdc5f4309070b8e6033c9}{MAX\_REVERSE\_SPEED}}\ =\ 20.0f;\ }
+\DoxyCodeLine{00148\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{struct_vehicle_params_1_1_limits_ad85f2d76d37b30f2ff7e67e592bb0e2e}{MAX\_MOTOR\_RPM}}\ =\ 8000;\ \ \ \ \ }
+\DoxyCodeLine{00149\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_vehicle_params_1_1_limits_a562f20b4bc74480bd20541aa3c3bf39c}{MAX\_ACCELERATION}}\ =\ 3.0f;\ }
+\DoxyCodeLine{00150\ \ \ \ \ \};}
+\DoxyCodeLine{00151\ \};}
+
+\end{DoxyCode}

@@ -1,0 +1,31 @@
+\doxysection{src/setup.cpp File Reference}
+\hypertarget{setup_8cpp}{}\label{setup_8cpp}\index{src/setup.cpp@{src/setup.cpp}}
+
+
+System initialization and hardware setup implementation.  
+
+
+{\ttfamily \#include "{}setup.\+h"{}}\newline
+{\ttfamily \#include "{}config.\+h"{}}\newline
+{\ttfamily \#include $<$esp\+\_\+sleep.\+h$>$}\newline
+Include dependency graph for setup.\+cpp\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{setup_8cpp__incl}
+\end{center}
+\end{figure}
+
+
+\doxysubsection{Detailed Description}
+System initialization and hardware setup implementation. 
+
+Provides core initialization functionality for\+:
+\begin{DoxyItemize}
+\item GPIO configuration
+\item Sleep mode setup
+\item Default system states
+\end{DoxyItemize}
+
+This implementation focuses on safe startup conditions and proper hardware initialization for the ESP32-\/based vehicle control unit. 

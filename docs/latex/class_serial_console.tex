@@ -1,0 +1,379 @@
+\doxysection{Serial\+Console Class Reference}
+\hypertarget{class_serial_console}{}\label{class_serial_console}\index{SerialConsole@{SerialConsole}}
+
+
+{\ttfamily \#include $<$Serial\+Console.\+h$>$}
+
+
+
+Collaboration diagram for Serial\+Console\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{class_serial_console__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{class_serial_console_a1fe1b5b380f840b78e86460dbbf0d792}{Serial\+Console}} (\mbox{\hyperlink{class_c_a_n_manager}{CANManager}} \&\mbox{\hyperlink{class_serial_console_aad9ba9e517cb1b8f734425d827cacae4}{can\+Manager}}, \mbox{\hyperlink{class_state_manager}{State\+Manager}} \&\mbox{\hyperlink{class_serial_console_a12c3d661e26b9eab5af2749b1708c21d}{state\+Manager}}, \mbox{\hyperlink{class_vehicle_control}{Vehicle\+Control}} \&\mbox{\hyperlink{class_serial_console_abe832155055b439ec5f213c1480c3a48}{vehicle\+Control}})
+\begin{DoxyCompactList}\small\item\em Constructs debug console interface. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_serial_console_aa57efb67adcdfba8e348130fe157b7b2}{update}} ()
+\begin{DoxyCompactList}\small\item\em Process serial input and handle commands Should be called in main control loop. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{class_serial_console_a48eeab60bd476d8b9320068c3e4c0e2a}{handle\+Command}} (String command)
+\begin{DoxyCompactList}\small\item\em Process received command string. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_serial_console_ab3ece621b0db640fd96e45a8c3981520}{handle\+Get}} (String target, String parameter)
+\begin{DoxyCompactList}\small\item\em Handle get commands for system monitoring. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_serial_console_a5783aa7363bfd41aa9825d685a5e142a}{handle\+Set}} (String target, String parameter, String value)
+\begin{DoxyCompactList}\small\item\em Handle set commands for system control. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_serial_console_a13969e8e28db557527ca3ea8c02c34bf}{print\+Help}} ()
+\begin{DoxyCompactList}\small\item\em Display help information and command list Shows all available commands with descriptions Groups commands by subsystem for clarity. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_serial_console_a38e05c665081083be8950d27df470011}{print\+Value}} (const String \&name, int value, const String \&unit="{}"{})
+\begin{DoxyCompactList}\small\item\em Print integer value with optional unit. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_serial_console_a01d1016866e476a0dc8d00828df0f05a}{print\+Value}} (const String \&name, float value, const String \&unit="{}"{})
+\begin{DoxyCompactList}\small\item\em Print float value with optional unit. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_serial_console_aaa4566f46553e330bd343f2df42c813c}{print\+Value}} (const String \&name, bool value)
+\begin{DoxyCompactList}\small\item\em Print boolean value. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{class_c_a_n_manager}{CANManager}} \& \mbox{\hyperlink{class_serial_console_aad9ba9e517cb1b8f734425d827cacae4}{can\+Manager}}
+\begin{DoxyCompactList}\small\item\em Reference to CAN system. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{class_state_manager}{State\+Manager}} \& \mbox{\hyperlink{class_serial_console_a12c3d661e26b9eab5af2749b1708c21d}{state\+Manager}}
+\begin{DoxyCompactList}\small\item\em Reference to state system. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{class_vehicle_control}{Vehicle\+Control}} \& \mbox{\hyperlink{class_serial_console_abe832155055b439ec5f213c1480c3a48}{vehicle\+Control}}
+\begin{DoxyCompactList}\small\item\em Reference to vehicle control. \end{DoxyCompactList}\item 
+String \mbox{\hyperlink{class_serial_console_adb275912fb244d684f9e613c7ae8e143}{input\+Buffer}}
+\begin{DoxyCompactList}\small\item\em Command input buffer. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{class_serial_console_a1fe1b5b380f840b78e86460dbbf0d792}\index{SerialConsole@{SerialConsole}!SerialConsole@{SerialConsole}}
+\index{SerialConsole@{SerialConsole}!SerialConsole@{SerialConsole}}
+\doxysubsubsection{\texorpdfstring{SerialConsole()}{SerialConsole()}}
+{\footnotesize\ttfamily \label{class_serial_console_a1fe1b5b380f840b78e86460dbbf0d792} 
+Serial\+Console\+::\+Serial\+Console (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{class_c_a_n_manager}{CANManager}} \&}]{can\+Manager}{, }\item[{\mbox{\hyperlink{class_state_manager}{State\+Manager}} \&}]{state\+Manager}{, }\item[{\mbox{\hyperlink{class_vehicle_control}{Vehicle\+Control}} \&}]{vehicle\+Control}{}\end{DoxyParamCaption})}
+
+
+
+Constructs debug console interface. 
+
+Construct Serial Console interface.
+
+
+\begin{DoxyParams}{Parameters}
+{\em can\+Manager} & Reference to CAN communication system \\
+\hline
+{\em state\+Manager} & Reference to vehicle state control \\
+\hline
+{\em vehicle\+Control} & Reference to motor control system\\
+\hline
+\end{DoxyParams}
+Initializes monitoring interface and command parser
+
+
+\begin{DoxyParams}{Parameters}
+{\em can\+Manager} & Reference to CAN communication system \\
+\hline
+{\em state\+Manager} & Reference to vehicle state manager \\
+\hline
+{\em vehicle\+Control} & Reference to vehicle control system \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_serial_console_a48eeab60bd476d8b9320068c3e4c0e2a}\index{SerialConsole@{SerialConsole}!handleCommand@{handleCommand}}
+\index{handleCommand@{handleCommand}!SerialConsole@{SerialConsole}}
+\doxysubsubsection{\texorpdfstring{handleCommand()}{handleCommand()}}
+{\footnotesize\ttfamily \label{class_serial_console_a48eeab60bd476d8b9320068c3e4c0e2a} 
+void Serial\+Console\+::handle\+Command (\begin{DoxyParamCaption}\item[{String}]{command}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Process received command string. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em command} & Complete command string to process\\
+\hline
+\end{DoxyParams}
+Supported Commands\+:
+\begin{DoxyEnumerate}
+\item NLG (Charger) Commands\+:
+\begin{DoxyItemize}
+\item get\+:nlg\+:state -\/ Current charger state
+\item get\+:nlg\+:voltage -\/ Charging voltage
+\item get\+:nlg\+:current -\/ Charging current
+\item get\+:nlg\+:temp -\/ Charger temperature
+\item get\+:nlg\+:all -\/ All charger parameters
+\end{DoxyItemize}
+\item BMS Commands\+:
+\begin{DoxyItemize}
+\item get\+:bms\+:maxcurrent -\/ Maximum allowed current
+\item get\+:bms\+:soc -\/ State of charge
+\item get\+:bms\+:voltage -\/ Battery voltage
+\item get\+:bms\+:current -\/ Battery current
+\item get\+:bms\+:all -\/ All battery parameters
+\end{DoxyItemize}
+\item DMC (Motor) Commands\+:
+\begin{DoxyItemize}
+\item get\+:dmc\+:motortemp -\/ Motor temperature
+\item get\+:dmc\+:invertertemp -\/ Inverter temperature
+\item get\+:dmc\+:status -\/ Operation status
+\item get\+:dmc\+:all -\/ All motor parameters
+\end{DoxyItemize}
+\item BSC (DC-\/\+DC) Commands\+:
+\begin{DoxyItemize}
+\item get\+:bsc\+:hvvoltage -\/ High voltage
+\item get\+:bsc\+:lvcurrent -\/ Low voltage current
+\item get\+:bsc\+:mode -\/ Operating mode
+\item get\+:bsc\+:all -\/ All converter parameters
+\end{DoxyItemize}
+\item VCU Control Commands\+:
+\begin{DoxyItemize}
+\item get\+:vcu\+:state -\/ System state
+\item get\+:vcu\+:all -\/ All system parameters
+\item set\+:vcu\+:drivemode\+:\mbox{[}legacy\texorpdfstring{$\vert$}{|}regen\texorpdfstring{$\vert$}{|}opd\mbox{]} -\/ Set drive mode
+\item set\+:vcu\+:bsckl15\+:\mbox{[}0\texorpdfstring{$\vert$}{|}1\mbox{]} -\/ Control BSC power
+\item set\+:vcu\+:dmckl15\+:\mbox{[}0\texorpdfstring{$\vert$}{|}1\mbox{]} -\/ Control DMC power
+\item set\+:vcu\+:nlgkl15\+:\mbox{[}0\texorpdfstring{$\vert$}{|}1\mbox{]} -\/ Control NLG power
+\item set\+:vcu\+:pump\+:\mbox{[}0\texorpdfstring{$\vert$}{|}1\mbox{]} -\/ Control cooling pump
+\end{DoxyItemize}
+\end{DoxyEnumerate}
+
+
+\begin{DoxyParams}{Parameters}
+{\em command} & Complete command to process\\
+\hline
+\end{DoxyParams}
+Parses command string in format\+: action\+:target\+:parameter\mbox{[}\+:value\mbox{]}
+
+Actions\+:
+\begin{DoxyItemize}
+\item get\+: Read system parameters
+\item set\+: Modify system parameters
+\item help\+: Show command list 
+\end{DoxyItemize}\Hypertarget{class_serial_console_ab3ece621b0db640fd96e45a8c3981520}\index{SerialConsole@{SerialConsole}!handleGet@{handleGet}}
+\index{handleGet@{handleGet}!SerialConsole@{SerialConsole}}
+\doxysubsubsection{\texorpdfstring{handleGet()}{handleGet()}}
+{\footnotesize\ttfamily \label{class_serial_console_ab3ece621b0db640fd96e45a8c3981520} 
+void Serial\+Console\+::handle\+Get (\begin{DoxyParamCaption}\item[{String}]{target}{, }\item[{String}]{parameter}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Handle get commands for system monitoring. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target} & System to query (nlg/bms/dmc/bsc/vcu) \\
+\hline
+{\em parameter} & Specific parameter to read\\
+\hline
+\end{DoxyParams}
+Response Format\+: "{}$<$parameter\+\_\+name$>$\+: $<$value$>$ $<$unit$>$"{}
+
+Error Handling\+:
+\begin{DoxyItemize}
+\item Invalid target\+: "{}\+Unknown system\+: $<$target$>$"{}
+\item Invalid parameter\+: "{}\+Unknown parameter\+: $<$parameter$>$"{}
+\item Read error\+: "{}\+Error reading $<$parameter$>$"{}
+\end{DoxyItemize}
+
+
+\begin{DoxyParams}{Parameters}
+{\em target} & System to query (nlg/bms/dmc/bsc/vcu) \\
+\hline
+{\em parameter} & Parameter to read\\
+\hline
+\end{DoxyParams}
+Retrieves and displays current system parameters. Supports individual parameter queries and \textquotesingle{}all\textquotesingle{} for complete status. \Hypertarget{class_serial_console_a5783aa7363bfd41aa9825d685a5e142a}\index{SerialConsole@{SerialConsole}!handleSet@{handleSet}}
+\index{handleSet@{handleSet}!SerialConsole@{SerialConsole}}
+\doxysubsubsection{\texorpdfstring{handleSet()}{handleSet()}}
+{\footnotesize\ttfamily \label{class_serial_console_a5783aa7363bfd41aa9825d685a5e142a} 
+void Serial\+Console\+::handle\+Set (\begin{DoxyParamCaption}\item[{String}]{target}{, }\item[{String}]{parameter}{, }\item[{String}]{value}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Handle set commands for system control. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target} & System to control \\
+\hline
+{\em parameter} & Parameter to modify \\
+\hline
+{\em value} & New value to set\\
+\hline
+\end{DoxyParams}
+Safety Checks\+:
+\begin{DoxyItemize}
+\item Value range validation
+\item System state validation
+\item Operation permissions
+\end{DoxyItemize}
+
+Error Handling\+:
+\begin{DoxyItemize}
+\item Invalid value\+: "{}\+Invalid value for $<$parameter$>$"{}
+\item Operation not allowed\+: "{}\+Operation not allowed in current state"{}
+\end{DoxyItemize}
+
+
+\begin{DoxyParams}{Parameters}
+{\em target} & System to control \\
+\hline
+{\em parameter} & Parameter to modify \\
+\hline
+{\em value} & New value to set\\
+\hline
+\end{DoxyParams}
+Processes system control commands and applies requested changes. \Hypertarget{class_serial_console_a13969e8e28db557527ca3ea8c02c34bf}\index{SerialConsole@{SerialConsole}!printHelp@{printHelp}}
+\index{printHelp@{printHelp}!SerialConsole@{SerialConsole}}
+\doxysubsubsection{\texorpdfstring{printHelp()}{printHelp()}}
+{\footnotesize\ttfamily \label{class_serial_console_a13969e8e28db557527ca3ea8c02c34bf} 
+void Serial\+Console\+::print\+Help (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Display help information and command list Shows all available commands with descriptions Groups commands by subsystem for clarity. 
+
+Display available commands and usage information.
+
+Shows comprehensive list of supported commands grouped by subsystem. \Hypertarget{class_serial_console_aaa4566f46553e330bd343f2df42c813c}\index{SerialConsole@{SerialConsole}!printValue@{printValue}}
+\index{printValue@{printValue}!SerialConsole@{SerialConsole}}
+\doxysubsubsection{\texorpdfstring{printValue()}{printValue()}\hspace{0.1cm}{\footnotesize\ttfamily [1/3]}}
+{\footnotesize\ttfamily \label{class_serial_console_aaa4566f46553e330bd343f2df42c813c} 
+void Serial\+Console\+::print\+Value (\begin{DoxyParamCaption}\item[{const String \&}]{name}{, }\item[{bool}]{value}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Print boolean value. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em name} & Parameter name \\
+\hline
+{\em value} & Boolean state\\
+\hline
+\end{DoxyParams}
+Outputs "{}\+True"{} or "{}\+False"{} for better readability
+
+
+\begin{DoxyParams}{Parameters}
+{\em name} & Parameter name \\
+\hline
+{\em value} & Boolean state \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_serial_console_a01d1016866e476a0dc8d00828df0f05a}\index{SerialConsole@{SerialConsole}!printValue@{printValue}}
+\index{printValue@{printValue}!SerialConsole@{SerialConsole}}
+\doxysubsubsection{\texorpdfstring{printValue()}{printValue()}\hspace{0.1cm}{\footnotesize\ttfamily [2/3]}}
+{\footnotesize\ttfamily \label{class_serial_console_a01d1016866e476a0dc8d00828df0f05a} 
+void Serial\+Console\+::print\+Value (\begin{DoxyParamCaption}\item[{const String \&}]{name}{, }\item[{float}]{value}{, }\item[{const String \&}]{unit}{ = {\ttfamily "{}"{}}}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Print float value with optional unit. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em name} & Parameter name \\
+\hline
+{\em value} & Float value \\
+\hline
+{\em unit} & Optional unit string \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_serial_console_a38e05c665081083be8950d27df470011}\index{SerialConsole@{SerialConsole}!printValue@{printValue}}
+\index{printValue@{printValue}!SerialConsole@{SerialConsole}}
+\doxysubsubsection{\texorpdfstring{printValue()}{printValue()}\hspace{0.1cm}{\footnotesize\ttfamily [3/3]}}
+{\footnotesize\ttfamily \label{class_serial_console_a38e05c665081083be8950d27df470011} 
+void Serial\+Console\+::print\+Value (\begin{DoxyParamCaption}\item[{const String \&}]{name}{, }\item[{int}]{value}{, }\item[{const String \&}]{unit}{ = {\ttfamily "{}"{}}}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Print integer value with optional unit. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em name} & Parameter name \\
+\hline
+{\em value} & Integer value \\
+\hline
+{\em unit} & Optional unit string (V, A, °C, etc) \\
+\hline
+\end{DoxyParams}
+\Hypertarget{class_serial_console_aa57efb67adcdfba8e348130fe157b7b2}\index{SerialConsole@{SerialConsole}!update@{update}}
+\index{update@{update}!SerialConsole@{SerialConsole}}
+\doxysubsubsection{\texorpdfstring{update()}{update()}}
+{\footnotesize\ttfamily \label{class_serial_console_aa57efb67adcdfba8e348130fe157b7b2} 
+void Serial\+Console\+::update (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Process serial input and handle commands Should be called in main control loop. 
+
+Process serial input and handle commands.
+
+Handles\+:
+\begin{DoxyItemize}
+\item Command buffering
+\item Command parsing
+\item Response formatting
+\item Error handling
+\end{DoxyItemize}
+
+Reads available serial data and builds commands character by character. Commands are processed when a newline is received. 
+
+\doxysubsection{Member Data Documentation}
+\Hypertarget{class_serial_console_aad9ba9e517cb1b8f734425d827cacae4}\index{SerialConsole@{SerialConsole}!canManager@{canManager}}
+\index{canManager@{canManager}!SerialConsole@{SerialConsole}}
+\doxysubsubsection{\texorpdfstring{canManager}{canManager}}
+{\footnotesize\ttfamily \label{class_serial_console_aad9ba9e517cb1b8f734425d827cacae4} 
+\mbox{\hyperlink{class_c_a_n_manager}{CANManager}}\& Serial\+Console\+::can\+Manager\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Reference to CAN system. 
+
+\Hypertarget{class_serial_console_adb275912fb244d684f9e613c7ae8e143}\index{SerialConsole@{SerialConsole}!inputBuffer@{inputBuffer}}
+\index{inputBuffer@{inputBuffer}!SerialConsole@{SerialConsole}}
+\doxysubsubsection{\texorpdfstring{inputBuffer}{inputBuffer}}
+{\footnotesize\ttfamily \label{class_serial_console_adb275912fb244d684f9e613c7ae8e143} 
+String Serial\+Console\+::input\+Buffer\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Command input buffer. 
+
+\Hypertarget{class_serial_console_a12c3d661e26b9eab5af2749b1708c21d}\index{SerialConsole@{SerialConsole}!stateManager@{stateManager}}
+\index{stateManager@{stateManager}!SerialConsole@{SerialConsole}}
+\doxysubsubsection{\texorpdfstring{stateManager}{stateManager}}
+{\footnotesize\ttfamily \label{class_serial_console_a12c3d661e26b9eab5af2749b1708c21d} 
+\mbox{\hyperlink{class_state_manager}{State\+Manager}}\& Serial\+Console\+::state\+Manager\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Reference to state system. 
+
+\Hypertarget{class_serial_console_abe832155055b439ec5f213c1480c3a48}\index{SerialConsole@{SerialConsole}!vehicleControl@{vehicleControl}}
+\index{vehicleControl@{vehicleControl}!SerialConsole@{SerialConsole}}
+\doxysubsubsection{\texorpdfstring{vehicleControl}{vehicleControl}}
+{\footnotesize\ttfamily \label{class_serial_console_abe832155055b439ec5f213c1480c3a48} 
+\mbox{\hyperlink{class_vehicle_control}{Vehicle\+Control}}\& Serial\+Console\+::vehicle\+Control\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Reference to vehicle control. 
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{_serial_console_8h}{Serial\+Console.\+h}}\item 
+src/\mbox{\hyperlink{_serial_console_8cpp}{Serial\+Console.\+cpp}}\end{DoxyCompactItemize}

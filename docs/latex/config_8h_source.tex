@@ -1,0 +1,124 @@
+\doxysection{config.\+h}
+\hypertarget{config_8h_source}{}\label{config_8h_source}\index{include/config.h@{include/config.h}}
+\mbox{\hyperlink{config_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#include\ <Arduino.h>}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Pin\ Definitions}}
+\DoxyCodeLine{00005\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespace_pins}{Pins}}\ \{}
+\DoxyCodeLine{00006\ \ \ \ \ \textcolor{comment}{//\ SPI\ Pins}}
+\DoxyCodeLine{00007\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_a17a596f9a021b393095fdf34341d9e5c}{SCK}}\ =\ 4;}
+\DoxyCodeLine{00008\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_ab822a61e6b69e6dd91dbb25963c5d45e}{MOSI}}\ =\ 6;}
+\DoxyCodeLine{00009\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_a3d914cd73fe363b28e2d07ada0f66409}{MISO}}\ =\ 5;}
+\DoxyCodeLine{00010\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_a248b6d2b1719a8097777b7a19e12b3bd}{SPI\_CS\_PIN}}\ =\ 36;}
+\DoxyCodeLine{00011\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_a7f2b956cf658082d10af1d80632de0e4}{CAN\_INT\_PIN}}\ =\ 37;\ \ \textcolor{comment}{//\ New\ interrupt\ pin}}
+\DoxyCodeLine{00012\ \ \ \ \ }
+\DoxyCodeLine{00013\ \ \ \ \ \textcolor{comment}{//\ Relay\ Pins}}
+\DoxyCodeLine{00014\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_a3b62641ccbcba7c41587f1a4a8e5159c}{PUMP}}\ =\ 38;\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Cooling\ Pump\ PW0}}
+\DoxyCodeLine{00015\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_a2fbac616f8074f2796f8512edc11be6f}{PW1}}\ =\ 39;}
+\DoxyCodeLine{00016\ \ \ \ \ }
+\DoxyCodeLine{00017\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_a370c7e6701c78ce43de46f8aa995f3ab}{CONTACTOR}}\ =\ 11;\ \ \ \ \textcolor{comment}{//\ HV\ Battery\ LPW0}}
+\DoxyCodeLine{00018\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_a3408decc259fda478a80205ea8144e23}{NLGKL15}}\ =\ 12;\ \ \ \ \ \ \textcolor{comment}{//\ NLG\ KL15\ LPW1}}
+\DoxyCodeLine{00019\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_af9540ca74c8cbe0fdd851ff2beaf1e8b}{DMCKL15}}\ =\ 13;\ \ \ \ \ \ \textcolor{comment}{//\ DMC\ KL15\ LWP2}}
+\DoxyCodeLine{00020\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_a1f3e858ba3c894b1decd4e25ceb2e3cc}{BSCKL15}}\ =\ 14;\ \ \ \ \ \ \textcolor{comment}{//\ BSC\ KL15\ LWP3}}
+\DoxyCodeLine{00021\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_af8e974c31acdd5ca808f21d5b61a1384}{BCKLIGHT}}\ =\ 17;\ \ \ \ \ \textcolor{comment}{//\ Reverse\ Signal\ LWP4}}
+\DoxyCodeLine{00022\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_a4818839652a6e562af58f6987e405164}{LWP5}}\ =\ 18;}
+\DoxyCodeLine{00023\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_a2a373f4d3b858d93c46f8569df4c124f}{LWP6}}\ =\ 21;}
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_a364270ddf7fa589157d0747c51a4a997}{LWP7}}\ =\ 16;}
+\DoxyCodeLine{00025\ \ \ \ \ }
+\DoxyCodeLine{00026\ \ \ \ \ \textcolor{comment}{//\ Input\ Pins}}
+\DoxyCodeLine{00027\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_a0a25931e36958bb010ee2c1bea46f4e0}{NLG\_HW\_Wakeup}}\ =\ 7;}
+\DoxyCodeLine{00028\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_ad6ab989a95cbea0b28e557ffac62a3f1}{IGNITION}}\ =\ 8;}
+\DoxyCodeLine{00029\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_pins_a995c57706ebe6754b5674d2629b53e4e}{UNLCKCON}}\ =\ 9;}
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint32\_t\ \mbox{\hyperlink{namespace_pins_ac7f9afb87d8907a6ac0e6404ba88ae7b}{BUTTON\_PIN\_BITMASK}}\ =\ 0x380;}
+\DoxyCodeLine{00031\ \}}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ CAN\ Message\ IDs}}
+\DoxyCodeLine{00034\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespace_c_a_n_ids}{CANIds}}\ \{}
+\DoxyCodeLine{00035\ \ \ \ \ \textcolor{comment}{//\ BSC\ Messages}}
+\DoxyCodeLine{00036\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint16\_t\ \mbox{\hyperlink{namespace_c_a_n_ids_aa5b516b2458878f1aa26963a2d299b1b}{BSC\_COMM}}\ =\ 0x260;}
+\DoxyCodeLine{00037\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint16\_t\ \mbox{\hyperlink{namespace_c_a_n_ids_a404c5468dbabd519c8ddcad2ed5f236c}{BSC\_LIM}}\ =\ 0x261;}
+\DoxyCodeLine{00038\ \ \ \ \ }
+\DoxyCodeLine{00039\ \ \ \ \ \textcolor{comment}{//\ DMC\ Messages}}
+\DoxyCodeLine{00040\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint16\_t\ \mbox{\hyperlink{namespace_c_a_n_ids_a64da42eb66134fa287848e2fc2cb48e3}{DMCCTRL}}\ =\ 0x210;}
+\DoxyCodeLine{00041\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint16\_t\ \mbox{\hyperlink{namespace_c_a_n_ids_abe6d2d060dee34674687a86489c8b8ef}{DMCLIM}}\ =\ 0x211;}
+\DoxyCodeLine{00042\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint16\_t\ \mbox{\hyperlink{namespace_c_a_n_ids_ae2287582fcb0959b73f5010d8f066135}{DMCCTRL2}}\ =\ 0x212;}
+\DoxyCodeLine{00043\ \ \ \ \ }
+\DoxyCodeLine{00044\ \ \ \ \ \textcolor{comment}{//\ NLG\ Messages}}
+\DoxyCodeLine{00045\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint16\_t\ \mbox{\hyperlink{namespace_c_a_n_ids_a629fc242c61d83b0c6ead58b97caadf4}{NLG\_DEM\_LIM}}\ =\ 0x711;}
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint16\_t\ \mbox{\hyperlink{namespace_c_a_n_ids_aa0d5c919989d539b956b41c3ed9f6e1c}{NLG\_ACT\_ERR}}\ =\ 0x799;}
+\DoxyCodeLine{00047\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint16\_t\ \mbox{\hyperlink{namespace_c_a_n_ids_abd0b321887aa2db9bcb3dc5852e943a5}{NLG\_ACT\_LIM}}\ =\ 0x728;}
+\DoxyCodeLine{00048\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint16\_t\ \mbox{\hyperlink{namespace_c_a_n_ids_acbf2a29f7389a75e284917975def872a}{NLG\_ACT\_PLUG}}\ =\ 0x739;}
+\DoxyCodeLine{00049\ \}}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ Timing\ Constants}}
+\DoxyCodeLine{00052\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespace_constants}{Constants}}\ \{}
+\DoxyCodeLine{00053\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint16\_t\ \mbox{\hyperlink{namespace_constants_a883785b79c5e6c3ff7735d45388910b5}{FAST\_CYCLE\_MS}}\ =\ 10;}
+\DoxyCodeLine{00054\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint16\_t\ \mbox{\hyperlink{namespace_constants_a5672611ae21bbe7c6ab84e6d8b62dff2}{SLOW\_CYCLE\_MS}}\ =\ 50;}
+\DoxyCodeLine{00055\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint16\_t\ \mbox{\hyperlink{namespace_constants_a7408e7cec89d228465ad39cfc6514e65}{VERY\_SLOW\_CYCLE\_MS}}\ =\ 100;}
+\DoxyCodeLine{00056\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint32\_t\ \mbox{\hyperlink{namespace_constants_aed5c6a6a6358f29b6db56e63095c244a}{MODE\_CHANGE\_DELAY\_MS}}\ =\ 2000;}
+\DoxyCodeLine{00057\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint32\_t\ \mbox{\hyperlink{namespace_constants_a3552303f74709ea71823a22118907e21}{UNLOCK\_TIMEOUT\_MS}}\ =\ 3000;}
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint32\_t\ \mbox{\hyperlink{namespace_constants_a56616bd7b9fe987943ac98f5d3598408}{PRECHARGE\_TIMEOUT\_MS}}\ =\ 5000;}
+\DoxyCodeLine{00059\ \}}
+\DoxyCodeLine{00060\ }
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ BSC\ Operating\ Modes}}
+\DoxyCodeLine{00062\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespace_b_s_c_modes}{BSCModes}}\ \{}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_b_s_c_modes_a691d04054ccc65d1698f1af5a7b80366}{BSC6\_BUCK}}\ =\ 0;}
+\DoxyCodeLine{00064\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_b_s_c_modes_a16fb97a7e7bc302507bda1c264e2cf80}{BSC6\_BOOST}}\ =\ 1;}
+\DoxyCodeLine{00065\ \}}
+\DoxyCodeLine{00066\ }
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ Charger\ States}}
+\DoxyCodeLine{00068\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespace_charger_states}{ChargerStates}}\ \{}
+\DoxyCodeLine{00069\ \ \ \ \ \textcolor{comment}{//\ Actual\ States}}
+\DoxyCodeLine{00070\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_charger_states_abcb8db740fcd18376e339a33a1fed097}{NLG\_ACT\_SLEEP}}\ =\ 0;}
+\DoxyCodeLine{00071\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_charger_states_a32ea45bfd6b4966d7af038653477d66a}{NLG\_ACT\_WAKEUP}}\ =\ 1;}
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_charger_states_ae32036c87a4c0780e50d39ae167ddffa}{NLG\_ACT\_STANDBY}}\ =\ 2;}
+\DoxyCodeLine{00073\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_charger_states_a784325184d6e5c3b7c3b01ddc89c2ef4}{NLG\_ACT\_READY2CHARGE}}\ =\ 3;}
+\DoxyCodeLine{00074\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_charger_states_a57035bd5e789822c17c41e87df7d04b3}{NLG\_ACT\_CHARGE}}\ =\ 4;}
+\DoxyCodeLine{00075\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_charger_states_abddcc96e49f4f4d39844510439376cae}{NLG\_ACT\_SHUTDOWN}}\ =\ 5;}
+\DoxyCodeLine{00076\ \ \ \ \ }
+\DoxyCodeLine{00077\ \ \ \ \ \textcolor{comment}{//\ Demanded\ States}}
+\DoxyCodeLine{00078\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_charger_states_ae0facf27906c24cfc06eb46f467da01c}{NLG\_DEM\_STANDBY}}\ =\ 0;}
+\DoxyCodeLine{00079\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_charger_states_ad31c353924ebc351eb9f12e29adb75cf}{NLG\_DEM\_CHARGE}}\ =\ 1;}
+\DoxyCodeLine{00080\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_charger_states_aa883beec59a577d9244afc5bc8c5d28e}{NLG\_DEM\_SLEEP}}\ =\ 6;}
+\DoxyCodeLine{00081\ \}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ Add\ to\ config.h,\ replacing\ previous\ enums}}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ ADC\ Configuration}}
+\DoxyCodeLine{00085\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespace_a_d_c}{ADC}}\ \{}
+\DoxyCodeLine{00086\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_a_d_c_aa19f046a9c7a6c7c68496d971da746b8}{GASPEDAL1}}\ =\ 0;}
+\DoxyCodeLine{00087\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_a_d_c_ab0d3fe85c1f784d66c3d1c193836f45d}{GASPEDAL2}}\ =\ 1;}
+\DoxyCodeLine{00088\ \ \ \ \ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespace_a_d_c_a2e08225129b3b2fb2986e97394b0e160}{REVERSE}}\ =\ 0;}
+\DoxyCodeLine{00089\ \ \ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespace_a_d_c_a8be8c473d74a4c4c9e7e002457039a6b}{MinValPot}}\ =\ 15568;}
+\DoxyCodeLine{00090\ \ \ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespace_a_d_c_abf009b19c9d7384980b6fbe86d990397}{MaxValPot}}\ =\ 11200;}
+\DoxyCodeLine{00091\ \}}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \textcolor{comment}{//\ Vehicle\ States}}
+\DoxyCodeLine{00094\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{config_8h_a75c52206c3c79acb62c0fddc66df3676}{VehicleState}}\ \{}
+\DoxyCodeLine{00095\ \ \ \ \ \mbox{\hyperlink{config_8h_a75c52206c3c79acb62c0fddc66df3676aeea559d5c56d48e94e586f7fe000c0b1}{STANDBY}},}
+\DoxyCodeLine{00096\ \ \ \ \ \mbox{\hyperlink{config_8h_a75c52206c3c79acb62c0fddc66df3676a855520d2a5b0b1a64b939e7e30889e2a}{RUN}},}
+\DoxyCodeLine{00097\ \ \ \ \ \mbox{\hyperlink{config_8h_a75c52206c3c79acb62c0fddc66df3676a3a8ea4a62d0682faf83d7372669b5e9b}{CHARGING}}}
+\DoxyCodeLine{00098\ \};}
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00100\ \textcolor{comment}{//\ Gear\ States}}
+\DoxyCodeLine{00101\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cd}{GearState}}\ \{}
+\DoxyCodeLine{00102\ \ \ \ \ \mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cda31ba17aa58cdb681423f07ca21a6efc7}{NEUTRAL}},}
+\DoxyCodeLine{00103\ \ \ \ \ \mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cda2e391a7285515e3663a36f473cf6fe20}{DRIVE}},}
+\DoxyCodeLine{00104\ \ \ \ \ \mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cda642e0b6684e6165e142c074f1cd8d55c}{REVERSE}}}
+\DoxyCodeLine{00105\ \};}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00107\ \textcolor{comment}{//\ Gear\ Ratios\ (Changed\ LOW\ to\ REDUCED)}}
+\DoxyCodeLine{00108\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{config_8h_ac5e05c5a7d57d23d56fbc19df0ecf645}{GearRatio}}\ \{}
+\DoxyCodeLine{00109\ \ \ \ \ \mbox{\hyperlink{config_8h_ac5e05c5a7d57d23d56fbc19df0ecf645a1e23852820b9154316c7c06e2b7ba051}{NORMAL}},}
+\DoxyCodeLine{00110\ \ \ \ \ \mbox{\hyperlink{config_8h_ac5e05c5a7d57d23d56fbc19df0ecf645a783282f3802a8ab2acc54f97de059f18}{REDUCED}}}
+\DoxyCodeLine{00111\ \};}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00113\ \textcolor{comment}{//\ Drive\ Modes\ (Changed\ DrivingMode\ to\ DriveMode)}}
+\DoxyCodeLine{00114\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{config_8h_a785f94b7f1a29eb5a7001c09bad64c01}{DriveMode}}\ \{}
+\DoxyCodeLine{00115\ \ \ \ \ \mbox{\hyperlink{config_8h_a785f94b7f1a29eb5a7001c09bad64c01a456d016bd133625e5036aa9a556f2730}{LEGACY}},}
+\DoxyCodeLine{00116\ \ \ \ \ \mbox{\hyperlink{config_8h_a785f94b7f1a29eb5a7001c09bad64c01abb18b97e40330da28b9c318e2becc18d}{REGEN}},}
+\DoxyCodeLine{00117\ \ \ \ \ \mbox{\hyperlink{config_8h_a785f94b7f1a29eb5a7001c09bad64c01a50d37588e936ebb72d2716e6944a490c}{OPD}}}
+\DoxyCodeLine{00118\ \};}
+
+\end{DoxyCode}

@@ -1,0 +1,207 @@
+\doxysection{System\+Setup Class Reference}
+\hypertarget{class_system_setup}{}\label{class_system_setup}\index{SystemSetup@{SystemSetup}}
+
+
+{\ttfamily \#include $<$setup.\+h$>$}
+
+\doxysubsubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static void \mbox{\hyperlink{class_system_setup_a2360604ac88e9d0caf8bdfdfe95a8ad9}{initialize\+GPIO}} ()
+\begin{DoxyCompactList}\small\item\em Initialize all GPIO pins and verify their states. \end{DoxyCompactList}\item 
+static void \mbox{\hyperlink{class_system_setup_a05158d12f044b6351bda264efe73c5f8}{initialize\+Sleep}} ()
+\begin{DoxyCompactList}\small\item\em Configure ESP32 sleep mode and wake sources. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{class_system_setup_ae4ae0dceb8cd18f3028d2157b9e36d86}{System\+Setup}} ()=delete
+\begin{DoxyCompactList}\small\item\em Prevent instantiation of this utility class All methods are static and class should never be instantiated. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Static Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static void \mbox{\hyperlink{class_system_setup_ae51e4dfc6cc87279b9f6544f74181cb5}{set\+Default\+Pin\+States}} ()
+\begin{DoxyCompactList}\small\item\em Set default safe states for all output pins. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{class_system_setup_ae4ae0dceb8cd18f3028d2157b9e36d86}\index{SystemSetup@{SystemSetup}!SystemSetup@{SystemSetup}}
+\index{SystemSetup@{SystemSetup}!SystemSetup@{SystemSetup}}
+\doxysubsubsection{\texorpdfstring{SystemSetup()}{SystemSetup()}}
+{\footnotesize\ttfamily \label{class_system_setup_ae4ae0dceb8cd18f3028d2157b9e36d86} 
+System\+Setup\+::\+System\+Setup (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}, {\ttfamily [delete]}}
+
+
+
+Prevent instantiation of this utility class All methods are static and class should never be instantiated. 
+
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_system_setup_a2360604ac88e9d0caf8bdfdfe95a8ad9}\index{SystemSetup@{SystemSetup}!initializeGPIO@{initializeGPIO}}
+\index{initializeGPIO@{initializeGPIO}!SystemSetup@{SystemSetup}}
+\doxysubsubsection{\texorpdfstring{initializeGPIO()}{initializeGPIO()}}
+{\footnotesize\ttfamily \label{class_system_setup_a2360604ac88e9d0caf8bdfdfe95a8ad9} 
+void System\+Setup\+::initialize\+GPIO (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Initialize all GPIO pins and verify their states. 
+
+Initialize all GPIO pins for vehicle control.
+
+Configures\+:
+\begin{DoxyItemize}
+\item Input pins\+:
+\begin{DoxyItemize}
+\item NLG\+\_\+\+HW\+\_\+\+Wakeup\+: Charging system wake detection
+\item IGNITION\+: Key position detection
+\item UNLCKCON\+: Charge connector unlock button
+\end{DoxyItemize}
+\item Output pins\+:
+\begin{DoxyItemize}
+\item PUMP\+: Cooling system control
+\item CONTACTOR\+: Main battery contactor control
+\item NLGKL15\+: Charger control power
+\item DMCKL15\+: Motor controller power
+\item BSCKL15\+: DC-\/\+DC converter power
+\item BCKLIGHT\+: Reverse light control
+\end{DoxyItemize}
+\item Communication pins\+:
+\begin{DoxyItemize}
+\item SPI for CAN interface (SCK, MOSI, MISO, CS)
+\item I2C for \doxylink{namespace_a_d_c}{ADC} interface
+\end{DoxyItemize}
+\end{DoxyItemize}
+
+\begin{DoxyNote}{Note}
+All outputs are initialized to safe (inactive) states 
+
+Input pin states are verified after configuration
+\end{DoxyNote}
+Configures all required GPIO pins with appropriate modes\+:
+\begin{DoxyItemize}
+\item Input pins\+: Wake sources, signals, sensors
+\item Output pins\+: Power control, contactors, system enables
+\end{DoxyItemize}
+
+All outputs are initialized to safe states during configuration. Pin definitions are sourced from \doxylink{config_8h}{config.\+h}.
+
+Configured pins include\+:
+\begin{DoxyItemize}
+\item NLG\+\_\+\+HW\+\_\+\+Wakeup\+: Charger wake input
+\item IGNITION\+: Main ignition input
+\item UNLCKCON\+: Connector unlock input
+\item PUMP\+: Cooling system control
+\item CONTACTOR\+: Main battery contactor
+\item System enables (NLGKL15, DMCKL15, BSCKL15)
+\item Status indicators and auxiliary controls 
+\end{DoxyItemize}\Hypertarget{class_system_setup_a05158d12f044b6351bda264efe73c5f8}\index{SystemSetup@{SystemSetup}!initializeSleep@{initializeSleep}}
+\index{initializeSleep@{initializeSleep}!SystemSetup@{SystemSetup}}
+\doxysubsubsection{\texorpdfstring{initializeSleep()}{initializeSleep()}}
+{\footnotesize\ttfamily \label{class_system_setup_a05158d12f044b6351bda264efe73c5f8} 
+void System\+Setup\+::initialize\+Sleep (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Configure ESP32 sleep mode and wake sources. 
+
+Configure ESP32 sleep mode parameters.
+
+Setup includes\+:
+\begin{DoxyItemize}
+\item Deep sleep mode configuration
+\item Wake sources\+:
+\begin{DoxyItemize}
+\item IGNITION pin (ext0 wake source)
+\item NLG\+\_\+\+HW\+\_\+\+Wakeup (ext1 wake source)
+\item Timer-\/based wakeup for system checks
+\end{DoxyItemize}
+\end{DoxyItemize}
+
+Wake pin configurations\+:
+\begin{DoxyItemize}
+\item Pull-\/down resistors enabled
+\item Debounce time configured
+\item Wake level triggers defined
+\end{DoxyItemize}
+
+\begin{DoxyNote}{Note}
+Multiple wake sources can be active simultaneously 
+
+System state is preserved across sleep cycles
+\end{DoxyNote}
+Sets up deep sleep functionality including\+:
+\begin{DoxyItemize}
+\item Wake sources configuration
+\item GPIO wake pin selection
+\item Wake level triggers
+\end{DoxyItemize}
+
+Wake sources\+:
+\begin{DoxyItemize}
+\item EXT0\+: Single GPIO wake (IGNITION pin)
+\item EXT1\+: Multiple GPIO wake (Button bitmask)
+\end{DoxyItemize}
+
+The system can be woken by either\+:
+\begin{DoxyItemize}
+\item Ignition signal (HIGH level)
+\item Any configured button press (HIGH level) 
+\end{DoxyItemize}\Hypertarget{class_system_setup_ae51e4dfc6cc87279b9f6544f74181cb5}\index{SystemSetup@{SystemSetup}!setDefaultPinStates@{setDefaultPinStates}}
+\index{setDefaultPinStates@{setDefaultPinStates}!SystemSetup@{SystemSetup}}
+\doxysubsubsection{\texorpdfstring{setDefaultPinStates()}{setDefaultPinStates()}}
+{\footnotesize\ttfamily \label{class_system_setup_ae51e4dfc6cc87279b9f6544f74181cb5} 
+void System\+Setup\+::set\+Default\+Pin\+States (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [private]}}
+
+
+
+Set default safe states for all output pins. 
+
+Set default states for all output pins.
+
+Safety sequence\+:
+\begin{DoxyEnumerate}
+\item All contactors opened
+\begin{DoxyItemize}
+\item Main battery contactor open
+\item Precharge contactor open
+\end{DoxyItemize}
+\item All power outputs disabled
+\begin{DoxyItemize}
+\item Motor controller power off
+\item Charger power off
+\item DC-\/\+DC converter power off
+\end{DoxyItemize}
+\item Auxiliary systems disabled
+\begin{DoxyItemize}
+\item Cooling pump off
+\item Indicator lights off
+\end{DoxyItemize}
+\end{DoxyEnumerate}
+
+\begin{DoxyNote}{Note}
+Order of operations is critical for safety 
+
+Pin states are verified after setting
+\end{DoxyNote}
+Initializes all output pins to safe default states\+:
+\begin{DoxyItemize}
+\item All power controls disabled (LOW)
+\item All contactors open (LOW)
+\item All system enables inactive (LOW)
+\item All auxiliary outputs disabled (LOW)
+\end{DoxyItemize}
+
+This function ensures a known safe state during\+:
+\begin{DoxyItemize}
+\item Initial power-\/up
+\item System reset
+\item Error recovery
+\end{DoxyItemize}
+
+Critical safety consideration\+: All high-\/voltage systems are disabled by default until explicitly enabled by the state management system. 
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{setup_8h}{setup.\+h}}\item 
+src/\mbox{\hyperlink{setup_8cpp}{setup.\+cpp}}\end{DoxyCompactItemize}

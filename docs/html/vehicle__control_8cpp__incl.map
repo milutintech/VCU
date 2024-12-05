@@ -1,0 +1,20 @@
+<map id="src/vehicle_control.cpp" name="src/vehicle_control.cpp">
+<area shape="rect" id="Node000001" title="Implementation of vehicle driving dynamics and motor control system." alt="" coords="143,5,298,31"/>
+<area shape="rect" id="Node000002" href="$vehicle__control_8h.html" title="Vehicle Control System for Electric Vehicle." alt="" coords="161,79,280,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="223,31,223,63,218,63,218,31"/>
+<area shape="rect" id="Node000006" href="$config_8h.html" title=" " alt="" coords="5,153,73,178"/>
+<area shape="poly" id="edge9_Node000001_Node000006" title=" " alt="" coords="207,33,68,145,64,141,204,29"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="495,153,586,178"/>
+<area shape="poly" id="edge10_Node000001_Node000008" title=" " alt="" coords="248,29,501,143,498,148,246,34"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="36,226,112,252"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="200,108,169,128,137,155,111,185,91,215,86,212,107,181,133,151,166,124,197,103"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="148,153,205,178"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="215,106,194,141,190,138,211,103"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="228,153,303,178"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="230,103,252,138,248,141,226,106"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="191,108,85,149,83,144,189,103"/>
+<area shape="rect" id="Node000007" href="$vehicle__parameters_8h.html" title="Vehicle Configuration Parameters and Operating Limits." alt="" coords="326,153,472,178"/>
+<area shape="poly" id="edge7_Node000002_Node000007" title=" " alt="" coords="252,103,355,144,354,149,250,108"/>
+<area shape="poly" id="edge8_Node000002_Node000008" title=" " alt="" coords="276,103,481,148,479,153,274,108"/>
+<area shape="poly" id="edge6_Node000006_Node000003" title=" " alt="" coords="47,177,63,211,59,213,42,180"/>
+</map>

@@ -1,0 +1,650 @@
+\doxysection{CANManager Class Reference}
+\hypertarget{class_c_a_n_manager}{}\label{class_c_a_n_manager}\index{CANManager@{CANManager}}
+
+
+CAN Communication Manager Class.  
+
+
+
+
+{\ttfamily \#include $<$can\+\_\+manager.\+h$>$}
+
+
+
+Collaboration diagram for CANManager\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{class_c_a_n_manager__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{class_c_a_n_manager_a617eca77fdc9d386503940c0756405b4}{CANManager}} (uint8\+\_\+t cs\+\_\+pin, \mbox{\hyperlink{class_state_manager}{State\+Manager}} \&\mbox{\hyperlink{class_c_a_n_manager_a4b2dd00e490cffebc7e6d74aa26f7676}{state\+Manager}})
+\begin{DoxyCompactList}\small\item\em Construct a new CAN Manager. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{class_c_a_n_manager_acb783ab842953c4c91fe2389542daa64}{\texorpdfstring{$\sim$}{\string~}\+CANManager}} ()
+\begin{DoxyCompactList}\small\item\em Destructor -\/ cleans up SPI interface. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_c_a_n_manager_a277563f05624b88e8fb096b320f86ac0}{begin}} ()
+\begin{DoxyCompactList}\small\item\em Initialize CAN hardware and communication Sets up MCP2515 controller and message filters. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_c_a_n_manager_afd0bd22653e68906054964cad9df684c}{update}} ()
+\begin{DoxyCompactList}\small\item\em Update CAN communication Handles message reception and transmission timing Should be called in fast control loop. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_c_a_n_manager_a444184be8dcf153ee03ac6526076fe4a}{send\+BSC}} ()
+\begin{DoxyCompactList}\small\item\em Send BSC control and limit messages Transmits DC-\/\+DC converter control parameters. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_c_a_n_manager_ad9c3494761f6c066e9f89a0a38f0e371}{send\+DMC}} ()
+\begin{DoxyCompactList}\small\item\em Send DMC control and limit messages Transmits motor control parameters. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_c_a_n_manager_ab9c0e9cc72eee5775db0b381f6457adf}{send\+NLG}} ()
+\begin{DoxyCompactList}\small\item\em Send NLG control messages Transmits charging control parameters. \end{DoxyCompactList}\item 
+const \mbox{\hyperlink{struct_b_m_s_data}{BMSData}} \& \mbox{\hyperlink{class_c_a_n_manager_a18bc411043cd2eef4e3697d932ca7de7}{get\+BMSData}} () const
+\item 
+const \mbox{\hyperlink{struct_d_m_c_data}{DMCData}} \& \mbox{\hyperlink{class_c_a_n_manager_a5f7d0cafb4fc3af935b897ee4d362f95}{get\+DMCData}} () const
+\item 
+const \mbox{\hyperlink{struct_b_s_c_data}{BSCData}} \& \mbox{\hyperlink{class_c_a_n_manager_aa2d3468d1b0f41c7c3e4e695f2277eed}{get\+BSCData}} () const
+\item 
+const \mbox{\hyperlink{struct_n_l_g_data}{NLGData}} \& \mbox{\hyperlink{class_c_a_n_manager_ae9b4523bdff929ff3cf50a6f5c811ea8}{get\+NLGData}} () const
+\item 
+void \mbox{\hyperlink{class_c_a_n_manager_a905807ce5663f91104705a096e88f353}{set\+Torque\+Demand}} (float torque)
+\item 
+void \mbox{\hyperlink{class_c_a_n_manager_aaa56580dc04ee0451d8a38c439be990c}{set\+Speed\+Demand}} (int16\+\_\+t speed)
+\item 
+void \mbox{\hyperlink{class_c_a_n_manager_a43fcdafcf58b2dc20c892bc046b68ec8}{set\+Enable\+DMC}} (bool enable)
+\item 
+void \mbox{\hyperlink{class_c_a_n_manager_aa5d39dcfe3d5c908828888e10d9abb62}{set\+Enable\+BSC}} (bool enable)
+\item 
+void \mbox{\hyperlink{class_c_a_n_manager_a9ca9827803043a85678a3a1eb5f67f3d}{set\+Mode\+BSC}} (bool mode)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{class_c_a_n_manager_a45eecb3a776bac9379862445e390a389}{process\+BMSMessage}} (uint8\+\_\+t \texorpdfstring{$\ast$}{*}buf)
+\begin{DoxyCompactList}\small\item\em Process BMS status message. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_c_a_n_manager_a3483bf7e9726d6af2f7faa488d3c5b56}{process\+BSCMessage}} (uint8\+\_\+t \texorpdfstring{$\ast$}{*}buf)
+\begin{DoxyCompactList}\small\item\em Process BSC status message. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_c_a_n_manager_a8700b6ec99fbe8df780b6d22839881fc}{process\+DMCMessage}} (uint32\+\_\+t id, uint8\+\_\+t \texorpdfstring{$\ast$}{*}buf)
+\begin{DoxyCompactList}\small\item\em Process DMC status messages. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_c_a_n_manager_a3dc09f30dbf9c60812c482ec056d0419}{process\+NLGMessage}} (uint32\+\_\+t id, uint8\+\_\+t \texorpdfstring{$\ast$}{*}buf)
+\begin{DoxyCompactList}\small\item\em Process NLG status messages. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_c_a_n_manager_aeea95c87b0ec1e648d6ef85d55f0db7e}{reset\+Message\+Buffers}} ()
+\begin{DoxyCompactList}\small\item\em Reset all message buffers to default state. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_c_a_n_manager_a6c05739d05ba41aa132d22ec64af8c85}{check\+And\+Process\+Messages}} ()
+\begin{DoxyCompactList}\small\item\em Check for and process incoming messages. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+mcp2515\+\_\+can \mbox{\hyperlink{class_c_a_n_manager_ac0c6cbc36b0295cc3608f9ce053d4ad7}{CAN}}
+\begin{DoxyCompactList}\small\item\em CAN controller instance. \end{DoxyCompactList}\item 
+SPIClass \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{class_c_a_n_manager_a95a020162f73273c97d267468e1a9a26}{custom\+SPI}}
+\begin{DoxyCompactList}\small\item\em Custom SPI interface. \end{DoxyCompactList}\item 
+uint8\+\_\+t \mbox{\hyperlink{class_c_a_n_manager_a0bda836dc12bcc76a396f11f1976c365}{control\+Buffer\+DMC}} \mbox{[}8\mbox{]}
+\begin{DoxyCompactList}\small\item\em DMC control message buffer. \end{DoxyCompactList}\item 
+uint8\+\_\+t \mbox{\hyperlink{class_c_a_n_manager_aac653d4efc4589bb640e539ffd2828c7}{control\+Buffer\+BSC}} \mbox{[}8\mbox{]}
+\begin{DoxyCompactList}\small\item\em BSC control message buffer. \end{DoxyCompactList}\item 
+uint8\+\_\+t \mbox{\hyperlink{class_c_a_n_manager_a84506d67758b05a4362333f5fb213829}{limit\+Buffer\+BSC}} \mbox{[}8\mbox{]}
+\begin{DoxyCompactList}\small\item\em BSC limits message buffer. \end{DoxyCompactList}\item 
+uint8\+\_\+t \mbox{\hyperlink{class_c_a_n_manager_a0f442e3c6c8dc0b5d750352f85d8a866}{limit\+Buffer\+DMC}} \mbox{[}8\mbox{]}
+\begin{DoxyCompactList}\small\item\em DMC limits message buffer. \end{DoxyCompactList}\item 
+uint8\+\_\+t \mbox{\hyperlink{class_c_a_n_manager_aa80d70da464c74629d04810e48f66e08}{control\+Buffer\+NLG}} \mbox{[}8\mbox{]}
+\begin{DoxyCompactList}\small\item\em NLG control message buffer. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{struct_b_m_s_data}{BMSData}} \mbox{\hyperlink{class_c_a_n_manager_a6026a355309175f4f5a5a848e48a46e3}{bms\+Data}}
+\begin{DoxyCompactList}\small\item\em Battery system data. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{struct_d_m_c_data}{DMCData}} \mbox{\hyperlink{class_c_a_n_manager_ad2afc5d4c4a131945f2c0566b1d1df95}{dmc\+Data}}
+\begin{DoxyCompactList}\small\item\em Motor controller data. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{struct_b_s_c_data}{BSCData}} \mbox{\hyperlink{class_c_a_n_manager_a0b87e95cd752b58e504d2471b2be68f7}{bsc\+Data}}
+\begin{DoxyCompactList}\small\item\em DC-\/\+DC converter data. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{struct_n_l_g_data}{NLGData}} \mbox{\hyperlink{class_c_a_n_manager_a861adbe06d0c26e8734d2cd8ae5f68e1}{nlg\+Data}}
+\begin{DoxyCompactList}\small\item\em Charging system data. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{class_state_manager}{State\+Manager}} \& \mbox{\hyperlink{class_c_a_n_manager_a4b2dd00e490cffebc7e6d74aa26f7676}{state\+Manager}}
+\begin{DoxyCompactList}\small\item\em Reference to state manager. \end{DoxyCompactList}\item 
+float \mbox{\hyperlink{class_c_a_n_manager_a25b33e5e2be3f0465d03066e9aa964f9}{torque\+Demand}}
+\begin{DoxyCompactList}\small\item\em Requested motor torque. \end{DoxyCompactList}\item 
+int16\+\_\+t \mbox{\hyperlink{class_c_a_n_manager_ab39f7df8064bac0e90bbd96da49c2207}{speed\+Demand}}
+\begin{DoxyCompactList}\small\item\em Requested motor speed. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{class_c_a_n_manager_ac3a895770c02fa3156aa43755477e62d}{enable\+DMC}}
+\begin{DoxyCompactList}\small\item\em Motor controller enable flag. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{class_c_a_n_manager_a8942aadf7f675ca6e6241af75ca903b0}{enable\+BSC}}
+\begin{DoxyCompactList}\small\item\em DC-\/\+DC converter enable flag. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{class_c_a_n_manager_a752aaf300ec916bc2142c414e09396a4}{mode\+BSC}}
+\begin{DoxyCompactList}\small\item\em DC-\/\+DC converter mode. \end{DoxyCompactList}\item 
+uint16\+\_\+t \mbox{\hyperlink{class_c_a_n_manager_aa0f053eff41f7d49ebcc2cef09d017d2}{lv\+Voltage}}
+\begin{DoxyCompactList}\small\item\em Low voltage system voltage. \end{DoxyCompactList}\item 
+uint16\+\_\+t \mbox{\hyperlink{class_c_a_n_manager_aff72573b61ae2a60ec521533bbc30c13}{hv\+Voltage}}
+\begin{DoxyCompactList}\small\item\em High voltage system voltage. \end{DoxyCompactList}\item 
+unsigned long \mbox{\hyperlink{class_c_a_n_manager_ae424c842c71cb917499da9dbed4637fc}{last\+Fast\+Cycle}}
+\begin{DoxyCompactList}\small\item\em Last fast update cycle timestamp. \end{DoxyCompactList}\item 
+unsigned long \mbox{\hyperlink{class_c_a_n_manager_a2f3d61dedfc92bff9490e0b32ca13700}{last\+Slow\+Cycle}}
+\begin{DoxyCompactList}\small\item\em Last slow update cycle timestamp. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+CAN Communication Manager Class. 
+
+Handles all CAN bus communication for the vehicle control system. Manages message timing, data parsing, and system coordination. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{class_c_a_n_manager_a617eca77fdc9d386503940c0756405b4}\index{CANManager@{CANManager}!CANManager@{CANManager}}
+\index{CANManager@{CANManager}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{CANManager()}{CANManager()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a617eca77fdc9d386503940c0756405b4} 
+CANManager\+::\+CANManager (\begin{DoxyParamCaption}\item[{uint8\+\_\+t}]{cs\+\_\+pin}{, }\item[{\mbox{\hyperlink{class_state_manager}{State\+Manager}} \&}]{state\+Manager}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [explicit]}}
+
+
+
+Construct a new CAN Manager. 
+
+Constructs the CAN manager.
+
+
+\begin{DoxyParams}{Parameters}
+{\em cs\+\_\+pin} & SPI chip select pin for CAN controller \\
+\hline
+{\em state\+Manager} & Reference to vehicle state manager\\
+\hline
+{\em cs\+\_\+pin} & SPI chip select pin for CAN controller \\
+\hline
+{\em state\+Manager} & Reference to the vehicle state manager\\
+\hline
+\end{DoxyParams}
+Initializes communication buffers and system state. \Hypertarget{class_c_a_n_manager_acb783ab842953c4c91fe2389542daa64}\index{CANManager@{CANManager}!````~CANManager@{\texorpdfstring{$\sim$}{\string~}CANManager}}
+\index{````~CANManager@{\texorpdfstring{$\sim$}{\string~}CANManager}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{\texorpdfstring{$\sim$}{\string~}CANManager()}{\string~CANManager()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_acb783ab842953c4c91fe2389542daa64} 
+CANManager\+::\texorpdfstring{$\sim$}{\string~}\+CANManager (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Destructor -\/ cleans up SPI interface. 
+
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_c_a_n_manager_a277563f05624b88e8fb096b320f86ac0}\index{CANManager@{CANManager}!begin@{begin}}
+\index{begin@{begin}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{begin()}{begin()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a277563f05624b88e8fb096b320f86ac0} 
+void CANManager\+::begin (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Initialize CAN hardware and communication Sets up MCP2515 controller and message filters. 
+
+Initialize CAN communication hardware.
+
+Configures SPI interface and initializes MCP2515 CAN controller with 500kbps baudrate. Retries initialization until successful. \Hypertarget{class_c_a_n_manager_a6c05739d05ba41aa132d22ec64af8c85}\index{CANManager@{CANManager}!checkAndProcessMessages@{checkAndProcessMessages}}
+\index{checkAndProcessMessages@{checkAndProcessMessages}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{checkAndProcessMessages()}{checkAndProcessMessages()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a6c05739d05ba41aa132d22ec64af8c85} 
+void CANManager\+::check\+And\+Process\+Messages (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Check for and process incoming messages. 
+
+Check for and process incoming CAN messages.
+
+Reads available messages and routes them to appropriate handlers based on message ID. \Hypertarget{class_c_a_n_manager_a18bc411043cd2eef4e3697d932ca7de7}\index{CANManager@{CANManager}!getBMSData@{getBMSData}}
+\index{getBMSData@{getBMSData}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{getBMSData()}{getBMSData()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a18bc411043cd2eef4e3697d932ca7de7} 
+const \mbox{\hyperlink{struct_b_m_s_data}{BMSData}} \& CANManager\+::get\+BMSData (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_c_a_n_manager_aa2d3468d1b0f41c7c3e4e695f2277eed}\index{CANManager@{CANManager}!getBSCData@{getBSCData}}
+\index{getBSCData@{getBSCData}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{getBSCData()}{getBSCData()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_aa2d3468d1b0f41c7c3e4e695f2277eed} 
+const \mbox{\hyperlink{struct_b_s_c_data}{BSCData}} \& CANManager\+::get\+BSCData (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_c_a_n_manager_a5f7d0cafb4fc3af935b897ee4d362f95}\index{CANManager@{CANManager}!getDMCData@{getDMCData}}
+\index{getDMCData@{getDMCData}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{getDMCData()}{getDMCData()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a5f7d0cafb4fc3af935b897ee4d362f95} 
+const \mbox{\hyperlink{struct_d_m_c_data}{DMCData}} \& CANManager\+::get\+DMCData (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_c_a_n_manager_ae9b4523bdff929ff3cf50a6f5c811ea8}\index{CANManager@{CANManager}!getNLGData@{getNLGData}}
+\index{getNLGData@{getNLGData}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{getNLGData()}{getNLGData()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_ae9b4523bdff929ff3cf50a6f5c811ea8} 
+const \mbox{\hyperlink{struct_n_l_g_data}{NLGData}} \& CANManager\+::get\+NLGData (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_c_a_n_manager_a45eecb3a776bac9379862445e390a389}\index{CANManager@{CANManager}!processBMSMessage@{processBMSMessage}}
+\index{processBMSMessage@{processBMSMessage}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{processBMSMessage()}{processBMSMessage()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a45eecb3a776bac9379862445e390a389} 
+void CANManager\+::process\+BMSMessage (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{buf}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Process BMS status message. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em buf} & Message data buffer\\
+\hline
+{\em buf} & Pointer to message data buffer\\
+\hline
+\end{DoxyParams}
+Extracts and scales battery management system parameters\+:
+\begin{DoxyItemize}
+\item State of charge
+\item Battery voltage
+\item Current
+\item Maximum discharge/charge limits 
+\end{DoxyItemize}\Hypertarget{class_c_a_n_manager_a3483bf7e9726d6af2f7faa488d3c5b56}\index{CANManager@{CANManager}!processBSCMessage@{processBSCMessage}}
+\index{processBSCMessage@{processBSCMessage}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{processBSCMessage()}{processBSCMessage()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a3483bf7e9726d6af2f7faa488d3c5b56} 
+void CANManager\+::process\+BSCMessage (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{buf}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Process BSC status message. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em buf} & Message data buffer\\
+\hline
+{\em buf} & Pointer to message data buffer\\
+\hline
+\end{DoxyParams}
+Extracts and scales DC-\/\+DC converter parameters\+:
+\begin{DoxyItemize}
+\item HV/\+LV voltages
+\item HV/\+LV currents
+\item Operating mode 
+\end{DoxyItemize}\Hypertarget{class_c_a_n_manager_a8700b6ec99fbe8df780b6d22839881fc}\index{CANManager@{CANManager}!processDMCMessage@{processDMCMessage}}
+\index{processDMCMessage@{processDMCMessage}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{processDMCMessage()}{processDMCMessage()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a8700b6ec99fbe8df780b6d22839881fc} 
+void CANManager\+::process\+DMCMessage (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{id}{, }\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{buf}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Process DMC status messages. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em id} & Message identifier \\
+\hline
+{\em buf} & Message data buffer\\
+\hline
+{\em id} & Message identifier for different DMC message types \\
+\hline
+{\em buf} & Pointer to message data buffer\\
+\hline
+\end{DoxyParams}
+Processes various DMC messages\+:
+\begin{DoxyItemize}
+\item 0x258\+: Status (ready, running, torque, speed)
+\item 0x259\+: Power (voltages, currents)
+\item 0x458\+: Temperature (inverter, motor, system) 
+\end{DoxyItemize}\Hypertarget{class_c_a_n_manager_a3dc09f30dbf9c60812c482ec056d0419}\index{CANManager@{CANManager}!processNLGMessage@{processNLGMessage}}
+\index{processNLGMessage@{processNLGMessage}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{processNLGMessage()}{processNLGMessage()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a3dc09f30dbf9c60812c482ec056d0419} 
+void CANManager\+::process\+NLGMessage (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{id}{, }\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{buf}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Process NLG status messages. 
+
+Process NLG (charger) messages.
+
+
+\begin{DoxyParams}{Parameters}
+{\em id} & Message identifier \\
+\hline
+{\em buf} & Message data buffer\\
+\hline
+{\em id} & Message identifier for different NLG message types \\
+\hline
+{\em buf} & Pointer to message data buffer\\
+\hline
+\end{DoxyParams}
+Processes charger status messages\+:
+\begin{DoxyItemize}
+\item NLG\+\_\+\+ACT\+\_\+\+LIM\+: Control pilot state, voltage, current
+\item NLG\+\_\+\+ACT\+\_\+\+PLUG\+: Cooling request, temperature 
+\end{DoxyItemize}\Hypertarget{class_c_a_n_manager_aeea95c87b0ec1e648d6ef85d55f0db7e}\index{CANManager@{CANManager}!resetMessageBuffers@{resetMessageBuffers}}
+\index{resetMessageBuffers@{resetMessageBuffers}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{resetMessageBuffers()}{resetMessageBuffers()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_aeea95c87b0ec1e648d6ef85d55f0db7e} 
+void CANManager\+::reset\+Message\+Buffers (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Reset all message buffers to default state. 
+
+Reset all CAN message buffers to default state.
+
+Initializes/clears all message buffers used for CAN communication\+:
+\begin{DoxyItemize}
+\item DMC (Drive Motor Controller) control and limit buffers
+\item BSC (Battery Switch Controller) control and limit buffers
+\item NLG (Network Load Gateway) control buffer
+\end{DoxyItemize}
+
+This prevents sending stale or invalid data after initialization or after error recovery. All buffers are zeroed using memset.
+
+The buffers cleared are\+:
+\begin{DoxyItemize}
+\item control\+Buffer\+DMC\+: Motor control messages
+\item control\+Buffer\+BSC\+: DC-\/\+DC converter control
+\item limit\+Buffer\+BSC\+: DC-\/\+DC converter limits
+\item limit\+Buffer\+DMC\+: Motor controller limits
+\item control\+Buffer\+NLG\+: Charger control 
+\end{DoxyItemize}\Hypertarget{class_c_a_n_manager_a444184be8dcf153ee03ac6526076fe4a}\index{CANManager@{CANManager}!sendBSC@{sendBSC}}
+\index{sendBSC@{sendBSC}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{sendBSC()}{sendBSC()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a444184be8dcf153ee03ac6526076fe4a} 
+void CANManager\+::send\+BSC (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Send BSC control and limit messages Transmits DC-\/\+DC converter control parameters. 
+
+Send BSC control messages.
+
+Transmits DC-\/\+DC converter control parameters\+:
+\begin{DoxyItemize}
+\item Enable/mode control
+\item Voltage setpoints
+\item Current limits 
+\end{DoxyItemize}\Hypertarget{class_c_a_n_manager_ad9c3494761f6c066e9f89a0a38f0e371}\index{CANManager@{CANManager}!sendDMC@{sendDMC}}
+\index{sendDMC@{sendDMC}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{sendDMC()}{sendDMC()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_ad9c3494761f6c066e9f89a0a38f0e371} 
+void CANManager\+::send\+DMC (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Send DMC control and limit messages Transmits motor control parameters. 
+
+Send DMC control messages.
+
+Transmits motor controller parameters\+:
+\begin{DoxyItemize}
+\item Enable/control flags
+\item Torque and speed demands
+\item Operating limits 
+\end{DoxyItemize}\Hypertarget{class_c_a_n_manager_ab9c0e9cc72eee5775db0b381f6457adf}\index{CANManager@{CANManager}!sendNLG@{sendNLG}}
+\index{sendNLG@{sendNLG}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{sendNLG()}{sendNLG()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_ab9c0e9cc72eee5775db0b381f6457adf} 
+void CANManager\+::send\+NLG (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Send NLG control messages Transmits charging control parameters. 
+
+Send NLG control messages.
+
+Transmits charger control parameters\+:
+\begin{DoxyItemize}
+\item Voltage and current limits
+\item Control flags
+\item LED status 
+\end{DoxyItemize}\Hypertarget{class_c_a_n_manager_aa5d39dcfe3d5c908828888e10d9abb62}\index{CANManager@{CANManager}!setEnableBSC@{setEnableBSC}}
+\index{setEnableBSC@{setEnableBSC}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{setEnableBSC()}{setEnableBSC()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_aa5d39dcfe3d5c908828888e10d9abb62} 
+void CANManager\+::set\+Enable\+BSC (\begin{DoxyParamCaption}\item[{bool}]{enable}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_c_a_n_manager_a43fcdafcf58b2dc20c892bc046b68ec8}\index{CANManager@{CANManager}!setEnableDMC@{setEnableDMC}}
+\index{setEnableDMC@{setEnableDMC}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{setEnableDMC()}{setEnableDMC()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a43fcdafcf58b2dc20c892bc046b68ec8} 
+void CANManager\+::set\+Enable\+DMC (\begin{DoxyParamCaption}\item[{bool}]{enable}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_c_a_n_manager_a9ca9827803043a85678a3a1eb5f67f3d}\index{CANManager@{CANManager}!setModeBSC@{setModeBSC}}
+\index{setModeBSC@{setModeBSC}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{setModeBSC()}{setModeBSC()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a9ca9827803043a85678a3a1eb5f67f3d} 
+void CANManager\+::set\+Mode\+BSC (\begin{DoxyParamCaption}\item[{bool}]{mode}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_c_a_n_manager_aaa56580dc04ee0451d8a38c439be990c}\index{CANManager@{CANManager}!setSpeedDemand@{setSpeedDemand}}
+\index{setSpeedDemand@{setSpeedDemand}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{setSpeedDemand()}{setSpeedDemand()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_aaa56580dc04ee0451d8a38c439be990c} 
+void CANManager\+::set\+Speed\+Demand (\begin{DoxyParamCaption}\item[{int16\+\_\+t}]{speed}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_c_a_n_manager_a905807ce5663f91104705a096e88f353}\index{CANManager@{CANManager}!setTorqueDemand@{setTorqueDemand}}
+\index{setTorqueDemand@{setTorqueDemand}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{setTorqueDemand()}{setTorqueDemand()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a905807ce5663f91104705a096e88f353} 
+void CANManager\+::set\+Torque\+Demand (\begin{DoxyParamCaption}\item[{float}]{torque}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_c_a_n_manager_afd0bd22653e68906054964cad9df684c}\index{CANManager@{CANManager}!update@{update}}
+\index{update@{update}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{update()}{update()}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_afd0bd22653e68906054964cad9df684c} 
+void CANManager\+::update (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Update CAN communication Handles message reception and transmission timing Should be called in fast control loop. 
+
+Main update function for CAN communication.
+
+Processes incoming messages and handles periodic transmission\+:
+\begin{DoxyItemize}
+\item Fast cycle (10ms)\+: DMC messages in RUN state
+\item Slow cycle (50ms)\+: BSC and NLG messages 
+\end{DoxyItemize}
+
+\doxysubsection{Member Data Documentation}
+\Hypertarget{class_c_a_n_manager_a6026a355309175f4f5a5a848e48a46e3}\index{CANManager@{CANManager}!bmsData@{bmsData}}
+\index{bmsData@{bmsData}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{bmsData}{bmsData}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a6026a355309175f4f5a5a848e48a46e3} 
+\mbox{\hyperlink{struct_b_m_s_data}{BMSData}} CANManager\+::bms\+Data\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Battery system data. 
+
+\Hypertarget{class_c_a_n_manager_a0b87e95cd752b58e504d2471b2be68f7}\index{CANManager@{CANManager}!bscData@{bscData}}
+\index{bscData@{bscData}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{bscData}{bscData}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a0b87e95cd752b58e504d2471b2be68f7} 
+\mbox{\hyperlink{struct_b_s_c_data}{BSCData}} CANManager\+::bsc\+Data\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+DC-\/\+DC converter data. 
+
+\Hypertarget{class_c_a_n_manager_ac0c6cbc36b0295cc3608f9ce053d4ad7}\index{CANManager@{CANManager}!CAN@{CAN}}
+\index{CAN@{CAN}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{CAN}{CAN}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_ac0c6cbc36b0295cc3608f9ce053d4ad7} 
+mcp2515\+\_\+can CANManager\+::\+CAN\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+CAN controller instance. 
+
+\Hypertarget{class_c_a_n_manager_aac653d4efc4589bb640e539ffd2828c7}\index{CANManager@{CANManager}!controlBufferBSC@{controlBufferBSC}}
+\index{controlBufferBSC@{controlBufferBSC}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{controlBufferBSC}{controlBufferBSC}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_aac653d4efc4589bb640e539ffd2828c7} 
+uint8\+\_\+t CANManager\+::control\+Buffer\+BSC\mbox{[}8\mbox{]}\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+BSC control message buffer. 
+
+\Hypertarget{class_c_a_n_manager_a0bda836dc12bcc76a396f11f1976c365}\index{CANManager@{CANManager}!controlBufferDMC@{controlBufferDMC}}
+\index{controlBufferDMC@{controlBufferDMC}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{controlBufferDMC}{controlBufferDMC}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a0bda836dc12bcc76a396f11f1976c365} 
+uint8\+\_\+t CANManager\+::control\+Buffer\+DMC\mbox{[}8\mbox{]}\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+DMC control message buffer. 
+
+\Hypertarget{class_c_a_n_manager_aa80d70da464c74629d04810e48f66e08}\index{CANManager@{CANManager}!controlBufferNLG@{controlBufferNLG}}
+\index{controlBufferNLG@{controlBufferNLG}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{controlBufferNLG}{controlBufferNLG}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_aa80d70da464c74629d04810e48f66e08} 
+uint8\+\_\+t CANManager\+::control\+Buffer\+NLG\mbox{[}8\mbox{]}\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+NLG control message buffer. 
+
+\Hypertarget{class_c_a_n_manager_a95a020162f73273c97d267468e1a9a26}\index{CANManager@{CANManager}!customSPI@{customSPI}}
+\index{customSPI@{customSPI}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{customSPI}{customSPI}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a95a020162f73273c97d267468e1a9a26} 
+SPIClass\texorpdfstring{$\ast$}{*} CANManager\+::custom\+SPI\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Custom SPI interface. 
+
+\Hypertarget{class_c_a_n_manager_ad2afc5d4c4a131945f2c0566b1d1df95}\index{CANManager@{CANManager}!dmcData@{dmcData}}
+\index{dmcData@{dmcData}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{dmcData}{dmcData}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_ad2afc5d4c4a131945f2c0566b1d1df95} 
+\mbox{\hyperlink{struct_d_m_c_data}{DMCData}} CANManager\+::dmc\+Data\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Motor controller data. 
+
+\Hypertarget{class_c_a_n_manager_a8942aadf7f675ca6e6241af75ca903b0}\index{CANManager@{CANManager}!enableBSC@{enableBSC}}
+\index{enableBSC@{enableBSC}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{enableBSC}{enableBSC}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a8942aadf7f675ca6e6241af75ca903b0} 
+bool CANManager\+::enable\+BSC\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+DC-\/\+DC converter enable flag. 
+
+\Hypertarget{class_c_a_n_manager_ac3a895770c02fa3156aa43755477e62d}\index{CANManager@{CANManager}!enableDMC@{enableDMC}}
+\index{enableDMC@{enableDMC}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{enableDMC}{enableDMC}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_ac3a895770c02fa3156aa43755477e62d} 
+bool CANManager\+::enable\+DMC\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Motor controller enable flag. 
+
+\Hypertarget{class_c_a_n_manager_aff72573b61ae2a60ec521533bbc30c13}\index{CANManager@{CANManager}!hvVoltage@{hvVoltage}}
+\index{hvVoltage@{hvVoltage}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{hvVoltage}{hvVoltage}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_aff72573b61ae2a60ec521533bbc30c13} 
+uint16\+\_\+t CANManager\+::hv\+Voltage\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+High voltage system voltage. 
+
+\Hypertarget{class_c_a_n_manager_ae424c842c71cb917499da9dbed4637fc}\index{CANManager@{CANManager}!lastFastCycle@{lastFastCycle}}
+\index{lastFastCycle@{lastFastCycle}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{lastFastCycle}{lastFastCycle}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_ae424c842c71cb917499da9dbed4637fc} 
+unsigned long CANManager\+::last\+Fast\+Cycle\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Last fast update cycle timestamp. 
+
+\Hypertarget{class_c_a_n_manager_a2f3d61dedfc92bff9490e0b32ca13700}\index{CANManager@{CANManager}!lastSlowCycle@{lastSlowCycle}}
+\index{lastSlowCycle@{lastSlowCycle}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{lastSlowCycle}{lastSlowCycle}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a2f3d61dedfc92bff9490e0b32ca13700} 
+unsigned long CANManager\+::last\+Slow\+Cycle\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Last slow update cycle timestamp. 
+
+\Hypertarget{class_c_a_n_manager_a84506d67758b05a4362333f5fb213829}\index{CANManager@{CANManager}!limitBufferBSC@{limitBufferBSC}}
+\index{limitBufferBSC@{limitBufferBSC}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{limitBufferBSC}{limitBufferBSC}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a84506d67758b05a4362333f5fb213829} 
+uint8\+\_\+t CANManager\+::limit\+Buffer\+BSC\mbox{[}8\mbox{]}\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+BSC limits message buffer. 
+
+\Hypertarget{class_c_a_n_manager_a0f442e3c6c8dc0b5d750352f85d8a866}\index{CANManager@{CANManager}!limitBufferDMC@{limitBufferDMC}}
+\index{limitBufferDMC@{limitBufferDMC}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{limitBufferDMC}{limitBufferDMC}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a0f442e3c6c8dc0b5d750352f85d8a866} 
+uint8\+\_\+t CANManager\+::limit\+Buffer\+DMC\mbox{[}8\mbox{]}\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+DMC limits message buffer. 
+
+\Hypertarget{class_c_a_n_manager_aa0f053eff41f7d49ebcc2cef09d017d2}\index{CANManager@{CANManager}!lvVoltage@{lvVoltage}}
+\index{lvVoltage@{lvVoltage}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{lvVoltage}{lvVoltage}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_aa0f053eff41f7d49ebcc2cef09d017d2} 
+uint16\+\_\+t CANManager\+::lv\+Voltage\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Low voltage system voltage. 
+
+\Hypertarget{class_c_a_n_manager_a752aaf300ec916bc2142c414e09396a4}\index{CANManager@{CANManager}!modeBSC@{modeBSC}}
+\index{modeBSC@{modeBSC}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{modeBSC}{modeBSC}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a752aaf300ec916bc2142c414e09396a4} 
+bool CANManager\+::mode\+BSC\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+DC-\/\+DC converter mode. 
+
+\Hypertarget{class_c_a_n_manager_a861adbe06d0c26e8734d2cd8ae5f68e1}\index{CANManager@{CANManager}!nlgData@{nlgData}}
+\index{nlgData@{nlgData}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{nlgData}{nlgData}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a861adbe06d0c26e8734d2cd8ae5f68e1} 
+\mbox{\hyperlink{struct_n_l_g_data}{NLGData}} CANManager\+::nlg\+Data\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Charging system data. 
+
+\Hypertarget{class_c_a_n_manager_ab39f7df8064bac0e90bbd96da49c2207}\index{CANManager@{CANManager}!speedDemand@{speedDemand}}
+\index{speedDemand@{speedDemand}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{speedDemand}{speedDemand}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_ab39f7df8064bac0e90bbd96da49c2207} 
+int16\+\_\+t CANManager\+::speed\+Demand\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Requested motor speed. 
+
+\Hypertarget{class_c_a_n_manager_a4b2dd00e490cffebc7e6d74aa26f7676}\index{CANManager@{CANManager}!stateManager@{stateManager}}
+\index{stateManager@{stateManager}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{stateManager}{stateManager}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a4b2dd00e490cffebc7e6d74aa26f7676} 
+\mbox{\hyperlink{class_state_manager}{State\+Manager}}\& CANManager\+::state\+Manager\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Reference to state manager. 
+
+\Hypertarget{class_c_a_n_manager_a25b33e5e2be3f0465d03066e9aa964f9}\index{CANManager@{CANManager}!torqueDemand@{torqueDemand}}
+\index{torqueDemand@{torqueDemand}!CANManager@{CANManager}}
+\doxysubsubsection{\texorpdfstring{torqueDemand}{torqueDemand}}
+{\footnotesize\ttfamily \label{class_c_a_n_manager_a25b33e5e2be3f0465d03066e9aa964f9} 
+float CANManager\+::torque\+Demand\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Requested motor torque. 
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{can__manager_8h}{can\+\_\+manager.\+h}}\item 
+src/\mbox{\hyperlink{can__manager_8cpp}{can\+\_\+manager.\+cpp}}\end{DoxyCompactItemize}

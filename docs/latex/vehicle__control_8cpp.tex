@@ -1,0 +1,31 @@
+\doxysection{src/vehicle\+\_\+control.cpp File Reference}
+\hypertarget{vehicle__control_8cpp}{}\label{vehicle__control_8cpp}\index{src/vehicle\_control.cpp@{src/vehicle\_control.cpp}}
+
+
+Implementation of vehicle driving dynamics and motor control system.  
+
+
+{\ttfamily \#include "{}vehicle\+\_\+control.\+h"{}}\newline
+{\ttfamily \#include "{}config.\+h"{}}\newline
+{\ttfamily \#include "{}ADS1\+X15.\+h"{}}\newline
+Include dependency graph for vehicle\+\_\+control.\+cpp\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{vehicle__control_8cpp__incl}
+\end{center}
+\end{figure}
+
+
+\doxysubsection{Detailed Description}
+Implementation of vehicle driving dynamics and motor control system. 
+
+Manages vehicle driving characteristics including\+:
+\begin{DoxyItemize}
+\item Pedal interpretation and mapping
+\item Torque calculation and limiting
+\item Multiple driving modes (Legacy, Regen, OPD)
+\item Speed monitoring and control
+\item Safety checks and limits 
+\end{DoxyItemize}
