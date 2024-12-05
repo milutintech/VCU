@@ -1,0 +1,35 @@
+<map id="include/vehicle_parameters.h" name="include/vehicle_parameters.h">
+<area shape="rect" id="Node000001" title="Vehicle Configuration Parameters and Operating Limits." alt="" coords="376,5,566,31"/>
+<area shape="rect" id="Node000002" href="$can__manager_8h.html" title="CAN Communication Manager for Vehicle Control System." alt="" coords="547,153,702,178"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="510,37,539,55,566,77,598,116,620,151,616,153,594,119,562,81,535,59,507,41"/>
+<area shape="rect" id="Node000009" href="$state__manager_8h.html" title="Vehicle State Management System." alt="" coords="390,79,552,105"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="474,46,474,79,468,79,468,46"/>
+<area shape="rect" id="Node000011" href="$vehicle__control_8h.html" title="Vehicle Control System for Electric Vehicle." alt="" coords="28,153,192,178"/>
+<area shape="poly" id="edge17_Node000001_Node000011" title=" " alt="" coords="428,40,141,154,139,150,426,35"/>
+<area shape="rect" id="Node000003" href="$_serial_console_8h.html" title="Debug Console Interface for Vehicle Control System." alt="" coords="433,226,592,252"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="594,189,533,228,530,223,591,185"/>
+<area shape="rect" id="Node000005" href="$main_8cpp.html" title="Main Vehicle Control Unit (VCU) Program." alt="" coords="348,300,444,326"/>
+<area shape="poly" id="edge9_Node000002_Node000005" title=" " alt="" coords="627,194,621,225,615,240,605,254,583,265,542,278,446,303,444,298,541,273,581,260,601,250,610,238,616,223,622,193"/>
+<area shape="rect" id="Node000006" href="$setup_8h.html" title="System Initialization and Safety Configuration." alt="" coords="235,226,344,252"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="553,185,345,229,344,224,552,179"/>
+<area shape="rect" id="Node000008" href="$can__manager_8cpp.html" title="Implementation of CAN communication management system." alt="" coords="666,226,812,252"/>
+<area shape="poly" id="edge8_Node000002_Node000008" title=" " alt="" coords="658,185,721,223,718,228,655,189"/>
+<area shape="rect" id="Node000004" href="$_serial_console_8cpp.html" title="Implementation of debug console interface for vehicle control system." alt="" coords="468,300,618,326"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="526,265,540,298,535,301,521,267"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="481,263,417,302,415,297,479,258"/>
+<area shape="poly" id="edge6_Node000006_Node000005" title=" " alt="" coords="322,259,380,297,377,302,319,263"/>
+<area shape="rect" id="Node000007" href="$setup_8cpp.html" title="System initialization and hardware setup implementation." alt="" coords="224,300,324,326"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="286,268,279,300,274,299,281,267"/>
+<area shape="poly" id="edge12_Node000009_Node000002" title=" " alt="" coords="512,109,599,150,597,154,510,114"/>
+<area shape="poly" id="edge11_Node000009_Node000003" title=" " alt="" coords="481,119,511,225,506,227,476,120"/>
+<area shape="poly" id="edge15_Node000009_Node000005" title=" " alt="" coords="463,120,424,227,402,301,397,299,419,225,458,118"/>
+<area shape="poly" id="edge13_Node000009_Node000006" title=" " alt="" coords="376,111,304,129,276,141,259,154,253,171,257,190,268,209,280,224,276,227,263,212,252,192,248,171,254,151,273,136,302,124,375,105"/>
+<area shape="poly" id="edge14_Node000009_Node000008" title=" " alt="" coords="568,104,655,123,691,136,715,151,729,169,736,189,742,226,736,226,731,190,724,171,712,155,689,141,654,128,567,109"/>
+<area shape="rect" id="Node000010" href="$state__manager_8cpp.html" title="Implementation of the vehicle state management system." alt="" coords="268,153,421,178"/>
+<area shape="poly" id="edge16_Node000009_Node000010" title=" " alt="" coords="438,115,367,154,365,150,435,110"/>
+<area shape="poly" id="edge18_Node000011_Node000003" title=" " alt="" coords="194,179,444,223,443,228,193,184"/>
+<area shape="poly" id="edge20_Node000011_Node000005" title=" " alt="" coords="136,187,176,219,224,250,288,277,349,297,348,302,286,282,222,254,173,223,132,191"/>
+<area shape="poly" id="edge19_Node000011_Node000006" title=" " alt="" coords="155,182,260,223,258,228,153,187"/>
+<area shape="rect" id="Node000012" href="$vehicle__control_8cpp.html" title="Implementation of vehicle driving dynamics and motor control system." alt="" coords="5,226,161,252"/>
+<area shape="poly" id="edge21_Node000011_Node000012" title=" " alt="" coords="102,194,90,227,85,225,97,192"/>
+</map>
