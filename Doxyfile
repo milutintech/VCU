@@ -1,6 +1,6 @@
 # Project settings
 PROJECT_NAME           = "Vehicle Control Unit"
-PROJECT_NUMBER        = "1.0"
+PROJECT_NUMBER        = "1.2"
 PROJECT_BRIEF        = "ESP32-based Electric Vehicle Control System"
 OUTPUT_DIRECTORY     = docs
 
@@ -16,7 +16,7 @@ EXCLUDE_PATTERNS    = */build/* */.pio/*
 
 # Output settings
 GENERATE_HTML       = YES
-HTML_OUTPUT         = html
+HTML_OUTPUT         = .
 HTML_THEME          = "dark_mode"
 
 # Navigation
@@ -50,5 +50,5 @@ WARN_IF_DOC_ERROR    = YES
 
 # HTML customization
 HTML_EXTRA_STYLESHEET = 
-HTML_COLORSTYLE      = LIGHT
+HTML_COLORSTYLE      = DARK
 HTML_DYNAMIC_SECTIONS = YES
