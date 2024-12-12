@@ -78,7 +78,7 @@ void CANManager::update() {
     if ((currentTime - lastFastCycle >= Constants::FAST_CYCLE_MS) && 
         (stateManager.getCurrentState() == VehicleState::RUN)) {
         lastFastCycle = currentTime;
-        sendDMC();
+        
     }
     
     if (currentTime - lastSlowCycle >= Constants::SLOW_CYCLE_MS) {
@@ -87,6 +87,7 @@ void CANManager::update() {
             sendNLG();
         } 
         sendBSC();
+        sendDMC();
     }
 }
 
