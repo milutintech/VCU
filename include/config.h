@@ -51,7 +51,7 @@ namespace CANIds {
 // Timing Constants
 namespace Constants {
     constexpr uint16_t FAST_CYCLE_MS = 10;
-    constexpr uint16_t SLOW_CYCLE_MS = 50;
+    constexpr uint16_t SLOW_CYCLE_MS = 150;
     constexpr uint16_t VERY_SLOW_CYCLE_MS = 100;
     constexpr uint32_t MODE_CHANGE_DELAY_MS = 2000;
     constexpr uint32_t UNLOCK_TIMEOUT_MS = 3000;
