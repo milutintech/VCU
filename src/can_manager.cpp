@@ -74,11 +74,12 @@ void CANManager::update() {
     checkAndProcessMessages();
     
     unsigned long currentTime = millis();
-    
+    Serial.println("sending");
     if ((currentTime - lastFastCycle >= Constants::FAST_CYCLE_MS) && 
         (stateManager.getCurrentState() == VehicleState::RUN)) {
         lastFastCycle = currentTime;
         sendDMC();
+        Serial.println("sending");
     }
     
     if (currentTime - lastSlowCycle >= Constants::SLOW_CYCLE_MS) {

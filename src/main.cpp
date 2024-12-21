@@ -82,7 +82,7 @@ void canTask(void* parameter) {
             canManager.setEnableDMC(vehicleControl.isDMCEnabled());
         }
         
-        vTaskDelay(pdMS_TO_TICKS(Constants::FAST_CYCLE_MS)); // 10ms cycle
+       // vTaskDelay(pdMS_TO_TICKS(Constants::FAST_CYCLE_MS)); // 10ms cycle
     }
 }
 
