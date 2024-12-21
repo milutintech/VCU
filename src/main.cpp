@@ -59,7 +59,7 @@ void canTask(void* parameter) {
     
     // Initialize communication hardware
     SPI.begin(Pins::SCK, Pins::MISO, Pins::MOSI, Pins::SPI_CS_PIN);
-    Wire.begin();
+    Wire.begin(Pins::SDA, Pins::SCL);
     Wire.setClock(400000);  // 400kHz I2C
     ads.begin();
     ads.setGain(2);         // Set ADC gain for pedal reading
@@ -82,7 +82,7 @@ void canTask(void* parameter) {
             canManager.setEnableDMC(vehicleControl.isDMCEnabled());
         }
         
-       // vTaskDelay(pdMS_TO_TICKS(Constants::FAST_CYCLE_MS)); // 10ms cycle
+       vTaskDelay(1);
     }
 }
 

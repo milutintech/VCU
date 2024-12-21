@@ -260,7 +260,24 @@ void SerialConsole::handleSet(String target, String parameter, String value) {
         String valueLower = value;
         valueLower.toLowerCase();
         
-        if (parameter == "drivemode") {
+        if (parameter == "state") {
+            if (valueLower == "standby") {
+                stateManager.transitionToStandby();
+                Serial.println("VCU State: STANDBY");
+            }
+            else if (valueLower == "run") {
+                stateManager.transitionToRun();
+                Serial.println("VCU State: RUN");
+            }
+            else if (valueLower == "charging") {
+                stateManager.transitionToCharging();
+                Serial.println("VCU State: CHARGING");
+            }
+            else {
+                Serial.println("Invalid state. Use: standby, run, or charging");
+            }
+        }
+        else if (parameter == "drivemode") {
             if (valueLower == "legacy") {
                 vehicleControl.setDrivingMode(DriveMode::LEGACY);
                 Serial.println("Drive mode: LEGACY");
@@ -276,27 +293,32 @@ void SerialConsole::handleSet(String target, String parameter, String value) {
             else {
                 Serial.println("Invalid drive mode. Use: legacy, regen, or opd");
             }
-            return;
         }
-        
-        bool state = (value == "1" || valueLower == "true");
-        
-        if (parameter == "bsckl15") {
-            digitalWrite(Pins::BSCKL15, state);
-            printValue("BSC KL15", state);
+        else {
+            // Handle boolean controls
+            bool state = (valueLower == "1" || valueLower == "true");
+            
+            if (parameter == "bsckl15") {
+                digitalWrite(Pins::BSCKL15, state);
+                printValue("BSC KL15", state);
+            }
+            else if (parameter == "dmckl15") {
+                digitalWrite(Pins::DMCKL15, state);
+                printValue("DMC KL15", state);
+            }
+            else if (parameter == "nlgkl15") {
+                digitalWrite(Pins::NLGKL15, state);
+                printValue("NLG KL15", state);
+            }
+            else if (parameter == "pump") {
+                digitalWrite(Pins::PUMP, state);
+                printValue("Cooling Pump", state);
+            }
+            else {
+                Serial.println("Unknown VCU parameter: " + parameter);
+            }
         }
-        else if (parameter == "dmckl15") {
-            digitalWrite(Pins::DMCKL15, state);
-            printValue("DMC KL15", state);
-        }
-        else if (parameter == "nlgkl15") {
-            digitalWrite(Pins::NLGKL15, state);
-            printValue("NLG KL15", state);
-        }
-        else if (parameter == "pump") {
-            digitalWrite(Pins::PUMP, state);
-            printValue("Cooling Pump", state);
-        }
+        return;
     }
 }
 

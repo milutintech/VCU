@@ -9,6 +9,8 @@ namespace Pins {
     constexpr uint8_t MISO = 5;
     constexpr uint8_t SPI_CS_PIN = 36;
     constexpr uint8_t CAN_INT_PIN = 37;  // New interrupt pin
+    constexpr uint8_t SDA = 1;
+    constexpr uint8_t SCL = 2;
     
     // Relay Pins
     constexpr uint8_t PUMP = 38;         // Cooling Pump PW0

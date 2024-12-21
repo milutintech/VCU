@@ -91,6 +91,12 @@ private:
      *    - set:vcu:dmckl15:[0|1] - Control DMC power
      *    - set:vcu:nlgkl15:[0|1] - Control NLG power
      *    - set:vcu:pump:[0|1] - Control cooling pump
+     *    - set:vcu:state:[standby|run|charging] - Force VCU state
+     *    - set:vcu:drivemode:[legacy|regen|opd] - Set drive mode
+     *    - set:vcu:bsckl15:[0|1] - Control BSC power
+     *    - set:vcu:dmckl15:[0|1] - Control DMC power
+     *    - set:vcu:nlgkl15:[0|1] - Control NLG power
+     *    - set:vcu:pump:[0|1] - Control cooling pump
      */
     void handleCommand(String command);
 
