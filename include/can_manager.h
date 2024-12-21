@@ -140,7 +140,7 @@ public:
     void setEnableDMC(bool enable) { enableDMC = enable; }
     void setEnableBSC(bool enable) { enableBSC = enable; }
     void setModeBSC(bool mode) { modeBSC = mode; }
-    
+    void setHVVoltage(uint16_t voltage) { hvVoltage = voltage; }
 private:
     /**
      * @brief Process BMS status message

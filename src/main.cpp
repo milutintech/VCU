@@ -122,7 +122,8 @@ void controlTask(void* parameter) {
         stateManager.setInverterTemp(dmcData.tempInverter);
         stateManager.setMotorTemp(dmcData.tempMotor);
         stateManager.setCoolingRequest(nlgData.coolingRequest);
-        
+        CANManager canManager(Pins::SPI_CS_PIN, stateManager);  // Move this line AFTER stateManager
+        StateManager stateManager(canManager);  // Add canManager parameter
         // Update BSC state based on battery status
         canManager.setEnableBSC(stateManager.isBatteryArmed());
         

@@ -74,12 +74,10 @@ void CANManager::update() {
     checkAndProcessMessages();
     
     unsigned long currentTime = millis();
-    Serial.println("sending");
     if ((currentTime - lastFastCycle >= Constants::FAST_CYCLE_MS) && 
         (stateManager.getCurrentState() == VehicleState::RUN)) {
         lastFastCycle = currentTime;
         sendDMC();
-        Serial.println("sending");
     }
     
     if (currentTime - lastSlowCycle >= Constants::SLOW_CYCLE_MS) {
@@ -236,15 +234,16 @@ void CANManager::processNLGMessage(uint32_t id, uint8_t* buf) {
  */
 void CANManager::sendBSC() {
     uint8_t lvVoltageScale = static_cast<uint8_t>(lvVoltage * 10);
-    uint8_t hvVoltageScale = static_cast<uint8_t>((hvVoltage - 220));
-    
+    // Fix: HV voltage needs to subtract 220V offset according to DBC
+    uint8_t hvVoltageScale = static_cast<uint8_t>(hvVoltage - 220);  // Changed to match DBC
+    Serial.println(hvVoltage);
     // BSC control message (0x260)
-    controlBufferBSC[0] = (enableBSC << 0) | (modeBSC << 1) | 0x80;
+    controlBufferBSC[0] = (enableBSC << 0) | (modeBSC << 1) | 0x80;  // Set BSC6_RUNCOMM
     controlBufferBSC[1] = lvVoltageScale;
     controlBufferBSC[2] = hvVoltageScale;
     
     // BSC limits message (0x261)
-    limitBufferBSC[0] = static_cast<uint8_t>(VehicleParams::Battery::MIN_VOLTAGE - 220);
+    limitBufferBSC[0] = static_cast<uint8_t>(VehicleParams::Battery::MIN_VOLTAGE - 220);  // Also fix offset here
     limitBufferBSC[1] = VehicleParams::Power::BSC_LV_BUCK;
     limitBufferBSC[2] = static_cast<uint8_t>(VehicleParams::Battery::PRECHARGE_CURRENT * 10);
     limitBufferBSC[3] = static_cast<uint8_t>(9 * 10);

@@ -28,6 +28,10 @@ StateManager::StateManager()
     : currentState(VehicleState::STANDBY)
     , batteryArmed(false)
     , hasPreCharged(false)
+    , canManager(canMgr) 
+    , currentState(VehicleState::STANDBY)
+    , batteryArmed(false)
+    , hasPreCharged(false)
     , nlgCharged(false)
     , connectorLocked(false)
     , unlockPersist(false)
@@ -204,7 +208,9 @@ void StateManager::armBattery(bool arm) {
             }
 
             if (millis() - lastModeChangeTime >= Constants::MODE_CHANGE_DELAY_MS) {
-                hvVoltage = batteryVoltage;
+                Serial.println("Battery Voltage: " + String(batteryVoltage));
+                hvVoltage = batteryVoltage;  // Set the target voltage
+                canManager.setHVVoltage(hvVoltage);  // NEW LINE: Update CAN manager
                 enableBSC = true;
                 
                 // Check if precharge is complete
@@ -217,7 +223,8 @@ void StateManager::armBattery(bool arm) {
                     enableBSC = false;
                 }
             }
-        } else {
+        }
+        else {
             batteryArmed = true;
             errorLatch = true;
             delay(100);

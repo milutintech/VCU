@@ -113,7 +113,8 @@ public:
     void setInverterTemp(float temp) { inverterTemp = temp; }
     void setMotorTemp(float temp) { motorTemp = temp; }
     void setCoolingRequest(uint8_t request) { coolingRequest = request; }
-    
+    void setHVVoltage(uint16_t voltage) { hvVoltage = voltage; }
+    uint16_t getHVVoltage() const { return hvVoltage; }
 private:
     /**
      * @brief Handles system behavior in STANDBY state
@@ -175,4 +176,5 @@ private:
     // Timing management
     unsigned long lastModeChangeTime;      // Last state change timestamp
     unsigned long lastPrechargeAttempt;    // Last precharge attempt timestamp
+    CANManager& canManager;
 };
