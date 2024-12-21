@@ -15,10 +15,10 @@
 #include "config.h"
 #include "vehicle_parameters.h"
 
+class CANManager; // Forward declaration
 class StateManager {
 public:
-    StateManager();
-    
+    explicit StateManager(CANManager& canMgr);
     /**
      * @brief Main state machine update function
      * Called regularly to manage state transitions and system controls
@@ -116,6 +116,7 @@ public:
     void setHVVoltage(uint16_t voltage) { hvVoltage = voltage; }
     uint16_t getHVVoltage() const { return hvVoltage; }
 private:
+    CANManager& canManager;
     /**
      * @brief Handles system behavior in STANDBY state
      * Manages low-power mode and wake-up monitoring
@@ -176,5 +177,4 @@ private:
     // Timing management
     unsigned long lastModeChangeTime;      // Last state change timestamp
     unsigned long lastPrechargeAttempt;    // Last precharge attempt timestamp
-    CANManager& canManager;
 };

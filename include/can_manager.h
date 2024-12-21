@@ -19,6 +19,8 @@
 #include "vehicle_parameters.h"
 #include "state_manager.h"
 
+
+
 /**
  * @brief Battery Management System data structure
  * Contains battery state information from BMS

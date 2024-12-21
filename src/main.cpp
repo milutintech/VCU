@@ -31,12 +31,13 @@
 #include "config.h"
 #include "SerialConsole.h"
 
-// Global system instances
+// Global system instances - change the order
 ADS1115 ads(0x48);                                    ///< ADC for pedal position
-StateManager stateManager;                            ///< Vehicle state management
-CANManager canManager(Pins::SPI_CS_PIN, stateManager);///< CAN communication
+StateManager* stateManager;                           ///< Vehicle state management (pointer)
+CANManager canManager(Pins::SPI_CS_PIN, *stateManager);///< CAN communication
 VehicleControl vehicleControl(ads);                   ///< Vehicle control logic
-SerialConsole serialConsole(canManager, stateManager, vehicleControl);  ///< Debug interface
+SerialConsole serialConsole(canManager, *stateManager, vehicleControl);  ///< Debug interface
+
 
 // Task handles for ESP32 dual-core operation
 TaskHandle_t canTaskHandle = nullptr;     ///< CAN task handle (Core 0)
@@ -76,11 +77,12 @@ void canTask(void* parameter) {
         vehicleControl.setMotorSpeed(dmcData.speedActual);
         
         // Calculate and apply torque demand in RUN state
-        if (stateManager.getCurrentState() == VehicleState::RUN) {
+        if (stateManager->getCurrentState() == VehicleState::RUN) {  // Changed . to ->
             int16_t torque = vehicleControl.calculateTorque();
             canManager.setTorqueDemand(torque);
             canManager.setEnableDMC(vehicleControl.isDMCEnabled());
         }
+
         
        vTaskDelay(1);
     }
@@ -104,13 +106,13 @@ void controlTask(void* parameter) {
     
     esp_task_wdt_init(5, true);  // 5 second watchdog timeout
     
-    stateManager.handleWakeup();  // Initial state determination
+    stateManager->handleWakeup();  // Initial state determination
     
     for(;;) {
         esp_task_wdt_init(5, true);
         
         // Update system state and interface
-        stateManager.update();
+        stateManager->update();
         serialConsole.update();
         
         // Update system parameters from CAN data
@@ -118,14 +120,13 @@ void controlTask(void* parameter) {
         const DMCData& dmcData = canManager.getDMCData();
         const NLGData& nlgData = canManager.getNLGData();
         
-        stateManager.setBatteryVoltage(bmsData.voltage);
-        stateManager.setInverterTemp(dmcData.tempInverter);
-        stateManager.setMotorTemp(dmcData.tempMotor);
-        stateManager.setCoolingRequest(nlgData.coolingRequest);
-        CANManager canManager(Pins::SPI_CS_PIN, stateManager);  // Move this line AFTER stateManager
-        StateManager stateManager(canManager);  // Add canManager parameter
+        stateManager->setBatteryVoltage(bmsData.voltage);  // Changed . to ->
+        stateManager->setInverterTemp(dmcData.tempInverter);  // Changed . to ->
+        stateManager->setMotorTemp(dmcData.tempMotor);  // Changed . to ->
+        stateManager->setCoolingRequest(nlgData.coolingRequest);
+
         // Update BSC state based on battery status
-        canManager.setEnableBSC(stateManager.isBatteryArmed());
+        canManager.setEnableBSC(stateManager->isBatteryArmed());
         
         vTaskDelay(pdMS_TO_TICKS(Constants::SLOW_CYCLE_MS)); // 50ms cycle
     }
@@ -142,6 +143,7 @@ void controlTask(void* parameter) {
  */
 void setup() {
     Serial.begin(115200);
+    stateManager = new StateManager(canManager);  // Create StateManager instance
     SystemSetup::initializeGPIO();
     SystemSetup::initializeSleep();
     

@@ -15,6 +15,7 @@
  */
 
 #include "state_manager.h"
+#include "can_manager.h"  // Add this include
 #include "config.h"
 #include <esp_sleep.h>
 
@@ -24,11 +25,8 @@
  * Sets initial system state to STANDBY and ensures all
  * subsystems start in a safe, disabled state.
  */
-StateManager::StateManager()
-    : currentState(VehicleState::STANDBY)
-    , batteryArmed(false)
-    , hasPreCharged(false)
-    , canManager(canMgr) 
+StateManager::StateManager(CANManager& canMgr)
+    : canManager(canMgr)
     , currentState(VehicleState::STANDBY)
     , batteryArmed(false)
     , hasPreCharged(false)
