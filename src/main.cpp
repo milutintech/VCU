@@ -143,29 +143,38 @@ void controlTask(void* parameter) {
  */
 void setup() {
     Serial.begin(115200);
-    stateManager = new StateManager(canManager);  // Create StateManager instance
+    
+    // Initialize hardware first
     SystemSetup::initializeGPIO();
     SystemSetup::initializeSleep();
     
-    // Create tasks on specific cores
+    // Ensure all objects are created before tasks
+    stateManager = new StateManager(canManager);
+    
+    // Add delay to ensure stable initialization
+    delay(100);
+    
+    // Create tasks
     xTaskCreatePinnedToCore(
-        canTask,         // Task function
-        "CAN_Task",      // Name
-        10000,           // Stack size (bytes)
-        NULL,            // Parameters
-        1,              // Priority
-        &canTaskHandle,  // Task handle
-        0               // Core 0
+        canTask,
+        "CAN_Task",
+        10000,
+        NULL,
+        1,
+        &canTaskHandle,
+        0
     );
     
+    delay(100); // Add small delay between task creation
+    
     xTaskCreatePinnedToCore(
-        controlTask,         // Task function
-        "Control_Task",      // Name
-        20000,              // Stack size (bytes)
-        NULL,               // Parameters
-        1,                  // Priority
-        &controlTaskHandle, // Task handle
-        1                  // Core 1
+        controlTask,
+        "Control_Task",
+        20000,
+        NULL,
+        1,
+        &controlTaskHandle,
+        1
     );
 }
 

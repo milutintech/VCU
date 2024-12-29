@@ -156,15 +156,24 @@ void CANManager::processBMSMessage(uint8_t* buf) {
  * - Operating mode
  */
 void CANManager::processBSCMessage(uint8_t* buf) {
+    if (!buf) {
+        Serial.println("Invalid buffer in processBSCMessage");
+        return;
+    }
+    
     bscData.hvVoltageAct = ((buf[0] << 8) | buf[1]) * 0.1;
     bscData.lvVoltageAct = buf[2] * 0.1;
     bscData.hvCurrentAct = (((buf[3] << 8) | buf[4]) * 0.1) - 25;
     bscData.lvCurrentAct = ((buf[5] << 8) | buf[6]) - 280;
     bscData.mode = buf[7] >> 4;
     
-    // Update state manager with HV voltage
-    stateManager.setHVVoltageActual(bscData.hvVoltageAct);
-}    
+    // Add null check before accessing stateManager
+    if (&stateManager) {
+        stateManager.setHVVoltageActual(bscData.hvVoltageAct);
+    }
+}
+
+
 /**
  * @brief Process DMC status messages
  * @param id Message identifier for different DMC message types
