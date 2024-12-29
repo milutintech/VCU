@@ -113,8 +113,10 @@ public:
     void setInverterTemp(float temp) { inverterTemp = temp; }
     void setMotorTemp(float temp) { motorTemp = temp; }
     void setCoolingRequest(uint8_t request) { coolingRequest = request; }
+    void setHVVoltageActual(float voltage) { hvVoltageActual = voltage; }
     void setHVVoltage(uint16_t voltage) { hvVoltage = voltage; }
     uint16_t getHVVoltage() const { return hvVoltage; }
+    float getHVVoltageActual() const { return hvVoltageActual; }
 private:
     CANManager& canManager;
     /**

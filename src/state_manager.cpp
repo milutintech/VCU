@@ -42,6 +42,13 @@ StateManager::StateManager(CANManager& canMgr)
     , chargerState(ChargerStates::NLG_ACT_SLEEP)
     , chargerStateDemand(ChargerStates::NLG_DEM_STANDBY)
     , chargeLedDemand(0)
+    , batteryVoltage(0)
+    , hvVoltageActual(0)
+    , hvVoltage(0)
+    , inverterTemp(0)
+    , motorTemp(0)
+    , coolingRequest(0)
+    , enableDMC(false)
 {
     // Initialize GPIO outputs to safe states
     digitalWrite(Pins::DMCKL15, LOW);
@@ -200,25 +207,35 @@ void StateManager::armBattery(bool arm) {
         if (!hasPreCharged) {
             // Start precharge process
             if (modeBSC != BSCModes::BSC6_BOOST) {
+                Serial.println("Starting precharge - Setting BOOST mode");
                 modeBSC = BSCModes::BSC6_BOOST;
                 lastModeChangeTime = millis();
                 enableBSC = false;
             }
 
             if (millis() - lastModeChangeTime >= Constants::MODE_CHANGE_DELAY_MS) {
-                Serial.println("Battery Voltage: " + String(batteryVoltage));
-                hvVoltage = batteryVoltage;  // Set the target voltage
-                canManager.setHVVoltage(hvVoltage);  // NEW LINE: Update CAN manager
+                Serial.println("Precharge Status:");
+                Serial.println("Battery Voltage: " + String(batteryVoltage) + "V");
+                Serial.println("HV Actual: " + String(hvVoltageActual) + "V");
+                
+                hvVoltage = batteryVoltage;  // Set target voltage
+                canManager.setHVVoltage(hvVoltage);
                 enableBSC = true;
                 
-                // Check if precharge is complete
+                // Check if precharge is complete with detailed logging
                 if ((hvVoltageActual >= (batteryVoltage - 20)) && 
                     (hvVoltageActual <= (batteryVoltage + 20)) && 
                     (hvVoltageActual > 50)) {
+                    Serial.println("Precharge complete - Closing contactor");
                     hasPreCharged = true;
                     digitalWrite(Pins::CONTACTOR, HIGH);
                     digitalWrite(Pins::LWP5, HIGH);
                     enableBSC = false;
+                }
+                else if (millis() - lastModeChangeTime > Constants::PRECHARGE_TIMEOUT_MS) {
+                    Serial.println("Precharge timeout - Voltage not reached");
+                    enableBSC = false;
+                    lastModeChangeTime = millis(); // Reset for next attempt
                 }
             }
         }
@@ -229,6 +246,7 @@ void StateManager::armBattery(bool arm) {
             errorLatch = false;
 
             if (modeBSC != BSCModes::BSC6_BUCK) {
+                Serial.println("Switching to BUCK mode for normal operation");
                 modeBSC = BSCModes::BSC6_BUCK;
                 lastModeChangeTime = millis();
                 enableBSC = false;
@@ -239,6 +257,7 @@ void StateManager::armBattery(bool arm) {
             }
         }
     } else {
+        Serial.println("Disabling battery system");
         batteryArmed = false;
         enableBSC = false;
         hasPreCharged = false;
@@ -246,7 +265,6 @@ void StateManager::armBattery(bool arm) {
         digitalWrite(Pins::LWP5, LOW);
     }
 }
-
 /**
  * @brief Control cooling system operation
  * @param arm true to enable cooling, false to disable

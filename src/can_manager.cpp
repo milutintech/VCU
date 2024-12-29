@@ -161,8 +161,10 @@ void CANManager::processBSCMessage(uint8_t* buf) {
     bscData.hvCurrentAct = (((buf[3] << 8) | buf[4]) * 0.1) - 25;
     bscData.lvCurrentAct = ((buf[5] << 8) | buf[6]) - 280;
     bscData.mode = buf[7] >> 4;
-}
-
+    
+    // Update state manager with HV voltage
+    stateManager.setHVVoltageActual(bscData.hvVoltageAct);
+}    
 /**
  * @brief Process DMC status messages
  * @param id Message identifier for different DMC message types
