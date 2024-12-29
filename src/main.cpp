@@ -31,12 +31,11 @@
 #include "config.h"
 #include "SerialConsole.h"
 
-// Global system instances - change the order
-ADS1115 ads(0x48);                                    ///< ADC for pedal position
-StateManager* stateManager;                           ///< Vehicle state management (pointer)
-CANManager canManager(Pins::SPI_CS_PIN, *stateManager);///< CAN communication
-VehicleControl vehicleControl(ads);                   ///< Vehicle control logic
-SerialConsole serialConsole(canManager, *stateManager, vehicleControl);  ///< Debug interface
+ADS1115 ads(0x48);                                    // ADC for pedal position
+CANManager* canManager;                               // Make this a pointer
+StateManager* stateManager;                           // Vehicle state management
+VehicleControl* vehicleControl;                       // Make this a pointer
+SerialConsole* serialConsole;                         // Make this a pointer
 
 
 // Task handles for ESP32 dual-core operation
@@ -143,41 +142,45 @@ void controlTask(void* parameter) {
  */
 void setup() {
     Serial.begin(115200);
+    while(!Serial) {
+        delay(10);
+    }
     
-    // Initialize hardware first
     SystemSetup::initializeGPIO();
     SystemSetup::initializeSleep();
+
+    // Create instances in correct order
+    canManager = new CANManager(Pins::SPI_CS_PIN);  // Remove stateManager dependency initially
+    stateManager = new StateManager(*canManager);
+    vehicleControl = new VehicleControl(ads);
+    serialConsole = new SerialConsole(*canManager, *stateManager, *vehicleControl);
     
-    // Ensure all objects are created before tasks
-    stateManager = new StateManager(canManager);
+    // Now set the stateManager reference in CANManager
+    canManager->setStateManager(stateManager);
     
-    // Add delay to ensure stable initialization
-    delay(100);
-    
-    // Create tasks
+    // Create tasks with larger stack sizes
     xTaskCreatePinnedToCore(
         canTask,
         "CAN_Task",
-        10000,
+        16000,           // Increased stack size
         NULL,
-        1,
+        2,              // Higher priority
         &canTaskHandle,
         0
     );
     
-    delay(100); // Add small delay between task creation
+    delay(100);
     
     xTaskCreatePinnedToCore(
         controlTask,
         "Control_Task",
-        20000,
+        24000,           // Increased stack size
         NULL,
         1,
         &controlTaskHandle,
         1
     );
 }
-
 /**
  * @brief Main program loop
  * 
