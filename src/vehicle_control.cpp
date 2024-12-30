@@ -372,7 +372,14 @@ void VehicleControl::updateGearState() {
     bool isForwardHigh = forwardValue > 200;
     bool isReverseHigh = reverseValue > 200;
     
-    // Only allow shifts below speed threshold
+    // Handle neutral selection - always allowed
+    if (!isForwardHigh && !isReverseHigh) {
+        currentGear = GearState::NEUTRAL;
+        shiftAttempted = false;
+        return;
+    }
+
+    // Handle transitions at low speed
     if (abs(motorSpeed) < VehicleParams::Transmission::RPM_SHIFT_THRESHOLD) {
         if (isForwardHigh && !isReverseHigh) {
             currentGear = GearState::DRIVE;
@@ -380,20 +387,19 @@ void VehicleControl::updateGearState() {
         } else if (!isForwardHigh && isReverseHigh) {
             currentGear = GearState::REVERSE;
             shiftAttempted = false;
-        } else {
-            currentGear = GearState::NEUTRAL;
-            shiftAttempted = false;
         }
     } else {
-        // At high speed, forced neutral if trying to change gears
-        if ((isForwardHigh && currentGear == GearState::REVERSE) || 
-            (isReverseHigh && currentGear == GearState::DRIVE)) {
-            currentGear = GearState::NEUTRAL;
+        // At high speed, prevent switching between drive and reverse
+        if (isForwardHigh && currentGear == GearState::REVERSE) {
             shiftAttempted = true;
+            // Stay in current gear until speed drops
+        } else if (isReverseHigh && currentGear == GearState::DRIVE) {
+            shiftAttempted = true;
+            // Stay in current gear until speed drops
         }
     }
     
-    // Allow reengaging gear when speed drops
+    // Allow reengaging desired gear when speed drops
     if (shiftAttempted && abs(motorSpeed) < VehicleParams::Transmission::RPM_SHIFT_THRESHOLD) {
         if (isForwardHigh && !isReverseHigh) {
             currentGear = GearState::DRIVE;
