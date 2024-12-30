@@ -32,6 +32,12 @@ public:
     int16_t calculateTorque();
 
     /**
+     * @brief Updates gear state based on switch inputs and speed
+     * Handles gear selection with safety checks
+     */
+    void updateGearState();
+
+    /**
      * @brief Updates current motor speed
      * @param speed Motor speed in RPM
      */
@@ -105,6 +111,7 @@ private:
     DriveMode currentDrivingMode;    // Current driving mode
     GearState currentGear;           // Current gear state
     GearRatio currentGearRatio;      // Current gear ratio
+    bool shiftAttempted;             // Track shift attempts at high speed
     
     bool isOPDEnabled;               // OPD mode flag
     bool isRegenEnabled;             // Regeneration enabled flag

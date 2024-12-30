@@ -19,8 +19,6 @@
 #include "vehicle_parameters.h"
 #include "state_manager.h"
 
-
-
 /**
  * @brief Battery Management System data structure
  * Contains battery state information from BMS
@@ -94,10 +92,15 @@ public:
     /**
      * @brief Construct a new CAN Manager
      * @param cs_pin SPI chip select pin for CAN controller
-     * @param stateManager Reference to vehicle state manager
      */
-    explicit CANManager(uint8_t cs_pin, StateManager& stateManager);
+    explicit CANManager(uint8_t cs_pin);
     ~CANManager();
+    
+    /**
+     * @brief Set the State Manager after initialization
+     * @param sm Pointer to the state manager instance
+     */
+    void setStateManager(StateManager* sm) { stateManager = sm; }
     
     /**
      * @brief Initialize CAN hardware and communication
@@ -143,6 +146,7 @@ public:
     void setEnableBSC(bool enable) { enableBSC = enable; }
     void setModeBSC(bool mode) { modeBSC = mode; }
     void setHVVoltage(uint16_t voltage) { hvVoltage = voltage; }
+
 private:
     /**
      * @brief Process BMS status message
@@ -197,7 +201,7 @@ private:
     BSCData bscData;         ///< DC-DC converter data
     NLGData nlgData;         ///< Charging system data
     
-    StateManager& stateManager;  ///< Reference to state manager
+    StateManager* stateManager;  ///< Pointer to state manager
     
     // Control parameters
     float torqueDemand;      ///< Requested motor torque

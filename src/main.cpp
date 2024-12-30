@@ -9,7 +9,6 @@
  * - System monitoring
  * 
  * Uses dual-core ESP32:
- *  IS Stupid
  * Core 0: CAN communication and fast control loops
  * Core 1: State management and system control
  */
@@ -31,16 +30,16 @@
 #include "config.h"
 #include "SerialConsole.h"
 
-ADS1115 ads(0x48);                                    // ADC for pedal position
-CANManager* canManager;                               // Make this a pointer
-StateManager* stateManager;                           // Vehicle state management
-VehicleControl* vehicleControl;                       // Make this a pointer
-SerialConsole* serialConsole;                         // Make this a pointer
-
+// Global objects and pointers
+ADS1115 ads(0x48);                // ADC for pedal position
+CANManager* canManager = nullptr;  // CAN communication manager
+StateManager* stateManager = nullptr; // Vehicle state management
+VehicleControl* vehicleControl = nullptr; // Vehicle control system
+SerialConsole* serialConsole = nullptr; // Debug console interface
 
 // Task handles for ESP32 dual-core operation
-TaskHandle_t canTaskHandle = nullptr;     ///< CAN task handle (Core 0)
-TaskHandle_t controlTaskHandle = nullptr; ///< Control task handle (Core 1)
+TaskHandle_t canTaskHandle = nullptr;     // CAN task handle (Core 0)
+TaskHandle_t controlTaskHandle = nullptr; // Control task handle (Core 1)
 
 /**
  * @brief CAN and Fast Control Task (Core 0)
@@ -63,27 +62,27 @@ void canTask(void* parameter) {
     Wire.setClock(400000);  // 400kHz I2C
     ads.begin();
     ads.setGain(2);         // Set ADC gain for pedal reading
-    canManager.begin();
+    canManager->begin();
     
     esp_task_wdt_init(5, true);  // 5 second watchdog timeout
     
     for(;;) {
-        esp_task_wdt_init(5, true);
-        canManager.update();
+        esp_task_wdt_reset();
+        canManager->update();
         
         // Update motor speed from DMC data
-        const DMCData& dmcData = canManager.getDMCData();
-        vehicleControl.setMotorSpeed(dmcData.speedActual);
+        const DMCData& dmcData = canManager->getDMCData();
+        vehicleControl->setMotorSpeed(dmcData.speedActual);
         
         // Calculate and apply torque demand in RUN state
-        if (stateManager->getCurrentState() == VehicleState::RUN) {  // Changed . to ->
-            int16_t torque = vehicleControl.calculateTorque();
-            canManager.setTorqueDemand(torque);
-            canManager.setEnableDMC(vehicleControl.isDMCEnabled());
+        if (stateManager->getCurrentState() == VehicleState::RUN) {
+            vehicleControl->updateGearState();  // Add this line
+            int16_t torque = vehicleControl->calculateTorque();
+            canManager->setTorqueDemand(torque);
+            canManager->setEnableDMC(vehicleControl->isDMCEnabled());
         }
-
         
-       vTaskDelay(1);
+        vTaskDelay(1);
     }
 }
 
@@ -108,26 +107,21 @@ void controlTask(void* parameter) {
     stateManager->handleWakeup();  // Initial state determination
     
     for(;;) {
-        esp_task_wdt_init(5, true);
+        esp_task_wdt_reset();
         
         // Update system state and interface
         stateManager->update();
-        serialConsole.update();
+        serialConsole->update();
         
         // Update system parameters from CAN data
-        const BMSData& bmsData = canManager.getBMSData();
-        const DMCData& dmcData = canManager.getDMCData();
-        const NLGData& nlgData = canManager.getNLGData();
+        const BMSData& bmsData = canManager->getBMSData();
+        const DMCData& dmcData = canManager->getDMCData();
+        const NLGData& nlgData = canManager->getNLGData();
         
-        stateManager->setBatteryVoltage(bmsData.voltage);  // Changed . to ->
-        stateManager->setInverterTemp(dmcData.tempInverter);  // Changed . to ->
-        stateManager->setMotorTemp(dmcData.tempMotor);  // Changed . to ->
-        stateManager->setCoolingRequest(nlgData.coolingRequest);
-
         // Update BSC state based on battery status
-        canManager.setEnableBSC(stateManager->isBatteryArmed());
+        //canManager->setEnableBSC(stateManager->isBatteryArmed());
         
-        vTaskDelay(pdMS_TO_TICKS(Constants::SLOW_CYCLE_MS)); // 50ms cycle
+        vTaskDelay(pdMS_TO_TICKS(Constants::SLOW_CYCLE_MS));
     }
 }
 
@@ -142,45 +136,71 @@ void controlTask(void* parameter) {
  */
 void setup() {
     Serial.begin(115200);
-    while(!Serial) {
-        delay(10);
-    }
     
+    // Initialize system components in correct order
+    canManager = new CANManager(Pins::SPI_CS_PIN); // First create CAN manager
+    if (!canManager) {
+        Serial.println("Failed to create CANManager");
+        while(1);
+    }
+
+    stateManager = new StateManager(*canManager);  // Now create StateManager with CAN reference
+    if (!stateManager) {
+        Serial.println("Failed to create StateManager");
+        while(1);
+    }
+    // Set the state manager reference in CAN manager
+    canManager->setStateManager(stateManager); 
+    
+    vehicleControl = new VehicleControl(ads);
+    if (!vehicleControl) {
+        Serial.println("Failed to create VehicleControl");
+        while(1);
+    }
+
+    serialConsole = new SerialConsole(*canManager, *stateManager, *vehicleControl);
+    if (!serialConsole) {
+        Serial.println("Failed to create SerialConsole");
+        while(1);
+    }
+
+
+    // Initialize hardware
     SystemSetup::initializeGPIO();
     SystemSetup::initializeSleep();
-
-    // Create instances in correct order
-    canManager = new CANManager(Pins::SPI_CS_PIN);  // Remove stateManager dependency initially
-    stateManager = new StateManager(*canManager);
-    vehicleControl = new VehicleControl(ads);
-    serialConsole = new SerialConsole(*canManager, *stateManager, *vehicleControl);
     
-    // Now set the stateManager reference in CANManager
-    canManager->setStateManager(stateManager);
-    
-    // Create tasks with larger stack sizes
-    xTaskCreatePinnedToCore(
-        canTask,
-        "CAN_Task",
-        16000,           // Increased stack size
-        NULL,
-        2,              // Higher priority
-        &canTaskHandle,
-        0
+    // Create tasks with error checking
+    BaseType_t canTaskCreated = xTaskCreatePinnedToCore(
+        canTask,         // Task function
+        "CAN_Task",      // Task name
+        10000,           // Stack size (words)
+        NULL,            // Parameters
+        1,              // Priority
+        &canTaskHandle,  // Task handle
+        0               // Core ID
     );
     
-    delay(100);
+    if (canTaskCreated != pdPASS) {
+        Serial.println("Failed to create CAN task");
+        while(1);
+    }
     
-    xTaskCreatePinnedToCore(
-        controlTask,
-        "Control_Task",
-        24000,           // Increased stack size
-        NULL,
-        1,
-        &controlTaskHandle,
-        1
+    BaseType_t controlTaskCreated = xTaskCreatePinnedToCore(
+        controlTask,         // Task function
+        "Control_Task",      // Task name
+        20000,              // Stack size (words)
+        NULL,               // Parameters
+        1,                  // Priority
+        &controlTaskHandle, // Task handle
+        1                  // Core ID
     );
+    
+    if (controlTaskCreated != pdPASS) {
+        Serial.println("Failed to create Control task");
+        while(1);
+    }
 }
+
 /**
  * @brief Main program loop
  * 

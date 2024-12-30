@@ -26,12 +26,16 @@
 VehicleControl::VehicleControl(ADS1115& ads) 
     : ads(ads)
     , currentDrivingMode(DriveMode::REGEN)
+    , currentGear(GearState::NEUTRAL)
+    , currentGearRatio(GearRatio::NORMAL)
+    , shiftAttempted(false)
     , isOPDEnabled(false)
     , isRegenEnabled(true)
-    , lastTorque(0)
-    , motorSpeed(0)
+    , enableDMC(false)
     , wasInDeadband(false)
     , wasEnabled(false)
+    , lastTorque(0)
+    , motorSpeed(0)
 {
 }
 
@@ -64,11 +68,16 @@ int16_t VehicleControl::calculateTorque() {
     // Calculate throttle position with gamma correction
     float throttlePosition = pow(rawThrottle / 100.0f, VehicleParams::Control::PEDAL_GAMMA) * 100.0f;
     
+    // Update reverse light based on gear state
+    digitalWrite(Pins::BCKLIGHT, currentGear == GearState::REVERSE ? HIGH : LOW);
+
     // Handle neutral gear
     if (currentGear == GearState::NEUTRAL) {
         lastTorque = 0;
+        digitalWrite(Pins::BCKLIGHT, LOW);  // Ensure reverse light is off in neutral
         return 0;
     }
+    
 
     // Calculate vehicle speed
     float speed = calculateVehicleSpeed();
@@ -354,4 +363,44 @@ void VehicleControl::setDrivingMode(DriveMode mode) {
  */
 bool VehicleControl::isDMCEnabled() const {
     return enableDMC;
+}
+
+void VehicleControl::updateGearState() {
+    int32_t forwardValue = ads.readADC(2);  // Drive switch on A2
+    int32_t reverseValue = ads.readADC(3);  // Reverse switch on A3
+    
+    bool isForwardHigh = forwardValue > 200;
+    bool isReverseHigh = reverseValue > 200;
+    
+    // Only allow shifts below speed threshold
+    if (abs(motorSpeed) < VehicleParams::Transmission::RPM_SHIFT_THRESHOLD) {
+        if (isForwardHigh && !isReverseHigh) {
+            currentGear = GearState::DRIVE;
+            shiftAttempted = false;
+        } else if (!isForwardHigh && isReverseHigh) {
+            currentGear = GearState::REVERSE;
+            shiftAttempted = false;
+        } else {
+            currentGear = GearState::NEUTRAL;
+            shiftAttempted = false;
+        }
+    } else {
+        // At high speed, forced neutral if trying to change gears
+        if ((isForwardHigh && currentGear == GearState::REVERSE) || 
+            (isReverseHigh && currentGear == GearState::DRIVE)) {
+            currentGear = GearState::NEUTRAL;
+            shiftAttempted = true;
+        }
+    }
+    
+    // Allow reengaging gear when speed drops
+    if (shiftAttempted && abs(motorSpeed) < VehicleParams::Transmission::RPM_SHIFT_THRESHOLD) {
+        if (isForwardHigh && !isReverseHigh) {
+            currentGear = GearState::DRIVE;
+            shiftAttempted = false;
+        } else if (!isForwardHigh && isReverseHigh) {
+            currentGear = GearState::REVERSE;
+            shiftAttempted = false;
+        }
+    }
 }

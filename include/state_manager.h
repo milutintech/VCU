@@ -18,7 +18,7 @@
 class CANManager; // Forward declaration
 class StateManager {
 public:
-    explicit StateManager(CANManager& canMgr);
+    explicit StateManager(CANManager& canMgr);    
     /**
      * @brief Main state machine update function
      * Called regularly to manage state transitions and system controls
@@ -118,37 +118,16 @@ public:
     uint16_t getHVVoltage() const { return hvVoltage; }
     float getHVVoltageActual() const { return hvVoltageActual; }
 private:
-    CANManager& canManager;
-    /**
-     * @brief Handles system behavior in STANDBY state
-     * Manages low-power mode and wake-up monitoring
-     */
+    // Private member functions
     void handleStandbyState();
-
-    /**
-     * @brief Handles system behavior in RUN state
-     * Manages drive systems and operational monitoring
-     */
     void handleRunState();
-
-    /**
-     * @brief Handles system behavior in CHARGING state
-     * Manages charging process and battery monitoring
-     */
     void handleChargingState();
-    
-    /**
-     * @brief Handles charge connector unlocking
-     * Manages safe connector release sequence
-     */
     void handleConnectorUnlock();
-
-    /**
-     * @brief Handles persistent unlock request
-     * @param unlockTimeout Reference to unlock timeout counter
-     */
     void handlePersistentUnlock(unsigned long& unlockTimeout);
-    
+
+    // System references
+    CANManager& canManager;
+
     // Internal state variables
     VehicleState currentState;     // Current vehicle operational state
     bool batteryArmed;            // Battery system active flag

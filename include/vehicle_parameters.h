@@ -25,6 +25,7 @@ namespace VehicleParams {
         static constexpr int MAX_DMC_CURRENT = 300; ///< Maximum motor controller current (A)
         static constexpr int MAX_NLG_CURRENT = 72;  ///< Maximum charging current (A)
         static constexpr int PRECHARGE_CURRENT = 20;///< Precharge current limit (A)
+        static constexpr int  MIN_LVVOLTAGE = 14.4; 
     };
 
     /**
@@ -47,10 +48,12 @@ namespace VehicleParams {
         static constexpr int MAX_TRQ = 850;         ///< Maximum motor torque (Nm)
         static constexpr int MAX_REQ_TRQ = 850;     ///< Maximum request torque (Nm)
         static constexpr int MAX_REVERSE_TRQ = 220; ///< Maximum reverse torque (Nm)
+        static constexpr int MAX_RPM = 6000;         ///< Maximum motor torque (Nm)
         static constexpr float MAX_ACCEL_STEP = 8.0f;   ///< Torque ramp-up limit (Nm/cycle)
         static constexpr float MAX_DECEL_STEP = 25.0f;  ///< Torque ramp-down limit (Nm/cycle)
         static constexpr float TORQUE_DEADBAND_HIGH = 25.0f; ///< Upper deadband threshold (Nm)
         static constexpr float TORQUE_DEADBAND_LOW = 18.0f;  ///< Lower deadband threshold (Nm)
+
     };
 
     /**
@@ -58,11 +61,11 @@ namespace VehicleParams {
      * Defines power limits for various systems
      */
     struct Power {
-        static constexpr int DMC_DC_MOT = 600;     ///< Motor power limit (kW)
-        static constexpr int DMC_DC_GEN = 420;     ///< Generator power limit (kW)
-        static constexpr int BSC_LV_BUCK = 100;    ///< DC-DC buck mode limit (kW)
-        static constexpr int BSC_LV_BOOST = 100;   ///< DC-DC boost mode limit (kW)
-        static constexpr int NLG_MAX_AC = 32;      ///< Maximum AC charging power (kW)
+        static constexpr int DMC_DC_MOT = 600;     ///< Motor power limit (A)
+        static constexpr int DMC_DC_GEN = 420;     ///< Generator power limit (A)
+        static constexpr int BSC_LV_BUCK = 100;    ///< DC-DC buck mode limit (A)
+        static constexpr int BSC_LV_BOOST = 100;   ///< DC-DC boost mode limit (A)
+        static constexpr int NLG_MAX_AC = 32;      ///< Maximum AC charging power (A)
     };
 
     /**
@@ -122,7 +125,7 @@ namespace VehicleParams {
      * Defines control loop and timeout values
      */
     struct Timing {
-        static constexpr unsigned long FAST_CYCLE_MS = 10;    ///< Fast loop interval (ms)
+        static constexpr unsigned long FAST_CYCLE_MS = 50;    ///< Fast loop interval (ms)
         static constexpr unsigned long SLOW_CYCLE_MS = 100;    ///< Slow loop interval (ms)
         static constexpr unsigned long NLG_UNLOCK_TIMEOUT = 3000; ///< Charger unlock timeout (ms)
         static constexpr unsigned long PRECHARGE_TIMEOUT = 5000;  ///< Precharge timeout (ms)
