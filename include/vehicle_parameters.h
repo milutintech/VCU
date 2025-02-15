@@ -25,7 +25,7 @@ namespace VehicleParams {
         static constexpr int MAX_DMC_CURRENT = 300; ///< Maximum motor controller current (A)
         static constexpr int MAX_NLG_CURRENT = 72;  ///< Maximum charging current (A)
         static constexpr int PRECHARGE_CURRENT = 20;///< Precharge current limit (A)
-        static constexpr int  MIN_LVVOLTAGE = 14.4; 
+        static constexpr int MIN_LVVOLTAGE = 14.4; 
     };
 
     /**
@@ -48,12 +48,11 @@ namespace VehicleParams {
         static constexpr int MAX_TRQ = 850;         ///< Maximum motor torque (Nm)
         static constexpr int MAX_REQ_TRQ = 850;     ///< Maximum request torque (Nm)
         static constexpr int MAX_REVERSE_TRQ = 220; ///< Maximum reverse torque (Nm)
-        static constexpr int MAX_RPM = 6000;         ///< Maximum motor torque (Nm)
+        static constexpr int MAX_RPM = 6000;         ///< Maximum motor RPM
         static constexpr float MAX_ACCEL_STEP = 8.0f;   ///< Torque ramp-up limit (Nm/cycle)
         static constexpr float MAX_DECEL_STEP = 25.0f;  ///< Torque ramp-down limit (Nm/cycle)
         static constexpr float TORQUE_DEADBAND_HIGH = 25.0f; ///< Upper deadband threshold (Nm)
         static constexpr float TORQUE_DEADBAND_LOW = 18.0f;  ///< Lower deadband threshold (Nm)
-
     };
 
     /**
@@ -87,9 +86,10 @@ namespace VehicleParams {
     struct Control {
         static constexpr float PEDAL_GAMMA = 1.5f;      ///< Pedal response curve exponent
         static constexpr float SPEED_FACTOR = 1.2f;     ///< Speed scaling factor
-        static constexpr float MIN_PEDAL_THRESHOLD = 2.0f; ///< Min pedal activation (%)
-        static constexpr float COAST_POSITION_MIN = 20.0f; ///< Min coast pedal position (%)
-        static constexpr float COAST_POSITION_MAX = 50.0f; ///< Max coast pedal position (%)
+        static constexpr float MIN_PEDAL_THRESHOLD = 2.0f; ///< Minimum pedal activation (%)
+        static constexpr float COAST_POSITION_MIN = 20.0f; ///< Minimum coast pedal position (%)
+        static constexpr float COAST_POSITION_MAX = 50.0f; ///< Maximum coast pedal position (%)
+        static constexpr float CONTROL_DT = 0.01f;      ///< Control loop time step (seconds)
     };
 
     /**
@@ -110,14 +110,16 @@ namespace VehicleParams {
      */
     struct OPD {
         static constexpr double MAX_SPEED = 120.0;     ///< Maximum vehicle speed (kph)
+        static constexpr double ZERO_SPEED_THRESHOLD = 1.0; ///< Threshold below which the vehicle is considered nearly stopped (kph)
         static constexpr double COAST_RANGE = 10.0;    ///< Pedal coast range (%)
         static constexpr double PHI = 35.0;            ///< Top speed pedal position (%)
-        static constexpr double SHAPE_FACTOR = 2.0;    ///< Pedal map curve shape
+        static constexpr double SHAPE_FACTOR = 2.0;    ///< Pedal map curve shape factor
         static constexpr double ROLLBACK_SPEED = 3.0;  ///< Anti-rollback threshold (kph)
-        static constexpr double ROLLBACK_TORQUE = 15.0;///< Anti-rollback torque (%)
-        static constexpr double MAX_REGEN = 80.0;      ///< Max regen torque (%)
-        static constexpr double MAX_DRIVE = 100.0;     ///< Max drive torque (%)
-        static constexpr double BRAKE_LIGHT_THRESHOLD = 20.0; ///< Brake light activation (%)
+        static constexpr double ROLLBACK_TORQUE = 15.0;///< Anti-rollback torque (% of MAX_TRQ)
+        static constexpr double MAX_REGEN = 80.0;      ///< Maximum regenerative braking level (% of MAX_TRQ)
+        static constexpr double MAX_DRIVE = 100.0;     ///< Maximum drive torque level (% of MAX_TRQ)
+        static constexpr double BRAKE_LIGHT_THRESHOLD = 20.0; ///< Brake light activation threshold (%)
+        static constexpr double SLOW_SPEED_REGEN_CAP = 200.0; ///< Regen torque cap at slow speeds (Nm)
     };
 
     /**
@@ -136,8 +138,8 @@ namespace VehicleParams {
      * Defines ADC scaling and calibration values
      */
     struct ADC {
-        static constexpr int MIN_POT_VALUE = 15568;   ///< Min pedal ADC value
-        static constexpr int MAX_POT_VALUE = 11200;   ///< Max pedal ADC value
+        static constexpr int MIN_POT_VALUE = 15568;   ///< Minimum pedal ADC value
+        static constexpr int MAX_POT_VALUE = 11200;   ///< Maximum pedal ADC value
         static constexpr float POT_DEADBAND = 0.02f;  ///< Pedal deadband (2%)
     };
 

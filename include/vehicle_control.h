@@ -17,6 +17,35 @@
 #include "vehicle_parameters.h"
 #include "ADS1X15.h"
 
+// Simple PID controller for OPD anti-rollback protection.
+// (This class can be moved to a separate file if desired.)
+class PIDController {
+public:
+    PIDController(float kp, float ki, float kd)
+        : kp_(kp), ki_(ki), kd_(kd), integral_(0.0f), prevError_(0.0f), setpoint_(0.0f) {}
+
+    /**
+     * @brief Update the PID controller.
+     * @param measurement Current measurement (e.g. vehicle speed in kph).
+     * @param dt Time step in seconds.
+     * @return PID output used as a torque command.
+     */
+    float update(float measurement, float dt) {
+        float error = setpoint_ - measurement;
+        integral_ += error * dt;
+        float derivative = (error - prevError_) / dt;
+        prevError_ = error;
+        return kp_ * error + ki_ * integral_ + kd_ * derivative;
+    }
+    
+    void setSetpoint(float sp) { setpoint_ = sp; }
+    
+private:
+    float kp_, ki_, kd_;
+    float integral_, prevError_;
+    float setpoint_;
+};
+
 class VehicleControl {
 public:
     /**
@@ -86,7 +115,7 @@ private:
     int16_t handleRegenMode(float throttlePosition, float speed);
     int16_t handleOPDMode(float throttlePosition, float speed);
     
-    // OPD calculations
+    // (Optional) Additional functions for OPD calculations.
     float calculateCoastUpperBound(float speed);
     float calculateCoastLowerBound(float speed);
     float calculateMaxRegenerativeTorque(float speed);
@@ -121,4 +150,8 @@ private:
     
     float lastTorque;                // Last calculated torque
     float motorSpeed;                // Current motor speed
+
+    // PID controller for OPD anti-rollback protection.
+    // This member is used to hold the vehicle when speed is near zero.
+    PIDController opdPid;
 };
