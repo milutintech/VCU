@@ -26,6 +26,7 @@ namespace VehicleParams {
         static constexpr int MAX_NLG_CURRENT = 72;  ///< Maximum charging current (A)
         static constexpr int PRECHARGE_CURRENT = 20;///< Precharge current limit (A)
         static constexpr int MIN_LVVOLTAGE = 14.4; 
+        
     };
 
     /**
@@ -120,6 +121,7 @@ namespace VehicleParams {
         static constexpr double MAX_DRIVE = 100.0;     ///< Maximum drive torque level (% of MAX_TRQ)
         static constexpr double BRAKE_LIGHT_THRESHOLD = 20.0; ///< Brake light activation threshold (%)
         static constexpr double SLOW_SPEED_REGEN_CAP = 200.0; ///< Regen torque cap at slow speeds (Nm)
+        static constexpr double REGEN_TORQUE_CAP = 300;
     };
 
     /**

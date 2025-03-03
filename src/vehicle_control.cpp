@@ -8,49 +8,11 @@
  * - Multiple driving modes (Legacy, Regen, OPD)
  * - Speed monitoring and control
  * - Safety checks and limits
- *
- * This implementation includes an improved OPD mode featuring:
- * - A PID controller for anti-rollback protection when vehicle speed is near zero
- * - A torque cap for regenerative braking at slow speeds so that, in the worst case,
- *   the vehicle accelerates only gently in reverse.
  */
 
 #include "vehicle_control.h"
 #include "config.h"
 #include "ADS1X15.h"
-
-//-------------------------------
-// Minimal PID Controller Implementation
-//-------------------------------
-/**
- * @brief Simple PID controller class used for anti-rollback in OPD mode.
- */
-class PIDController {
-public:
-    PIDController(float kp, float ki, float kd)
-        : kp_(kp), ki_(ki), kd_(kd), integral_(0.0f), prevError_(0.0f), setpoint_(0.0f) {}
-
-    /**
-     * @brief Update the PID controller.
-     * @param measurement The current measurement (e.g. vehicle speed in kph).
-     * @param dt Time step in seconds.
-     * @return The PID output (control effort, here interpreted as a torque command).
-     */
-    float update(float measurement, float dt) {
-        float error = setpoint_ - measurement;
-        integral_ += error * dt;
-        float derivative = (error - prevError_) / dt;
-        prevError_ = error;
-        return kp_ * error + ki_ * integral_ + kd_ * derivative;
-    }
-    
-    void setSetpoint(float sp) { setpoint_ = sp; }
-    
-private:
-    float kp_, ki_, kd_;
-    float integral_, prevError_;
-    float setpoint_;
-};
 
 //-------------------------------
 // VehicleControl Class Implementation
