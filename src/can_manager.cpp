@@ -163,7 +163,7 @@ void CANManager::processBMSMessage(uint8_t* buf) {
     if (!buf) return;
     
     bmsData.soc = buf[0] / 2;
-    bmsData.voltage = 370;  // Fixed value for testing
+    bmsData.voltage = (buf[2]|(buf[1]<< 8))/10;   // 370;Fixed value for testing
     bmsData.current = (buf[3] | (buf[4] << 8)) / 100;
     bmsData.maxDischarge = (buf[5] | (buf[6] << 8)) / 100;
     bmsData.maxCharge = buf[7] * 2;
