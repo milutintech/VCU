@@ -28,7 +28,7 @@ namespace Pins {
     // Input Pins
     constexpr uint8_t NLG_HW_Wakeup = 7;
     constexpr uint8_t IGNITION = 8;
-    constexpr uint8_t UNLCKCON = 9;
+    constexpr uint8_t UNLCKCON = 10;
     constexpr uint32_t BUTTON_PIN_BITMASK = 0x380;
 }
 

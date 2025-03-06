@@ -190,7 +190,9 @@ void StateManager::handleChargingState() {
     digitalWrite(Pins::BSCKL15, HIGH);
     
     if(conUlockInterrupt) {
+        Serial.println("Connector unlock interrupt detected");
         handleConnectorUnlock();
+        //conUlockInterrupt = false; // Clear the interrupt flag after handling
     }
     
     armCoolingSys(true);
@@ -199,6 +201,7 @@ void StateManager::handleChargingState() {
     canManager.setNLGLedDemand(chargeLedDemand);
     canManager.setNLGUnlockRequest(unlockConnectorRequest);
 }
+
 
 /**
  * @brief Control battery system state and precharge
@@ -301,7 +304,7 @@ void StateManager::armCoolingSys(bool arm) {
                 if (coolingRequest > 50) {
                     digitalWrite(Pins::LWP6, HIGH);
                     digitalWrite(Pins::LWP7, HIGH);
-                } else if(coolingRequest < 10){
+                } else if(coolingRequest < 2){
                     digitalWrite(Pins::LWP6, LOW);
                     digitalWrite(Pins::LWP7, LOW);
                 }
@@ -432,11 +435,18 @@ void StateManager::handlePersistentUnlock(unsigned long& unlockTimeout) {
  * - Updates charge completion status
  * - Manages state transitions
  */
-void StateManager::handleConnectorUnlock() {
+ void StateManager::handleConnectorUnlock() {
+    Serial.println("Processing connector unlock request");
+    
+    // Get current connector status from NLG
+    connectorLocked = canManager.getNLGData().connectorLocked;
+    
     if (connectorLocked) {
+        Serial.println("Connector locked - requesting unlock");
         unlockConnectorRequest = true;
         nlgCharged = true;
     } else {
+        Serial.println("Connector already unlocked - transitioning to standby");
         conUlockInterrupt = false;
         chargerStateDemand = ChargerStates::NLG_DEM_STANDBY;
         transitionToStandby();

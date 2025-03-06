@@ -44,8 +44,8 @@ TaskHandle_t controlTaskHandle = nullptr; // Control task handle (Core 1)
 // Connector unlock ISR function
 void IRAM_ATTR connectorUnlockISR() {
     if (stateManager) {
+        Serial.println("innterrupt");
         stateManager->handleConnectorUnlockInterrupt();
-        //Serial.println("innterrupt");
     }
 }
 
@@ -172,10 +172,11 @@ void setup() {
         while(1);
     }
 
+    pinMode(Pins::UNLCKCON, INPUT_PULLDOWN);
+    attachInterrupt(digitalPinToInterrupt(Pins::UNLCKCON), connectorUnlockISR, RISING);
 
     // Initialize hardware
     SystemSetup::initializeGPIO();
-    attachInterrupt(digitalPinToInterrupt(Pins::UNLCKCON), connectorUnlockISR, RISING);
     SystemSetup::initializeSleep();
     
     // Create tasks with error checking

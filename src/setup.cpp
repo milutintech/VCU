@@ -51,7 +51,7 @@ void SystemSetup::initializeGPIO() {
     pinMode(Pins::LWP5, OUTPUT);
     pinMode(Pins::LWP6, OUTPUT);
     pinMode(Pins::LWP7, OUTPUT);
-    pinMode(Pins::UNLCKCON, INPUT_PULLDOWN); // Use pull-down to ensure clean interrupts
+    pinMode(Pins::UNLCKCON, INPUT); // Use pull-down to ensure clean interrupts
     
     setDefaultPinStates();
 }
