@@ -13,11 +13,13 @@
 \begin{DoxyCompactItemize}
 \item 
 static constexpr int \mbox{\hyperlink{struct_vehicle_params_1_1_motor_ae9414c3611811b6cbf786de61c3ef9e3}{MAX\+\_\+\+TRQ}} = 850
-\begin{DoxyCompactList}\small\item\em Maximum motor torque (Nm) \end{DoxyCompactList}\item 
-static constexpr int \mbox{\hyperlink{struct_vehicle_params_1_1_motor_a3b439fc6c5bb426683d474a9c4b9bc53}{MAX\+\_\+\+REQ\+\_\+\+TRQ}} = 850
-\begin{DoxyCompactList}\small\item\em Maximum request torque (Nm) \end{DoxyCompactList}\item 
-static constexpr int \mbox{\hyperlink{struct_vehicle_params_1_1_motor_ac24cfcb5d4bb226ff1e67cfd393c3ea6}{MAX\+\_\+\+REVERSE\+\_\+\+TRQ}} = 220
-\begin{DoxyCompactList}\small\item\em Maximum reverse torque (Nm) \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Maximum motor torque (Nm) 0-\/850. \end{DoxyCompactList}\item 
+static constexpr int \mbox{\hyperlink{struct_vehicle_params_1_1_motor_a3b439fc6c5bb426683d474a9c4b9bc53}{MAX\+\_\+\+REQ\+\_\+\+TRQ}} = 800
+\begin{DoxyCompactList}\small\item\em Maximum request torque (Nm)0-\/850. \end{DoxyCompactList}\item 
+static constexpr int \mbox{\hyperlink{struct_vehicle_params_1_1_motor_ac24cfcb5d4bb226ff1e67cfd393c3ea6}{MAX\+\_\+\+REVERSE\+\_\+\+TRQ}} = 200
+\begin{DoxyCompactList}\small\item\em Maximum reverse torque (Nm)0-\/850. \end{DoxyCompactList}\item 
+static constexpr int \mbox{\hyperlink{struct_vehicle_params_1_1_motor_ad3e7f0bb9e1fc37ba125487114708cb5}{MAX\+\_\+\+RPM}} = 1000
+\begin{DoxyCompactList}\small\item\em Maximum motor RPM 0-\/6000. \end{DoxyCompactList}\item 
 static constexpr float \mbox{\hyperlink{struct_vehicle_params_1_1_motor_a8554f216b195524900c5b9f4b6762106}{MAX\+\_\+\+ACCEL\+\_\+\+STEP}} = 8.\+0f
 \begin{DoxyCompactList}\small\item\em Torque ramp-\/up limit (Nm/cycle) \end{DoxyCompactList}\item 
 static constexpr float \mbox{\hyperlink{struct_vehicle_params_1_1_motor_a6969e3e63468c5bc0585ff8e4d977b5e}{MAX\+\_\+\+DECEL\+\_\+\+STEP}} = 25.\+0f
@@ -56,21 +58,31 @@ Torque ramp-\/down limit (Nm/cycle)
 \index{MAX\_REQ\_TRQ@{MAX\_REQ\_TRQ}!VehicleParams::Motor@{VehicleParams::Motor}}
 \doxysubsubsection{\texorpdfstring{MAX\_REQ\_TRQ}{MAX\_REQ\_TRQ}}
 {\footnotesize\ttfamily \label{struct_vehicle_params_1_1_motor_a3b439fc6c5bb426683d474a9c4b9bc53} 
-int Vehicle\+Params\+::\+Motor\+::\+MAX\+\_\+\+REQ\+\_\+\+TRQ = 850\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+int Vehicle\+Params\+::\+Motor\+::\+MAX\+\_\+\+REQ\+\_\+\+TRQ = 800\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
 
 
 
-Maximum request torque (Nm) 
+Maximum request torque (Nm)0-\/850. 
 
 \Hypertarget{struct_vehicle_params_1_1_motor_ac24cfcb5d4bb226ff1e67cfd393c3ea6}\index{VehicleParams::Motor@{VehicleParams::Motor}!MAX\_REVERSE\_TRQ@{MAX\_REVERSE\_TRQ}}
 \index{MAX\_REVERSE\_TRQ@{MAX\_REVERSE\_TRQ}!VehicleParams::Motor@{VehicleParams::Motor}}
 \doxysubsubsection{\texorpdfstring{MAX\_REVERSE\_TRQ}{MAX\_REVERSE\_TRQ}}
 {\footnotesize\ttfamily \label{struct_vehicle_params_1_1_motor_ac24cfcb5d4bb226ff1e67cfd393c3ea6} 
-int Vehicle\+Params\+::\+Motor\+::\+MAX\+\_\+\+REVERSE\+\_\+\+TRQ = 220\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+int Vehicle\+Params\+::\+Motor\+::\+MAX\+\_\+\+REVERSE\+\_\+\+TRQ = 200\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
 
 
 
-Maximum reverse torque (Nm) 
+Maximum reverse torque (Nm)0-\/850. 
+
+\Hypertarget{struct_vehicle_params_1_1_motor_ad3e7f0bb9e1fc37ba125487114708cb5}\index{VehicleParams::Motor@{VehicleParams::Motor}!MAX\_RPM@{MAX\_RPM}}
+\index{MAX\_RPM@{MAX\_RPM}!VehicleParams::Motor@{VehicleParams::Motor}}
+\doxysubsubsection{\texorpdfstring{MAX\_RPM}{MAX\_RPM}}
+{\footnotesize\ttfamily \label{struct_vehicle_params_1_1_motor_ad3e7f0bb9e1fc37ba125487114708cb5} 
+int Vehicle\+Params\+::\+Motor\+::\+MAX\+\_\+\+RPM = 1000\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+
+
+Maximum motor RPM 0-\/6000. 
 
 \Hypertarget{struct_vehicle_params_1_1_motor_ae9414c3611811b6cbf786de61c3ef9e3}\index{VehicleParams::Motor@{VehicleParams::Motor}!MAX\_TRQ@{MAX\_TRQ}}
 \index{MAX\_TRQ@{MAX\_TRQ}!VehicleParams::Motor@{VehicleParams::Motor}}
@@ -80,7 +92,7 @@ int Vehicle\+Params\+::\+Motor\+::\+MAX\+\_\+\+TRQ = 850\hspace{0.3cm}{\ttfamily
 
 
 
-Maximum motor torque (Nm) 
+Maximum motor torque (Nm) 0-\/850. 
 
 \Hypertarget{struct_vehicle_params_1_1_motor_a9b143ca81ef8ca4c8ba7c32840360c3f}\index{VehicleParams::Motor@{VehicleParams::Motor}!TORQUE\_DEADBAND\_HIGH@{TORQUE\_DEADBAND\_HIGH}}
 \index{TORQUE\_DEADBAND\_HIGH@{TORQUE\_DEADBAND\_HIGH}!VehicleParams::Motor@{VehicleParams::Motor}}

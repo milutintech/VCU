@@ -27,7 +27,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.2</span>
+   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.7</span>
    </div>
    <div id="projectbrief">ESP32-based Electric Vehicle Control System</div>
   </td>
@@ -108,6 +108,13 @@ $(function(){initNavTree('class_vehicle_control.html',''); initResizable(true); 
 <div class="contents">
 
 <p><code>#include &lt;<a class="el" href="vehicle__control_8h_source.html">vehicle_control.h</a>&gt;</code></p>
+<div id="dynsection-0" onclick="return dynsection.toggleVisibility(this)" class="dynheader closed" style="cursor:pointer;">
+  <img id="dynsection-0-trigger" src="closed.png" alt="+"/> Collaboration diagram for VehicleControl:</div>
+<div id="dynsection-0-summary" class="dynsummary" style="display:block;">
+</div>
+<div id="dynsection-0-content" class="dyncontent" style="display:none;">
+<div class="center"><iframe scrolling="no" frameborder="0" src="class_vehicle_control__coll__graph.svg" width="118" height="126"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+<center><span class="legend">[<a target="top" href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -117,6 +124,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a4a40ba078d06a53fb52153d80c01ae69" id="r_a4a40ba078d06a53fb52153d80c01ae69"><td class="memItemLeft" align="right" valign="top">int16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4a40ba078d06a53fb52153d80c01ae69">calculateTorque</a> ()</td></tr>
 <tr class="memdesc:a4a40ba078d06a53fb52153d80c01ae69"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculates motor torque based on current driving mode and conditions.  <br /></td></tr>
 <tr class="separator:a4a40ba078d06a53fb52153d80c01ae69"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a78c126780c83734a048e0b908786c202" id="r_a78c126780c83734a048e0b908786c202"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a78c126780c83734a048e0b908786c202">updateGearState</a> ()</td></tr>
+<tr class="memdesc:a78c126780c83734a048e0b908786c202"><td class="mdescLeft">&#160;</td><td class="mdescRight">Updates gear state based on switch inputs and speed Handles gear selection with safety checks.  <br /></td></tr>
+<tr class="separator:a78c126780c83734a048e0b908786c202"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7a598d53412fde2f576e731976bf1629" id="r_a7a598d53412fde2f576e731976bf1629"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7a598d53412fde2f576e731976bf1629">setMotorSpeed</a> (float speed)</td></tr>
 <tr class="memdesc:a7a598d53412fde2f576e731976bf1629"><td class="mdescLeft">&#160;</td><td class="mdescRight">Updates current motor speed.  <br /></td></tr>
 <tr class="separator:a7a598d53412fde2f576e731976bf1629"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -156,7 +166,7 @@ Private Member Functions</h2></td></tr>
 <tr class="memdesc:a4399007eb8ef230f01e6227e2a7bae78"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle Regenerative driving mode.  <br /></td></tr>
 <tr class="separator:a4399007eb8ef230f01e6227e2a7bae78"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2f07a054eade29547b88842b35bb65c3" id="r_a2f07a054eade29547b88842b35bb65c3"><td class="memItemLeft" align="right" valign="top">int16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2f07a054eade29547b88842b35bb65c3">handleOPDMode</a> (float throttlePosition, float speed)</td></tr>
-<tr class="memdesc:a2f07a054eade29547b88842b35bb65c3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle One Pedal Drive mode.  <br /></td></tr>
+<tr class="memdesc:a2f07a054eade29547b88842b35bb65c3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle One Pedal Drive (OPD) mode with PID anti-rollback and torque capping.  <br /></td></tr>
 <tr class="separator:a2f07a054eade29547b88842b35bb65c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa8e205ba6872b201ea8a00470c4fa2ac" id="r_aa8e205ba6872b201ea8a00470c4fa2ac"><td class="memItemLeft" align="right" valign="top">float&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa8e205ba6872b201ea8a00470c4fa2ac">calculateCoastUpperBound</a> (float speed)</td></tr>
 <tr class="separator:aa8e205ba6872b201ea8a00470c4fa2ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -172,6 +182,9 @@ Private Member Functions</h2></td></tr>
 <tr class="memitem:a30cf56fd18bf83a739cf93f9ce411197" id="r_a30cf56fd18bf83a739cf93f9ce411197"><td class="memItemLeft" align="right" valign="top">int16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a30cf56fd18bf83a739cf93f9ce411197">applyDeadbandHysteresis</a> (int16_t torque)</td></tr>
 <tr class="memdesc:a30cf56fd18bf83a739cf93f9ce411197"><td class="mdescLeft">&#160;</td><td class="mdescRight">Applies deadband hysteresis to prevent torque oscillation.  <br /></td></tr>
 <tr class="separator:a30cf56fd18bf83a739cf93f9ce411197"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a23a03afca9dcef1b53994f70d90ae70f" id="r_a23a03afca9dcef1b53994f70d90ae70f"><td class="memItemLeft" align="right" valign="top">int16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a23a03afca9dcef1b53994f70d90ae70f">applyTorqueCutoff</a> (int16_t requestedTorque)</td></tr>
+<tr class="memdesc:a23a03afca9dcef1b53994f70d90ae70f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Apply torque cutoff based on RPM, direction, and gear state.  <br /></td></tr>
+<tr class="separator:a23a03afca9dcef1b53994f70d90ae70f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pri-attribs" name="pri-attribs"></a>
 Private Attributes</h2></td></tr>
@@ -183,6 +196,8 @@ Private Attributes</h2></td></tr>
 <tr class="separator:a45a0e34140d9e5c07e98ae707cc33d0d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af6fe4aa401a18c4fe479a051817a089b" id="r_af6fe4aa401a18c4fe479a051817a089b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="config_8h.html#ac5e05c5a7d57d23d56fbc19df0ecf645">GearRatio</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af6fe4aa401a18c4fe479a051817a089b">currentGearRatio</a></td></tr>
 <tr class="separator:af6fe4aa401a18c4fe479a051817a089b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0778dca45abeea99b3757185caa21849" id="r_a0778dca45abeea99b3757185caa21849"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0778dca45abeea99b3757185caa21849">shiftAttempted</a></td></tr>
+<tr class="separator:a0778dca45abeea99b3757185caa21849"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a31ba729072fde5c4b6ea6e54f5b3fd9b" id="r_a31ba729072fde5c4b6ea6e54f5b3fd9b"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a31ba729072fde5c4b6ea6e54f5b3fd9b">isOPDEnabled</a></td></tr>
 <tr class="separator:a31ba729072fde5c4b6ea6e54f5b3fd9b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a407b8ad28e14e934e93929f9b6d90628" id="r_a407b8ad28e14e934e93929f9b6d90628"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a407b8ad28e14e934e93929f9b6d90628">isRegenEnabled</a></td></tr>
@@ -197,6 +212,8 @@ Private Attributes</h2></td></tr>
 <tr class="separator:a0cdfc88cd1fcab4476cba7dff02817ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a688b949933676e0ca5db45863020a0e7" id="r_a688b949933676e0ca5db45863020a0e7"><td class="memItemLeft" align="right" valign="top">float&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a688b949933676e0ca5db45863020a0e7">motorSpeed</a></td></tr>
 <tr class="separator:a688b949933676e0ca5db45863020a0e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae99e32126a741ee0c593892b59d5c983" id="r_ae99e32126a741ee0c593892b59d5c983"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_p_i_d_controller.html">PIDController</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae99e32126a741ee0c593892b59d5c983">opdPid</a></td></tr>
+<tr class="separator:ae99e32126a741ee0c593892b59d5c983"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a58a56e235f86e223c10a168e13f6a81f" name="a58a56e235f86e223c10a168e13f6a81f"></a>
@@ -227,15 +244,10 @@ Private Attributes</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">ads</td><td>Reference to ADS1115 <a class="el" href="namespace_a_d_c.html">ADC</a> for pedal position reading</td></tr>
-    <tr><td class="paramname">ads</td><td>Reference to <a class="el" href="namespace_a_d_c.html">ADC</a> for pedal position reading</td></tr>
   </table>
   </dd>
 </dl>
-<p>Initializes control system with safe defaults:</p><ul>
-<li>REGEN drive mode enabled</li>
-<li>Zero torque output</li>
-<li>Safety systems active </li>
-</ul>
+<p>Initializes control system with safe defaults and creates the PID controller for OPD anti-rollback protection. (Tuning of the PID gains may be required.) </p>
 
 </div>
 </div>
@@ -274,15 +286,48 @@ Private Attributes</h2></td></tr>
 <dl class="section return"><dt>Returns</dt><dd>Processed torque with hysteresis</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">torque</td><td>Input torque value </td></tr>
+    <tr><td class="paramname">torque</td><td>Input torque value. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Processed torque with deadband hysteresis</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Processed torque with deadband hysteresis.</dd></dl>
 <p>Prevents oscillation around zero torque:</p><ul>
-<li>Higher threshold to exit deadband</li>
-<li>Lower threshold to enter deadband </li>
+<li>Uses a higher threshold to exit the deadband and a lower threshold to enter. </li>
 </ul>
+
+</div>
+</div>
+<a id="a23a03afca9dcef1b53994f70d90ae70f" name="a23a03afca9dcef1b53994f70d90ae70f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a23a03afca9dcef1b53994f70d90ae70f">&#9670;&#160;</a></span>applyTorqueCutoff()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">int16_t VehicleControl::applyTorqueCutoff </td>
+          <td>(</td>
+          <td class="paramtype">int16_t</td>          <td class="paramname"><span class="paramname"><em>requestedTorque</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Apply torque cutoff based on RPM, direction, and gear state. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">requestedTorque</td><td>The raw calculated torque. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Modified torque after applying directional restrictions. </dd></dl>
 
 </div>
 </div>
@@ -320,15 +365,12 @@ Private Attributes</h2></td></tr>
 <dl class="section return"><dt>Returns</dt><dd>Limited torque value</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">requestedTorque</td><td>Raw calculated torque </td></tr>
+    <tr><td class="paramname">requestedTorque</td><td>Raw calculated torque. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Rate-limited torque value</dd></dl>
-<p>Implements different limits for:</p><ul>
-<li>Acceleration (slower)</li>
-<li>Deceleration (faster) </li>
-</ul>
+<dl class="section return"><dt>Returns</dt><dd>Rate-limited torque value.</dd></dl>
+<p>Implements different limits for acceleration and deceleration. </p>
 
 </div>
 </div>
@@ -451,13 +493,12 @@ Private Attributes</h2></td></tr>
 <p>Calculate motor torque demand based on driving mode and conditions.</p>
 <dl class="section return"><dt>Returns</dt><dd>Calculated torque demand in Nm (-850 to 850)</dd>
 <dd>
-Calculated torque demand in Nm (range: -850 to 850)</dd></dl>
+Calculated torque demand in Nm (range: -850 to 850).</dd></dl>
 <p>Main control flow:</p><ol type="1">
-<li>Sample pedal position</li>
-<li>Apply gamma correction</li>
-<li>Process based on driving mode</li>
-<li>Apply safety limits</li>
-<li>Handle deadband </li>
+<li>Sample pedal position.</li>
+<li>Map raw pedal value (with gamma correction).</li>
+<li>Select processing based on the driving mode.</li>
+<li>Apply safety limits and deadband. </li>
 </ol>
 
 </div>
@@ -489,11 +530,11 @@ Calculated torque demand in Nm (range: -850 to 850)</dd></dl>
 <p>Calculate current vehicle speed from motor speed.</p>
 <dl class="section return"><dt>Returns</dt><dd>Vehicle speed in kph</dd>
 <dd>
-Vehicle speed in kph</dd></dl>
+Vehicle speed in kph.</dd></dl>
 <p>Considers:</p><ul>
-<li>Current gear ratio</li>
-<li>Differential ratio</li>
-<li>Wheel circumference </li>
+<li>Current gear ratio.</li>
+<li>Differential ratio.</li>
+<li>Wheel circumference. </li>
 </ul>
 
 </div>
@@ -524,12 +565,12 @@ Vehicle speed in kph</dd></dl>
 <p>Handle Legacy driving mode. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">throttlePosition</td><td>Processed pedal position (0-100%) </td></tr>
+    <tr><td class="paramname">throttlePosition</td><td>Processed pedal position (0-100%). </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Calculated torque for legacy mode</dd></dl>
-<p>Simple linear torque mapping based on pedal position. Direction depends on selected gear. </p>
+<dl class="section return"><dt>Returns</dt><dd>Calculated torque for legacy mode.</dd></dl>
+<p>Uses a simple linear mapping based on pedal position. </p>
 
 </div>
 </div>
@@ -560,20 +601,20 @@ Vehicle speed in kph</dd></dl>
 </table>
 </div><div class="memdoc">
 
-<p>Handle One Pedal Drive mode. </p>
+<p>Handle One Pedal Drive (OPD) mode with PID anti-rollback and torque capping. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">throttlePosition</td><td>Processed pedal position (0-100%) </td></tr>
-    <tr><td class="paramname">speed</td><td>Current vehicle speed in kph </td></tr>
+    <tr><td class="paramname">throttlePosition</td><td>Processed pedal position (0-100%). </td></tr>
+    <tr><td class="paramname">speed</td><td>Current vehicle speed in kph. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Calculated torque for OPD mode</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Calculated torque for OPD mode.</dd></dl>
 <p>Features:</p><ul>
-<li>Speed-dependent pedal mapping</li>
-<li>Built-in regenerative braking</li>
-<li>Anti-rollback protection</li>
-<li>Dynamic torque limiting </li>
+<li>Speed-dependent pedal mapping.</li>
+<li>Built-in regenerative braking.</li>
+<li>Anti-rollback protection: when speed is very low, a PID controller holds the vehicle at 0 kph.</li>
+<li>Dynamic torque limiting and a regen torque cap for slow speeds so that, in the worst case, the vehicle only accelerates slowly backward. </li>
 </ul>
 
 </div>
@@ -608,17 +649,12 @@ Vehicle speed in kph</dd></dl>
 <p>Handle Regenerative driving mode. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">throttlePosition</td><td>Processed pedal position (0-100%) </td></tr>
-    <tr><td class="paramname">speed</td><td>Current vehicle speed in kph </td></tr>
+    <tr><td class="paramname">throttlePosition</td><td>Processed pedal position (0-100%). </td></tr>
+    <tr><td class="paramname">speed</td><td>Current vehicle speed in kph. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Calculated torque for regen mode</dd></dl>
-<p>Implements three zones:</p><ol type="1">
-<li>Regenerative braking (low pedal)</li>
-<li>Coast (mid pedal)</li>
-<li>Acceleration (high pedal) </li>
-</ol>
+<dl class="section return"><dt>Returns</dt><dd>Calculated torque for regen mode. </dd></dl>
 
 </div>
 </div>
@@ -638,8 +674,10 @@ Vehicle speed in kph</dd></dl>
 </div><div class="memdoc">
 
 <p>Checks if DMC (motor controller) is enabled. </p>
-<p>Check if motor controller is enabled.</p>
-<dl class="section return"><dt>Returns</dt><dd>true if DMC is enabled </dd></dl>
+<p>Check if the motor controller is enabled.</p>
+<dl class="section return"><dt>Returns</dt><dd>true if DMC is enabled</dd>
+<dd>
+true if DMC is enabled. </dd></dl>
 
 </div>
 </div>
@@ -670,8 +708,8 @@ Vehicle speed in kph</dd></dl>
 <p>Sample pedal position from <a class="el" href="namespace_a_d_c.html">ADC</a>.</p>
 <dl class="section return"><dt>Returns</dt><dd>Raw <a class="el" href="namespace_a_d_c.html">ADC</a> value averaged over 4 samples</dd>
 <dd>
-Averaged <a class="el" href="namespace_a_d_c.html">ADC</a> reading for pedal position</dd></dl>
-<p>Takes 4 samples and averages them to reduce noise. Uses dedicated <a class="el" href="namespace_a_d_c.html">ADC</a> channel for pedal position. </p>
+Averaged <a class="el" href="namespace_a_d_c.html">ADC</a> reading for pedal position.</dd></dl>
+<p>Takes 4 samples and averages them to reduce noise. </p>
 
 </div>
 </div>
@@ -695,7 +733,7 @@ Averaged <a class="el" href="namespace_a_d_c.html">ADC</a> reading for pedal pos
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">gear</td><td>New gear state</td></tr>
-    <tr><td class="paramname">gear</td><td>New gear state (DRIVE/NEUTRAL/REVERSE) </td></tr>
+    <tr><td class="paramname">gear</td><td>New gear state (DRIVE/NEUTRAL/REVERSE). </td></tr>
   </table>
   </dd>
 </dl>
@@ -722,7 +760,7 @@ Averaged <a class="el" href="namespace_a_d_c.html">ADC</a> reading for pedal pos
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mode</td><td>New driving mode</td></tr>
-    <tr><td class="paramname">mode</td><td>New driving mode (LEGACY/REGEN/OPD) </td></tr>
+    <tr><td class="paramname">mode</td><td>New driving mode (LEGACY/REGEN/OPD). </td></tr>
   </table>
   </dd>
 </dl>
@@ -774,7 +812,7 @@ Averaged <a class="el" href="namespace_a_d_c.html">ADC</a> reading for pedal pos
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">speed</td><td>Motor speed in RPM</td></tr>
-    <tr><td class="paramname">speed</td><td>New motor speed in RPM </td></tr>
+    <tr><td class="paramname">speed</td><td>New motor speed in RPM. </td></tr>
   </table>
   </dd>
 </dl>
@@ -828,6 +866,26 @@ Averaged <a class="el" href="namespace_a_d_c.html">ADC</a> reading for pedal pos
   </tr>
 </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="a78c126780c83734a048e0b908786c202" name="a78c126780c83734a048e0b908786c202"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a78c126780c83734a048e0b908786c202">&#9670;&#160;</a></span>updateGearState()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void VehicleControl::updateGearState </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Updates gear state based on switch inputs and speed Handles gear selection with safety checks. </p>
+<p>Update the gear state based on switch inputs and speed. </p>
 
 </div>
 </div>
@@ -1041,6 +1099,50 @@ Averaged <a class="el" href="namespace_a_d_c.html">ADC</a> reading for pedal pos
       <table class="memname">
         <tr>
           <td class="memname">float VehicleControl::motorSpeed</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ae99e32126a741ee0c593892b59d5c983" name="ae99e32126a741ee0c593892b59d5c983"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae99e32126a741ee0c593892b59d5c983">&#9670;&#160;</a></span>opdPid</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="class_p_i_d_controller.html">PIDController</a> VehicleControl::opdPid</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a0778dca45abeea99b3757185caa21849" name="a0778dca45abeea99b3757185caa21849"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0778dca45abeea99b3757185caa21849">&#9670;&#160;</a></span>shiftAttempted</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool VehicleControl::shiftAttempted</td>
         </tr>
       </table>
   </td>

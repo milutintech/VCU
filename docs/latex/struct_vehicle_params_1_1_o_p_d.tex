@@ -14,22 +14,28 @@ One Pedal Drive Configuration Defines \doxylink{struct_vehicle_params_1_1_o_p_d}
 \item 
 static constexpr double \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_ad74504c9db636f62e2f52e84887a1f36}{MAX\+\_\+\+SPEED}} = 120.\+0
 \begin{DoxyCompactList}\small\item\em Maximum vehicle speed (kph) \end{DoxyCompactList}\item 
+static constexpr double \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_a5f94406d686ae93246a6ba56fdcdfbaa}{ZERO\+\_\+\+SPEED\+\_\+\+THRESHOLD}} = 1.\+0
+\begin{DoxyCompactList}\small\item\em Threshold below which the vehicle is considered nearly stopped (kph) \end{DoxyCompactList}\item 
 static constexpr double \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_acb5f72a8340c76c8d671f1ea53ffe947}{COAST\+\_\+\+RANGE}} = 10.\+0
 \begin{DoxyCompactList}\small\item\em Pedal coast range (\%) \end{DoxyCompactList}\item 
 static constexpr double \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_a1a8014c8c28e4fd2252eb6f42ae157ed}{PHI}} = 35.\+0
 \begin{DoxyCompactList}\small\item\em Top speed pedal position (\%) \end{DoxyCompactList}\item 
 static constexpr double \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_a9089992fb3c38a11d5cd1d85606299b5}{SHAPE\+\_\+\+FACTOR}} = 2.\+0
-\begin{DoxyCompactList}\small\item\em Pedal map curve shape. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Pedal map curve shape factor. \end{DoxyCompactList}\item 
 static constexpr double \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_a9f8867b92d11b7b8163722695cb742a9}{ROLLBACK\+\_\+\+SPEED}} = 3.\+0
 \begin{DoxyCompactList}\small\item\em Anti-\/rollback threshold (kph) \end{DoxyCompactList}\item 
 static constexpr double \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_a7027a7b67adf17a486ff65de0951cf8f}{ROLLBACK\+\_\+\+TORQUE}} = 15.\+0
-\begin{DoxyCompactList}\small\item\em Anti-\/rollback torque (\%) \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Anti-\/rollback torque (\% of MAX\+\_\+\+TRQ) \end{DoxyCompactList}\item 
 static constexpr double \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_aea32e951b3557e55f2bbbbb394168515}{MAX\+\_\+\+REGEN}} = 80.\+0
-\begin{DoxyCompactList}\small\item\em Max regen torque (\%) \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Maximum regenerative braking level (\% of MAX\+\_\+\+TRQ) \end{DoxyCompactList}\item 
 static constexpr double \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_ab4e2161ec32d9909ff034e09bbd43c4b}{MAX\+\_\+\+DRIVE}} = 100.\+0
-\begin{DoxyCompactList}\small\item\em Max drive torque (\%) \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Maximum drive torque level (\% of MAX\+\_\+\+TRQ) \end{DoxyCompactList}\item 
 static constexpr double \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_ad0c18ef0d3e52bb2725727905c1d2fae}{BRAKE\+\_\+\+LIGHT\+\_\+\+THRESHOLD}} = 20.\+0
-\begin{DoxyCompactList}\small\item\em Brake light activation (\%) \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Brake light activation threshold (\%) \end{DoxyCompactList}\item 
+static constexpr double \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_ae49254c454f02626b1dc281bd40b522e}{SLOW\+\_\+\+SPEED\+\_\+\+REGEN\+\_\+\+CAP}} = 200.\+0
+\begin{DoxyCompactList}\small\item\em \doxylink{struct_vehicle_params_1_1_regen}{Regen} torque cap at slow speeds (Nm) \end{DoxyCompactList}\item 
+static constexpr double \mbox{\hyperlink{struct_vehicle_params_1_1_o_p_d_ae651047cb9f9fc33168c262ecc6b80cc}{REGEN\+\_\+\+TORQUE\+\_\+\+CAP}} = 300
+\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -44,7 +50,7 @@ double Vehicle\+Params\+::\+OPD\+::\+BRAKE\+\_\+\+LIGHT\+\_\+\+THRESHOLD = 20.\+
 
 
 
-Brake light activation (\%) 
+Brake light activation threshold (\%) 
 
 \Hypertarget{struct_vehicle_params_1_1_o_p_d_acb5f72a8340c76c8d671f1ea53ffe947}\index{VehicleParams::OPD@{VehicleParams::OPD}!COAST\_RANGE@{COAST\_RANGE}}
 \index{COAST\_RANGE@{COAST\_RANGE}!VehicleParams::OPD@{VehicleParams::OPD}}
@@ -64,7 +70,7 @@ double Vehicle\+Params\+::\+OPD\+::\+MAX\+\_\+\+DRIVE = 100.\+0\hspace{0.3cm}{\t
 
 
 
-Max drive torque (\%) 
+Maximum drive torque level (\% of MAX\+\_\+\+TRQ) 
 
 \Hypertarget{struct_vehicle_params_1_1_o_p_d_aea32e951b3557e55f2bbbbb394168515}\index{VehicleParams::OPD@{VehicleParams::OPD}!MAX\_REGEN@{MAX\_REGEN}}
 \index{MAX\_REGEN@{MAX\_REGEN}!VehicleParams::OPD@{VehicleParams::OPD}}
@@ -74,7 +80,7 @@ double Vehicle\+Params\+::\+OPD\+::\+MAX\+\_\+\+REGEN = 80.\+0\hspace{0.3cm}{\tt
 
 
 
-Max regen torque (\%) 
+Maximum regenerative braking level (\% of MAX\+\_\+\+TRQ) 
 
 \Hypertarget{struct_vehicle_params_1_1_o_p_d_ad74504c9db636f62e2f52e84887a1f36}\index{VehicleParams::OPD@{VehicleParams::OPD}!MAX\_SPEED@{MAX\_SPEED}}
 \index{MAX\_SPEED@{MAX\_SPEED}!VehicleParams::OPD@{VehicleParams::OPD}}
@@ -96,6 +102,12 @@ double Vehicle\+Params\+::\+OPD\+::\+PHI = 35.\+0\hspace{0.3cm}{\ttfamily [stati
 
 Top speed pedal position (\%) 
 
+\Hypertarget{struct_vehicle_params_1_1_o_p_d_ae651047cb9f9fc33168c262ecc6b80cc}\index{VehicleParams::OPD@{VehicleParams::OPD}!REGEN\_TORQUE\_CAP@{REGEN\_TORQUE\_CAP}}
+\index{REGEN\_TORQUE\_CAP@{REGEN\_TORQUE\_CAP}!VehicleParams::OPD@{VehicleParams::OPD}}
+\doxysubsubsection{\texorpdfstring{REGEN\_TORQUE\_CAP}{REGEN\_TORQUE\_CAP}}
+{\footnotesize\ttfamily \label{struct_vehicle_params_1_1_o_p_d_ae651047cb9f9fc33168c262ecc6b80cc} 
+double Vehicle\+Params\+::\+OPD\+::\+REGEN\+\_\+\+TORQUE\+\_\+\+CAP = 300\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
 \Hypertarget{struct_vehicle_params_1_1_o_p_d_a9f8867b92d11b7b8163722695cb742a9}\index{VehicleParams::OPD@{VehicleParams::OPD}!ROLLBACK\_SPEED@{ROLLBACK\_SPEED}}
 \index{ROLLBACK\_SPEED@{ROLLBACK\_SPEED}!VehicleParams::OPD@{VehicleParams::OPD}}
 \doxysubsubsection{\texorpdfstring{ROLLBACK\_SPEED}{ROLLBACK\_SPEED}}
@@ -114,7 +126,7 @@ double Vehicle\+Params\+::\+OPD\+::\+ROLLBACK\+\_\+\+TORQUE = 15.\+0\hspace{0.3c
 
 
 
-Anti-\/rollback torque (\%) 
+Anti-\/rollback torque (\% of MAX\+\_\+\+TRQ) 
 
 \Hypertarget{struct_vehicle_params_1_1_o_p_d_a9089992fb3c38a11d5cd1d85606299b5}\index{VehicleParams::OPD@{VehicleParams::OPD}!SHAPE\_FACTOR@{SHAPE\_FACTOR}}
 \index{SHAPE\_FACTOR@{SHAPE\_FACTOR}!VehicleParams::OPD@{VehicleParams::OPD}}
@@ -124,7 +136,27 @@ double Vehicle\+Params\+::\+OPD\+::\+SHAPE\+\_\+\+FACTOR = 2.\+0\hspace{0.3cm}{\
 
 
 
-Pedal map curve shape. 
+Pedal map curve shape factor. 
+
+\Hypertarget{struct_vehicle_params_1_1_o_p_d_ae49254c454f02626b1dc281bd40b522e}\index{VehicleParams::OPD@{VehicleParams::OPD}!SLOW\_SPEED\_REGEN\_CAP@{SLOW\_SPEED\_REGEN\_CAP}}
+\index{SLOW\_SPEED\_REGEN\_CAP@{SLOW\_SPEED\_REGEN\_CAP}!VehicleParams::OPD@{VehicleParams::OPD}}
+\doxysubsubsection{\texorpdfstring{SLOW\_SPEED\_REGEN\_CAP}{SLOW\_SPEED\_REGEN\_CAP}}
+{\footnotesize\ttfamily \label{struct_vehicle_params_1_1_o_p_d_ae49254c454f02626b1dc281bd40b522e} 
+double Vehicle\+Params\+::\+OPD\+::\+SLOW\+\_\+\+SPEED\+\_\+\+REGEN\+\_\+\+CAP = 200.\+0\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+
+
+\doxylink{struct_vehicle_params_1_1_regen}{Regen} torque cap at slow speeds (Nm) 
+
+\Hypertarget{struct_vehicle_params_1_1_o_p_d_a5f94406d686ae93246a6ba56fdcdfbaa}\index{VehicleParams::OPD@{VehicleParams::OPD}!ZERO\_SPEED\_THRESHOLD@{ZERO\_SPEED\_THRESHOLD}}
+\index{ZERO\_SPEED\_THRESHOLD@{ZERO\_SPEED\_THRESHOLD}!VehicleParams::OPD@{VehicleParams::OPD}}
+\doxysubsubsection{\texorpdfstring{ZERO\_SPEED\_THRESHOLD}{ZERO\_SPEED\_THRESHOLD}}
+{\footnotesize\ttfamily \label{struct_vehicle_params_1_1_o_p_d_a5f94406d686ae93246a6ba56fdcdfbaa} 
+double Vehicle\+Params\+::\+OPD\+::\+ZERO\+\_\+\+SPEED\+\_\+\+THRESHOLD = 1.\+0\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+
+
+Threshold below which the vehicle is considered nearly stopped (kph) 
 
 
 

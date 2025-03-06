@@ -25,8 +25,8 @@ namespace VehicleParams {
         static constexpr int MAX_DMC_CURRENT = 100; ///< Maximum motor controller current (A)
         static constexpr int MAX_NLG_CURRENT = 72;  ///< Maximum charging current (A)
         static constexpr int PRECHARGE_CURRENT = 20;///< Precharge current limit (A)
-        static constexpr int MIN_LVVOLTAGE = 14.4; 
-        
+        static constexpr int MIN_LVVOLTAGE = 14.4;  ///< Charge Voltage for the LV Bat (V)
+        static constexpr int MAX_SOC = 100;         ///< Maximum Battery Pack SOC
     };
 
     /**
@@ -133,6 +133,7 @@ namespace VehicleParams {
         static constexpr unsigned long SLOW_CYCLE_MS = 100;    ///< Slow loop interval (ms)
         static constexpr unsigned long NLG_UNLOCK_TIMEOUT = 3000; ///< Charger unlock timeout (ms)
         static constexpr unsigned long PRECHARGE_TIMEOUT = 5000;  ///< Precharge timeout (ms)
+        static constexpr unsigned long BMS_TIMEOUT_MS = 1000;     ///< NLG charging timout when bms fuckes up
     };
     
     /**

@@ -4,6 +4,15 @@
 
 {\ttfamily \#include $<$vehicle\+\_\+control.\+h$>$}
 
+
+
+Collaboration diagram for Vehicle\+Control\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=160pt]{class_vehicle_control__coll__graph}
+\end{center}
+\end{figure}
 \doxysubsubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
@@ -11,6 +20,8 @@
 \begin{DoxyCompactList}\small\item\em Constructs the vehicle control system. \end{DoxyCompactList}\item 
 int16\+\_\+t \mbox{\hyperlink{class_vehicle_control_a4a40ba078d06a53fb52153d80c01ae69}{calculate\+Torque}} ()
 \begin{DoxyCompactList}\small\item\em Calculates motor torque based on current driving mode and conditions. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_vehicle_control_a78c126780c83734a048e0b908786c202}{update\+Gear\+State}} ()
+\begin{DoxyCompactList}\small\item\em Updates gear state based on switch inputs and speed Handles gear selection with safety checks. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{class_vehicle_control_a7a598d53412fde2f576e731976bf1629}{set\+Motor\+Speed}} (float speed)
 \begin{DoxyCompactList}\small\item\em Updates current motor speed. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{class_vehicle_control_a6a0ec19cf7b6ede44ff761bfcfe4207c}{set\+Current\+Gear}} (\mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cd}{Gear\+State}} gear)
@@ -42,7 +53,7 @@ int16\+\_\+t \mbox{\hyperlink{class_vehicle_control_aee3609644506e5b76ac02108f7d
 int16\+\_\+t \mbox{\hyperlink{class_vehicle_control_a4399007eb8ef230f01e6227e2a7bae78}{handle\+Regen\+Mode}} (float throttle\+Position, float speed)
 \begin{DoxyCompactList}\small\item\em Handle Regenerative driving mode. \end{DoxyCompactList}\item 
 int16\+\_\+t \mbox{\hyperlink{class_vehicle_control_a2f07a054eade29547b88842b35bb65c3}{handle\+OPDMode}} (float throttle\+Position, float speed)
-\begin{DoxyCompactList}\small\item\em Handle One Pedal Drive mode. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Handle One Pedal Drive (OPD) mode with PID anti-\/rollback and torque capping. \end{DoxyCompactList}\item 
 float \mbox{\hyperlink{class_vehicle_control_aa8e205ba6872b201ea8a00470c4fa2ac}{calculate\+Coast\+Upper\+Bound}} (float speed)
 \item 
 float \mbox{\hyperlink{class_vehicle_control_ad4c6b681f6a2afc16f956c5611819d97}{calculate\+Coast\+Lower\+Bound}} (float speed)
@@ -54,7 +65,9 @@ float \mbox{\hyperlink{class_vehicle_control_a8e1f3cbeef05da62109a83d2d4c7c026}{
 int16\+\_\+t \mbox{\hyperlink{class_vehicle_control_a5cb0e6e6505a509172f20331ff84942e}{apply\+Torque\+Limits}} (int16\+\_\+t requested\+Torque)
 \begin{DoxyCompactList}\small\item\em Applies rate limiting and maximum torque constraints. \end{DoxyCompactList}\item 
 int16\+\_\+t \mbox{\hyperlink{class_vehicle_control_a30cf56fd18bf83a739cf93f9ce411197}{apply\+Deadband\+Hysteresis}} (int16\+\_\+t torque)
-\begin{DoxyCompactList}\small\item\em Applies deadband hysteresis to prevent torque oscillation. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Applies deadband hysteresis to prevent torque oscillation. \end{DoxyCompactList}\item 
+int16\+\_\+t \mbox{\hyperlink{class_vehicle_control_a23a03afca9dcef1b53994f70d90ae70f}{apply\+Torque\+Cutoff}} (int16\+\_\+t requested\+Torque)
+\begin{DoxyCompactList}\small\item\em Apply torque cutoff based on RPM, direction, and gear state. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsubsection*{Private Attributes}
 \begin{DoxyCompactItemize}
 \item 
@@ -65,6 +78,8 @@ ADS1115 \& \mbox{\hyperlink{class_vehicle_control_a5b359885d36fd5b369b5fe9ba245e
 \mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cd}{Gear\+State}} \mbox{\hyperlink{class_vehicle_control_a45a0e34140d9e5c07e98ae707cc33d0d}{current\+Gear}}
 \item 
 \mbox{\hyperlink{config_8h_ac5e05c5a7d57d23d56fbc19df0ecf645}{Gear\+Ratio}} \mbox{\hyperlink{class_vehicle_control_af6fe4aa401a18c4fe479a051817a089b}{current\+Gear\+Ratio}}
+\item 
+bool \mbox{\hyperlink{class_vehicle_control_a0778dca45abeea99b3757185caa21849}{shift\+Attempted}}
 \item 
 bool \mbox{\hyperlink{class_vehicle_control_a31ba729072fde5c4b6ea6e54f5b3fd9b}{is\+OPDEnabled}}
 \item 
@@ -79,6 +94,8 @@ bool \mbox{\hyperlink{class_vehicle_control_a691c84d9e1b5ad1eee5147433f0c6726}{w
 float \mbox{\hyperlink{class_vehicle_control_a0cdfc88cd1fcab4476cba7dff02817ff}{last\+Torque}}
 \item 
 float \mbox{\hyperlink{class_vehicle_control_a688b949933676e0ca5db45863020a0e7}{motor\+Speed}}
+\item 
+\mbox{\hyperlink{class_p_i_d_controller}{PIDController}} \mbox{\hyperlink{class_vehicle_control_ae99e32126a741ee0c593892b59d5c983}{opd\+Pid}}
 \end{DoxyCompactItemize}
 
 
@@ -99,15 +116,8 @@ Constructor -\/ initializes vehicle control system.
 \begin{DoxyParams}{Parameters}
 {\em ads} & Reference to ADS1115 \doxylink{namespace_a_d_c}{ADC} for pedal position reading\\
 \hline
-{\em ads} & Reference to \doxylink{namespace_a_d_c}{ADC} for pedal position reading\\
-\hline
 \end{DoxyParams}
-Initializes control system with safe defaults\+:
-\begin{DoxyItemize}
-\item REGEN drive mode enabled
-\item Zero torque output
-\item Safety systems active 
-\end{DoxyItemize}
+Initializes control system with safe defaults and creates the PID controller for OPD anti-\/rollback protection. (Tuning of the PID gains may be required.) 
 
 \doxysubsection{Member Function Documentation}
 \Hypertarget{class_vehicle_control_a30cf56fd18bf83a739cf93f9ce411197}\index{VehicleControl@{VehicleControl}!applyDeadbandHysteresis@{applyDeadbandHysteresis}}
@@ -132,17 +142,34 @@ Processed torque with hysteresis
 \end{DoxyReturn}
 
 \begin{DoxyParams}{Parameters}
-{\em torque} & Input torque value \\
+{\em torque} & Input torque value. \\
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
-Processed torque with deadband hysteresis
+Processed torque with deadband hysteresis.
 \end{DoxyReturn}
 Prevents oscillation around zero torque\+:
 \begin{DoxyItemize}
-\item Higher threshold to exit deadband
-\item Lower threshold to enter deadband 
-\end{DoxyItemize}\Hypertarget{class_vehicle_control_a5cb0e6e6505a509172f20331ff84942e}\index{VehicleControl@{VehicleControl}!applyTorqueLimits@{applyTorqueLimits}}
+\item Uses a higher threshold to exit the deadband and a lower threshold to enter. 
+\end{DoxyItemize}\Hypertarget{class_vehicle_control_a23a03afca9dcef1b53994f70d90ae70f}\index{VehicleControl@{VehicleControl}!applyTorqueCutoff@{applyTorqueCutoff}}
+\index{applyTorqueCutoff@{applyTorqueCutoff}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{applyTorqueCutoff()}{applyTorqueCutoff()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a23a03afca9dcef1b53994f70d90ae70f} 
+int16\+\_\+t Vehicle\+Control\+::apply\+Torque\+Cutoff (\begin{DoxyParamCaption}\item[{int16\+\_\+t}]{requested\+Torque}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Apply torque cutoff based on RPM, direction, and gear state. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em requested\+Torque} & The raw calculated torque. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Modified torque after applying directional restrictions. 
+\end{DoxyReturn}
+\Hypertarget{class_vehicle_control_a5cb0e6e6505a509172f20331ff84942e}\index{VehicleControl@{VehicleControl}!applyTorqueLimits@{applyTorqueLimits}}
 \index{applyTorqueLimits@{applyTorqueLimits}!VehicleControl@{VehicleControl}}
 \doxysubsubsection{\texorpdfstring{applyTorqueLimits()}{applyTorqueLimits()}}
 {\footnotesize\ttfamily \label{class_vehicle_control_a5cb0e6e6505a509172f20331ff84942e} 
@@ -164,17 +191,13 @@ Limited torque value
 \end{DoxyReturn}
 
 \begin{DoxyParams}{Parameters}
-{\em requested\+Torque} & Raw calculated torque \\
+{\em requested\+Torque} & Raw calculated torque. \\
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
-Rate-\/limited torque value
+Rate-\/limited torque value.
 \end{DoxyReturn}
-Implements different limits for\+:
-\begin{DoxyItemize}
-\item Acceleration (slower)
-\item Deceleration (faster) 
-\end{DoxyItemize}\Hypertarget{class_vehicle_control_ad4c6b681f6a2afc16f956c5611819d97}\index{VehicleControl@{VehicleControl}!calculateCoastLowerBound@{calculateCoastLowerBound}}
+Implements different limits for acceleration and deceleration. \Hypertarget{class_vehicle_control_ad4c6b681f6a2afc16f956c5611819d97}\index{VehicleControl@{VehicleControl}!calculateCoastLowerBound@{calculateCoastLowerBound}}
 \index{calculateCoastLowerBound@{calculateCoastLowerBound}!VehicleControl@{VehicleControl}}
 \doxysubsubsection{\texorpdfstring{calculateCoastLowerBound()}{calculateCoastLowerBound()}}
 {\footnotesize\ttfamily \label{class_vehicle_control_ad4c6b681f6a2afc16f956c5611819d97} 
@@ -213,15 +236,14 @@ Calculate motor torque demand based on driving mode and conditions.
 \begin{DoxyReturn}{Returns}
 Calculated torque demand in Nm (-\/850 to 850)
 
-Calculated torque demand in Nm (range\+: -\/850 to 850)
+Calculated torque demand in Nm (range\+: -\/850 to 850).
 \end{DoxyReturn}
 Main control flow\+:
 \begin{DoxyEnumerate}
-\item Sample pedal position
-\item Apply gamma correction
-\item Process based on driving mode
-\item Apply safety limits
-\item Handle deadband 
+\item Sample pedal position.
+\item Map raw pedal value (with gamma correction).
+\item Select processing based on the driving mode.
+\item Apply safety limits and deadband. 
 \end{DoxyEnumerate}\Hypertarget{class_vehicle_control_aab4410aea7677f92f31aafbf87a27979}\index{VehicleControl@{VehicleControl}!calculateVehicleSpeed@{calculateVehicleSpeed}}
 \index{calculateVehicleSpeed@{calculateVehicleSpeed}!VehicleControl@{VehicleControl}}
 \doxysubsubsection{\texorpdfstring{calculateVehicleSpeed()}{calculateVehicleSpeed()}}
@@ -237,13 +259,13 @@ Calculate current vehicle speed from motor speed.
 \begin{DoxyReturn}{Returns}
 Vehicle speed in kph
 
-Vehicle speed in kph
+Vehicle speed in kph.
 \end{DoxyReturn}
 Considers\+:
 \begin{DoxyItemize}
-\item Current gear ratio
-\item Differential ratio
-\item Wheel circumference 
+\item Current gear ratio.
+\item Differential ratio.
+\item Wheel circumference. 
 \end{DoxyItemize}\Hypertarget{class_vehicle_control_aee3609644506e5b76ac02108f7d5d07b}\index{VehicleControl@{VehicleControl}!handleLegacyMode@{handleLegacyMode}}
 \index{handleLegacyMode@{handleLegacyMode}!VehicleControl@{VehicleControl}}
 \doxysubsubsection{\texorpdfstring{handleLegacyMode()}{handleLegacyMode()}}
@@ -256,13 +278,13 @@ Handle Legacy driving mode.
 
 
 \begin{DoxyParams}{Parameters}
-{\em throttle\+Position} & Processed pedal position (0-\/100\%) \\
+{\em throttle\+Position} & Processed pedal position (0-\/100\%). \\
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
-Calculated torque for legacy mode
+Calculated torque for legacy mode.
 \end{DoxyReturn}
-Simple linear torque mapping based on pedal position. Direction depends on selected gear. \Hypertarget{class_vehicle_control_a2f07a054eade29547b88842b35bb65c3}\index{VehicleControl@{VehicleControl}!handleOPDMode@{handleOPDMode}}
+Uses a simple linear mapping based on pedal position. \Hypertarget{class_vehicle_control_a2f07a054eade29547b88842b35bb65c3}\index{VehicleControl@{VehicleControl}!handleOPDMode@{handleOPDMode}}
 \index{handleOPDMode@{handleOPDMode}!VehicleControl@{VehicleControl}}
 \doxysubsubsection{\texorpdfstring{handleOPDMode()}{handleOPDMode()}}
 {\footnotesize\ttfamily \label{class_vehicle_control_a2f07a054eade29547b88842b35bb65c3} 
@@ -270,24 +292,24 @@ int16\+\_\+t Vehicle\+Control\+::handle\+OPDMode (\begin{DoxyParamCaption}\item[
 
 
 
-Handle One Pedal Drive mode. 
+Handle One Pedal Drive (OPD) mode with PID anti-\/rollback and torque capping. 
 
 
 \begin{DoxyParams}{Parameters}
-{\em throttle\+Position} & Processed pedal position (0-\/100\%) \\
+{\em throttle\+Position} & Processed pedal position (0-\/100\%). \\
 \hline
-{\em speed} & Current vehicle speed in kph \\
+{\em speed} & Current vehicle speed in kph. \\
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
-Calculated torque for OPD mode
+Calculated torque for OPD mode.
 \end{DoxyReturn}
 Features\+:
 \begin{DoxyItemize}
-\item Speed-\/dependent pedal mapping
-\item Built-\/in regenerative braking
-\item Anti-\/rollback protection
-\item Dynamic torque limiting 
+\item Speed-\/dependent pedal mapping.
+\item Built-\/in regenerative braking.
+\item Anti-\/rollback protection\+: when speed is very low, a PID controller holds the vehicle at 0 kph.
+\item Dynamic torque limiting and a regen torque cap for slow speeds so that, in the worst case, the vehicle only accelerates slowly backward. 
 \end{DoxyItemize}\Hypertarget{class_vehicle_control_a4399007eb8ef230f01e6227e2a7bae78}\index{VehicleControl@{VehicleControl}!handleRegenMode@{handleRegenMode}}
 \index{handleRegenMode@{handleRegenMode}!VehicleControl@{VehicleControl}}
 \doxysubsubsection{\texorpdfstring{handleRegenMode()}{handleRegenMode()}}
@@ -300,20 +322,15 @@ Handle Regenerative driving mode.
 
 
 \begin{DoxyParams}{Parameters}
-{\em throttle\+Position} & Processed pedal position (0-\/100\%) \\
+{\em throttle\+Position} & Processed pedal position (0-\/100\%). \\
 \hline
-{\em speed} & Current vehicle speed in kph \\
+{\em speed} & Current vehicle speed in kph. \\
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
-Calculated torque for regen mode
+Calculated torque for regen mode. 
 \end{DoxyReturn}
-Implements three zones\+:
-\begin{DoxyEnumerate}
-\item Regenerative braking (low pedal)
-\item Coast (mid pedal)
-\item Acceleration (high pedal) 
-\end{DoxyEnumerate}\Hypertarget{class_vehicle_control_ab46abdeb60d341fa0547ab07f007037f}\index{VehicleControl@{VehicleControl}!isDMCEnabled@{isDMCEnabled}}
+\Hypertarget{class_vehicle_control_ab46abdeb60d341fa0547ab07f007037f}\index{VehicleControl@{VehicleControl}!isDMCEnabled@{isDMCEnabled}}
 \index{isDMCEnabled@{isDMCEnabled}!VehicleControl@{VehicleControl}}
 \doxysubsubsection{\texorpdfstring{isDMCEnabled()}{isDMCEnabled()}}
 {\footnotesize\ttfamily \label{class_vehicle_control_ab46abdeb60d341fa0547ab07f007037f} 
@@ -323,10 +340,12 @@ bool Vehicle\+Control\+::is\+DMCEnabled (\begin{DoxyParamCaption}{}{}\end{DoxyPa
 
 Checks if DMC (motor controller) is enabled. 
 
-Check if motor controller is enabled.
+Check if the motor controller is enabled.
 
 \begin{DoxyReturn}{Returns}
-true if DMC is enabled 
+true if DMC is enabled
+
+true if DMC is enabled. 
 \end{DoxyReturn}
 \Hypertarget{class_vehicle_control_aaa67e6a454776e4134c9c8799104d075}\index{VehicleControl@{VehicleControl}!samplePedalPosition@{samplePedalPosition}}
 \index{samplePedalPosition@{samplePedalPosition}!VehicleControl@{VehicleControl}}
@@ -343,9 +362,9 @@ Sample pedal position from \doxylink{namespace_a_d_c}{ADC}.
 \begin{DoxyReturn}{Returns}
 Raw \doxylink{namespace_a_d_c}{ADC} value averaged over 4 samples
 
-Averaged \doxylink{namespace_a_d_c}{ADC} reading for pedal position
+Averaged \doxylink{namespace_a_d_c}{ADC} reading for pedal position.
 \end{DoxyReturn}
-Takes 4 samples and averages them to reduce noise. Uses dedicated \doxylink{namespace_a_d_c}{ADC} channel for pedal position. \Hypertarget{class_vehicle_control_a6a0ec19cf7b6ede44ff761bfcfe4207c}\index{VehicleControl@{VehicleControl}!setCurrentGear@{setCurrentGear}}
+Takes 4 samples and averages them to reduce noise. \Hypertarget{class_vehicle_control_a6a0ec19cf7b6ede44ff761bfcfe4207c}\index{VehicleControl@{VehicleControl}!setCurrentGear@{setCurrentGear}}
 \index{setCurrentGear@{setCurrentGear}!VehicleControl@{VehicleControl}}
 \doxysubsubsection{\texorpdfstring{setCurrentGear()}{setCurrentGear()}}
 {\footnotesize\ttfamily \label{class_vehicle_control_a6a0ec19cf7b6ede44ff761bfcfe4207c} 
@@ -361,7 +380,7 @@ Set current gear state.
 \begin{DoxyParams}{Parameters}
 {\em gear} & New gear state\\
 \hline
-{\em gear} & New gear state (DRIVE/\+NEUTRAL/\+REVERSE) \\
+{\em gear} & New gear state (DRIVE/\+NEUTRAL/\+REVERSE). \\
 \hline
 \end{DoxyParams}
 \Hypertarget{class_vehicle_control_a84d97a2f0b89b4e85f54a62871bf621e}\index{VehicleControl@{VehicleControl}!setDrivingMode@{setDrivingMode}}
@@ -380,7 +399,7 @@ Set current driving mode.
 \begin{DoxyParams}{Parameters}
 {\em mode} & New driving mode\\
 \hline
-{\em mode} & New driving mode (LEGACY/\+REGEN/\+OPD) \\
+{\em mode} & New driving mode (LEGACY/\+REGEN/\+OPD). \\
 \hline
 \end{DoxyParams}
 \Hypertarget{class_vehicle_control_acc1490071b408dc62e2ec309715e1ce0}\index{VehicleControl@{VehicleControl}!setGearRatio@{setGearRatio}}
@@ -405,7 +424,7 @@ Update current motor speed.
 \begin{DoxyParams}{Parameters}
 {\em speed} & Motor speed in RPM\\
 \hline
-{\em speed} & New motor speed in RPM \\
+{\em speed} & New motor speed in RPM. \\
 \hline
 \end{DoxyParams}
 \Hypertarget{class_vehicle_control_aeeead8dc56ced72558564016510265e4}\index{VehicleControl@{VehicleControl}!setOPDEnabled@{setOPDEnabled}}
@@ -420,7 +439,17 @@ void Vehicle\+Control\+::set\+OPDEnabled (\begin{DoxyParamCaption}\item[{bool}]{
 {\footnotesize\ttfamily \label{class_vehicle_control_a874a9f63a0ed236f177518c5ca4c8e28} 
 void Vehicle\+Control\+::set\+Regen\+Enabled (\begin{DoxyParamCaption}\item[{bool}]{enabled}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
+\Hypertarget{class_vehicle_control_a78c126780c83734a048e0b908786c202}\index{VehicleControl@{VehicleControl}!updateGearState@{updateGearState}}
+\index{updateGearState@{updateGearState}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{updateGearState()}{updateGearState()}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a78c126780c83734a048e0b908786c202} 
+void Vehicle\+Control\+::update\+Gear\+State (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
 
+
+
+Updates gear state based on switch inputs and speed Handles gear selection with safety checks. 
+
+Update the gear state based on switch inputs and speed. 
 
 \doxysubsection{Member Data Documentation}
 \Hypertarget{class_vehicle_control_a5b359885d36fd5b369b5fe9ba245e26f}\index{VehicleControl@{VehicleControl}!ads@{ads}}
@@ -482,6 +511,18 @@ float Vehicle\+Control\+::\+MAX\+\_\+\+VEHICLE\+\_\+\+SPEED = 120.\+0f\hspace{0.
 \doxysubsubsection{\texorpdfstring{motorSpeed}{motorSpeed}}
 {\footnotesize\ttfamily \label{class_vehicle_control_a688b949933676e0ca5db45863020a0e7} 
 float Vehicle\+Control\+::motor\+Speed\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_ae99e32126a741ee0c593892b59d5c983}\index{VehicleControl@{VehicleControl}!opdPid@{opdPid}}
+\index{opdPid@{opdPid}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{opdPid}{opdPid}}
+{\footnotesize\ttfamily \label{class_vehicle_control_ae99e32126a741ee0c593892b59d5c983} 
+\mbox{\hyperlink{class_p_i_d_controller}{PIDController}} Vehicle\+Control\+::opd\+Pid\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_vehicle_control_a0778dca45abeea99b3757185caa21849}\index{VehicleControl@{VehicleControl}!shiftAttempted@{shiftAttempted}}
+\index{shiftAttempted@{shiftAttempted}!VehicleControl@{VehicleControl}}
+\doxysubsubsection{\texorpdfstring{shiftAttempted}{shiftAttempted}}
+{\footnotesize\ttfamily \label{class_vehicle_control_a0778dca45abeea99b3757185caa21849} 
+bool Vehicle\+Control\+::shift\+Attempted\hspace{0.3cm}{\ttfamily [private]}}
 
 \Hypertarget{class_vehicle_control_a691c84d9e1b5ad1eee5147433f0c6726}\index{VehicleControl@{VehicleControl}!wasEnabled@{wasEnabled}}
 \index{wasEnabled@{wasEnabled}!VehicleControl@{VehicleControl}}

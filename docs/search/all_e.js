@@ -1,15 +1,21 @@
 var searchData=
 [
-  ['ready_0',['ready',['../struct_d_m_c_data.html#abe04509562688743d335258ac642b576',1,'DMCData']]],
-  ['reduced_1',['REDUCED',['../config_8h.html#ac5e05c5a7d57d23d56fbc19df0ecf645a783282f3802a8ab2acc54f97de059f18',1,'config.h']]],
-  ['reduced_5fratio_2',['REDUCED_RATIO',['../struct_vehicle_params_1_1_transmission.html#aa0efbcd12f990bd8c73a72af882903cc',1,'VehicleParams::Transmission']]],
-  ['regen_3',['REGEN',['../config_8h.html#a785f94b7f1a29eb5a7001c09bad64c01abb18b97e40330da28b9c318e2becc18d',1,'config.h']]],
-  ['regen_4',['Regen',['../struct_vehicle_params_1_1_regen.html',1,'VehicleParams']]],
-  ['resetmessagebuffers_5',['resetMessageBuffers',['../class_c_a_n_manager.html#aeea95c87b0ec1e648d6ef85d55f0db7e',1,'CANManager']]],
-  ['reverse_6',['REVERSE',['../namespace_a_d_c.html#a2e08225129b3b2fb2986e97394b0e160',1,'ADC::REVERSE'],['../config_8h.html#a8c420f89485dc6c08d6e89605a8166cda642e0b6684e6165e142c074f1cd8d55c',1,'REVERSE:&#160;config.h']]],
-  ['rollback_5fspeed_7',['ROLLBACK_SPEED',['../struct_vehicle_params_1_1_o_p_d.html#a9f8867b92d11b7b8163722695cb742a9',1,'VehicleParams::OPD']]],
-  ['rollback_5ftorque_8',['ROLLBACK_TORQUE',['../struct_vehicle_params_1_1_o_p_d.html#a7027a7b67adf17a486ff65de0951cf8f',1,'VehicleParams::OPD']]],
-  ['rpm_5fshift_5fthreshold_9',['RPM_SHIFT_THRESHOLD',['../struct_vehicle_params_1_1_transmission.html#a8de5beeca87629a1bd91044d886460d9',1,'VehicleParams::Transmission']]],
-  ['run_10',['RUN',['../config_8h.html#a75c52206c3c79acb62c0fddc66df3676a855520d2a5b0b1a64b939e7e30889e2a',1,'config.h']]],
-  ['running_11',['running',['../struct_d_m_c_data.html#a0969773b9df185a9f3dafefe3f78bbc0',1,'DMCData']]]
+  ['pedal_5fgamma_0',['PEDAL_GAMMA',['../struct_vehicle_params_1_1_control.html#a64a6317e3278137ad1705a430b3544ba',1,'VehicleParams::Control']]],
+  ['phi_1',['PHI',['../struct_vehicle_params_1_1_o_p_d.html#a1a8014c8c28e4fd2252eb6f42ae157ed',1,'VehicleParams::OPD']]],
+  ['pidcontroller_2',['PIDController',['../class_p_i_d_controller.html',1,'PIDController'],['../class_p_i_d_controller.html#af50f86800ed8b6c79ff3fc10c6f6f645',1,'PIDController::PIDController()']]],
+  ['pins_3',['Pins',['../namespace_pins.html',1,'']]],
+  ['pot_5fdeadband_4',['POT_DEADBAND',['../struct_vehicle_params_1_1_a_d_c.html#a892a9b543c66d82c8a958dc9f9789e5c',1,'VehicleParams::ADC']]],
+  ['power_5',['Power',['../struct_vehicle_params_1_1_power.html',1,'VehicleParams']]],
+  ['precharge_5fcurrent_6',['PRECHARGE_CURRENT',['../struct_vehicle_params_1_1_battery.html#abd141f82164e239c421f242dfe6ad1d4',1,'VehicleParams::Battery']]],
+  ['precharge_5ftimeout_7',['PRECHARGE_TIMEOUT',['../struct_vehicle_params_1_1_timing.html#aade931d0b80c96936287a31b30fa4e84',1,'VehicleParams::Timing']]],
+  ['precharge_5ftimeout_5fms_8',['PRECHARGE_TIMEOUT_MS',['../namespace_constants.html#a56616bd7b9fe987943ac98f5d3598408',1,'Constants']]],
+  ['preverror_5f_9',['prevError_',['../class_p_i_d_controller.html#acef82105fd0ee954173342ff68cabeda',1,'PIDController']]],
+  ['printhelp_10',['printHelp',['../class_serial_console.html#a13969e8e28db557527ca3ea8c02c34bf',1,'SerialConsole']]],
+  ['printvalue_11',['printValue',['../class_serial_console.html#a38e05c665081083be8950d27df470011',1,'SerialConsole::printValue(const String &amp;name, int value, const String &amp;unit=&quot;&quot;)'],['../class_serial_console.html#a01d1016866e476a0dc8d00828df0f05a',1,'SerialConsole::printValue(const String &amp;name, float value, const String &amp;unit=&quot;&quot;)'],['../class_serial_console.html#aaa4566f46553e330bd343f2df42c813c',1,'SerialConsole::printValue(const String &amp;name, bool value)']]],
+  ['processbmsmessage_12',['processBMSMessage',['../class_c_a_n_manager.html#a45eecb3a776bac9379862445e390a389',1,'CANManager']]],
+  ['processbscmessage_13',['processBSCMessage',['../class_c_a_n_manager.html#a3483bf7e9726d6af2f7faa488d3c5b56',1,'CANManager']]],
+  ['processdmcmessage_14',['processDMCMessage',['../class_c_a_n_manager.html#a8700b6ec99fbe8df780b6d22839881fc',1,'CANManager']]],
+  ['processnlgmessage_15',['processNLGMessage',['../class_c_a_n_manager.html#a3dc09f30dbf9c60812c482ec056d0419',1,'CANManager']]],
+  ['pump_16',['PUMP',['../namespace_pins.html#a3b62641ccbcba7c41587f1a4a8e5159c',1,'Pins']]],
+  ['pw1_17',['PW1',['../namespace_pins.html#a2fbac616f8074f2796f8512edc11be6f',1,'Pins']]]
 ];

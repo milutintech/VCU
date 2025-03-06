@@ -18,6 +18,7 @@ var annotated_dup =
     [ "CANManager", "class_c_a_n_manager.html", "class_c_a_n_manager" ],
     [ "DMCData", "struct_d_m_c_data.html", "struct_d_m_c_data" ],
     [ "NLGData", "struct_n_l_g_data.html", "struct_n_l_g_data" ],
+    [ "PIDController", "class_p_i_d_controller.html", "class_p_i_d_controller" ],
     [ "SerialConsole", "class_serial_console.html", "class_serial_console" ],
     [ "StateManager", "class_state_manager.html", "class_state_manager" ],
     [ "SystemSetup", "class_system_setup.html", "class_system_setup" ],

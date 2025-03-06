@@ -27,7 +27,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.2</span>
+   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.7</span>
    </div>
    <div id="projectbrief">ESP32-based Electric Vehicle Control System</div>
   </td>
@@ -132,7 +132,6 @@ $(function(){initNavTree('main_8cpp.html',''); initResizable(true); });
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:a97135d3f5651447a059b1ad077b808f7" id="r_a97135d3f5651447a059b1ad077b808f7"><td class="memItemLeft" align="right" valign="top">ADS1115&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a97135d3f5651447a059b1ad077b808f7">ads</a> (0x48)</td></tr>
-<tr class="memdesc:a97135d3f5651447a059b1ad077b808f7"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="namespace_a_d_c.html">ADC</a> for pedal position.  <br /></td></tr>
 <tr class="separator:a97135d3f5651447a059b1ad077b808f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abc640117c57a28ccee1ba033efd2cdf4" id="r_abc640117c57a28ccee1ba033efd2cdf4"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#abc640117c57a28ccee1ba033efd2cdf4">canTask</a> (void *parameter)</td></tr>
 <tr class="memdesc:abc640117c57a28ccee1ba033efd2cdf4"><td class="mdescLeft">&#160;</td><td class="mdescRight">CAN and Fast Control Task (Core 0)  <br /></td></tr>
@@ -149,23 +148,17 @@ Functions</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
-<tr class="memitem:a01a766e1fb950604f31bd22c2253c59b" id="r_a01a766e1fb950604f31bd22c2253c59b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_state_manager.html">StateManager</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a01a766e1fb950604f31bd22c2253c59b">stateManager</a></td></tr>
-<tr class="memdesc:a01a766e1fb950604f31bd22c2253c59b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Vehicle state management.  <br /></td></tr>
-<tr class="separator:a01a766e1fb950604f31bd22c2253c59b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab82fd9d46a3427a257bc119c9c9c9d45" id="r_ab82fd9d46a3427a257bc119c9c9c9d45"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_c_a_n_manager.html">CANManager</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab82fd9d46a3427a257bc119c9c9c9d45">canManager</a> (<a class="el" href="namespace_pins.html#a248b6d2b1719a8097777b7a19e12b3bd">Pins::SPI_CS_PIN</a>, <a class="el" href="#a01a766e1fb950604f31bd22c2253c59b">stateManager</a>)</td></tr>
-<tr class="memdesc:ab82fd9d46a3427a257bc119c9c9c9d45"><td class="mdescLeft">&#160;</td><td class="mdescRight">CAN communication.  <br /></td></tr>
-<tr class="separator:ab82fd9d46a3427a257bc119c9c9c9d45"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab39a7467eef034c7f5b9cf0b96eb1d49" id="r_ab39a7467eef034c7f5b9cf0b96eb1d49"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_vehicle_control.html">VehicleControl</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab39a7467eef034c7f5b9cf0b96eb1d49">vehicleControl</a> (<a class="el" href="#a97135d3f5651447a059b1ad077b808f7">ads</a>)</td></tr>
-<tr class="memdesc:ab39a7467eef034c7f5b9cf0b96eb1d49"><td class="mdescLeft">&#160;</td><td class="mdescRight">Vehicle control logic.  <br /></td></tr>
-<tr class="separator:ab39a7467eef034c7f5b9cf0b96eb1d49"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abbad72488042335e1c5cb05e9d73d249" id="r_abbad72488042335e1c5cb05e9d73d249"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_serial_console.html">SerialConsole</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#abbad72488042335e1c5cb05e9d73d249">serialConsole</a> (<a class="el" href="#ab82fd9d46a3427a257bc119c9c9c9d45">canManager</a>, <a class="el" href="#a01a766e1fb950604f31bd22c2253c59b">stateManager</a>, <a class="el" href="#ab39a7467eef034c7f5b9cf0b96eb1d49">vehicleControl</a>)</td></tr>
-<tr class="memdesc:abbad72488042335e1c5cb05e9d73d249"><td class="mdescLeft">&#160;</td><td class="mdescRight">Debug interface.  <br /></td></tr>
-<tr class="separator:abbad72488042335e1c5cb05e9d73d249"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5ab1fb9c8194bf6d95058bc4c5f27746" id="r_a5ab1fb9c8194bf6d95058bc4c5f27746"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_c_a_n_manager.html">CANManager</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5ab1fb9c8194bf6d95058bc4c5f27746">canManager</a> = nullptr</td></tr>
+<tr class="separator:a5ab1fb9c8194bf6d95058bc4c5f27746"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4c9a5a0596ba554e6ecb928fdaff03d2" id="r_a4c9a5a0596ba554e6ecb928fdaff03d2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_state_manager.html">StateManager</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4c9a5a0596ba554e6ecb928fdaff03d2">stateManager</a> = nullptr</td></tr>
+<tr class="separator:a4c9a5a0596ba554e6ecb928fdaff03d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9d5e97dda5c891b99d1ead33ab9baee6" id="r_a9d5e97dda5c891b99d1ead33ab9baee6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_vehicle_control.html">VehicleControl</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9d5e97dda5c891b99d1ead33ab9baee6">vehicleControl</a> = nullptr</td></tr>
+<tr class="separator:a9d5e97dda5c891b99d1ead33ab9baee6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5457108b91b97a3da2215474b3d9f4e2" id="r_a5457108b91b97a3da2215474b3d9f4e2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_serial_console.html">SerialConsole</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5457108b91b97a3da2215474b3d9f4e2">serialConsole</a> = nullptr</td></tr>
+<tr class="separator:a5457108b91b97a3da2215474b3d9f4e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8ccb2e7a4abfe4bb64633d38c1a27418" id="r_a8ccb2e7a4abfe4bb64633d38c1a27418"><td class="memItemLeft" align="right" valign="top">TaskHandle_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8ccb2e7a4abfe4bb64633d38c1a27418">canTaskHandle</a> = nullptr</td></tr>
-<tr class="memdesc:a8ccb2e7a4abfe4bb64633d38c1a27418"><td class="mdescLeft">&#160;</td><td class="mdescRight">CAN task handle (Core 0)  <br /></td></tr>
 <tr class="separator:a8ccb2e7a4abfe4bb64633d38c1a27418"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac7df868d58751ecfc9b2f863c20196db" id="r_ac7df868d58751ecfc9b2f863c20196db"><td class="memItemLeft" align="right" valign="top">TaskHandle_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac7df868d58751ecfc9b2f863c20196db">controlTaskHandle</a> = nullptr</td></tr>
-<tr class="memdesc:ac7df868d58751ecfc9b2f863c20196db"><td class="mdescLeft">&#160;</td><td class="mdescRight">Control task handle (Core 1)  <br /></td></tr>
 <tr class="separator:ac7df868d58751ecfc9b2f863c20196db"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -192,8 +185,6 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p><a class="el" href="namespace_a_d_c.html">ADC</a> for pedal position. </p>
 
 </div>
 </div>
@@ -306,26 +297,17 @@ Variables</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Variable Documentation</h2>
-<a id="ab82fd9d46a3427a257bc119c9c9c9d45" name="ab82fd9d46a3427a257bc119c9c9c9d45"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab82fd9d46a3427a257bc119c9c9c9d45">&#9670;&#160;</a></span>canManager</h2>
+<a id="a5ab1fb9c8194bf6d95058bc4c5f27746" name="a5ab1fb9c8194bf6d95058bc4c5f27746"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5ab1fb9c8194bf6d95058bc4c5f27746">&#9670;&#160;</a></span>canManager</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="class_c_a_n_manager.html">CANManager</a> canManager(<a class="el" href="namespace_pins.html#a248b6d2b1719a8097777b7a19e12b3bd">Pins::SPI_CS_PIN</a>, <a class="el" href="#a01a766e1fb950604f31bd22c2253c59b">stateManager</a>) </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="namespace_pins.html#a248b6d2b1719a8097777b7a19e12b3bd">Pins::SPI_CS_PIN</a></td>          <td class="paramname"><span class="paramname"><em></em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="#a01a766e1fb950604f31bd22c2253c59b">stateManager</a></td>          <td class="paramname"><span class="paramname"><em></em></span>&#160;)</td>
+          <td class="memname"><a class="el" href="class_c_a_n_manager.html">CANManager</a>* canManager = nullptr</td>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>CAN communication. </p>
 
 </div>
 </div>
@@ -341,8 +323,6 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>CAN task handle (Core 0) </p>
-
 </div>
 </div>
 <a id="ac7df868d58751ecfc9b2f863c20196db" name="ac7df868d58751ecfc9b2f863c20196db"></a>
@@ -357,70 +337,47 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Control task handle (Core 1) </p>
-
 </div>
 </div>
-<a id="abbad72488042335e1c5cb05e9d73d249" name="abbad72488042335e1c5cb05e9d73d249"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abbad72488042335e1c5cb05e9d73d249">&#9670;&#160;</a></span>serialConsole</h2>
+<a id="a5457108b91b97a3da2215474b3d9f4e2" name="a5457108b91b97a3da2215474b3d9f4e2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5457108b91b97a3da2215474b3d9f4e2">&#9670;&#160;</a></span>serialConsole</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="class_serial_console.html">SerialConsole</a> serialConsole(<a class="el" href="#ab82fd9d46a3427a257bc119c9c9c9d45">canManager</a>, <a class="el" href="#a01a766e1fb950604f31bd22c2253c59b">stateManager</a>, <a class="el" href="#ab39a7467eef034c7f5b9cf0b96eb1d49">vehicleControl</a>) </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="#ab82fd9d46a3427a257bc119c9c9c9d45">canManager</a></td>          <td class="paramname"><span class="paramname"><em></em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="#a01a766e1fb950604f31bd22c2253c59b">stateManager</a></td>          <td class="paramname"><span class="paramname"><em></em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="#ab39a7467eef034c7f5b9cf0b96eb1d49">vehicleControl</a></td>          <td class="paramname"><span class="paramname"><em></em></span>&#160;)</td>
+          <td class="memname"><a class="el" href="class_serial_console.html">SerialConsole</a>* serialConsole = nullptr</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Debug interface. </p>
-
 </div>
 </div>
-<a id="a01a766e1fb950604f31bd22c2253c59b" name="a01a766e1fb950604f31bd22c2253c59b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a01a766e1fb950604f31bd22c2253c59b">&#9670;&#160;</a></span>stateManager</h2>
+<a id="a4c9a5a0596ba554e6ecb928fdaff03d2" name="a4c9a5a0596ba554e6ecb928fdaff03d2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4c9a5a0596ba554e6ecb928fdaff03d2">&#9670;&#160;</a></span>stateManager</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="class_state_manager.html">StateManager</a> stateManager</td>
+          <td class="memname"><a class="el" href="class_state_manager.html">StateManager</a>* stateManager = nullptr</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Vehicle state management. </p>
-
 </div>
 </div>
-<a id="ab39a7467eef034c7f5b9cf0b96eb1d49" name="ab39a7467eef034c7f5b9cf0b96eb1d49"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab39a7467eef034c7f5b9cf0b96eb1d49">&#9670;&#160;</a></span>vehicleControl</h2>
+<a id="a9d5e97dda5c891b99d1ead33ab9baee6" name="a9d5e97dda5c891b99d1ead33ab9baee6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9d5e97dda5c891b99d1ead33ab9baee6">&#9670;&#160;</a></span>vehicleControl</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="class_vehicle_control.html">VehicleControl</a> vehicleControl(<a class="el" href="#a97135d3f5651447a059b1ad077b808f7">ads</a>) </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="#a97135d3f5651447a059b1ad077b808f7">ads</a></td>          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
-          <td></td>
+          <td class="memname"><a class="el" href="class_vehicle_control.html">VehicleControl</a>* vehicleControl = nullptr</td>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>Vehicle control logic. </p>
 
 </div>
 </div>

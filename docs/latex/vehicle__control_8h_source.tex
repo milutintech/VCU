@@ -11,61 +11,93 @@
 \DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{vehicle__parameters_8h}{vehicle\_parameters.h}}"{}}}
 \DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ "{}ADS1X15.h"{}}}
 \DoxyCodeLine{00019\ }
-\DoxyCodeLine{00020\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_vehicle_control}{VehicleControl}}\ \{}
-\DoxyCodeLine{00021\ \textcolor{keyword}{public}:}
-\DoxyCodeLine{00026\ \ \ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{class_vehicle_control_a58a56e235f86e223c10a168e13f6a81f}{VehicleControl}}(ADS1115\&\ \mbox{\hyperlink{class_vehicle_control_a5b359885d36fd5b369b5fe9ba245e26f}{ads}});}
-\DoxyCodeLine{00027\ \ \ \ \ }
-\DoxyCodeLine{00032\ \ \ \ \ int16\_t\ \mbox{\hyperlink{class_vehicle_control_a4a40ba078d06a53fb52153d80c01ae69}{calculateTorque}}();}
-\DoxyCodeLine{00033\ }
-\DoxyCodeLine{00038\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_vehicle_control_a7a598d53412fde2f576e731976bf1629}{setMotorSpeed}}(\textcolor{keywordtype}{float}\ speed);}
-\DoxyCodeLine{00039\ }
-\DoxyCodeLine{00044\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_vehicle_control_a6a0ec19cf7b6ede44ff761bfcfe4207c}{setCurrentGear}}(\mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cd}{GearState}}\ gear);}
-\DoxyCodeLine{00045\ }
-\DoxyCodeLine{00050\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_vehicle_control_a84d97a2f0b89b4e85f54a62871bf621e}{setDrivingMode}}(\mbox{\hyperlink{config_8h_a785f94b7f1a29eb5a7001c09bad64c01}{DriveMode}}\ mode);}
-\DoxyCodeLine{00051\ }
-\DoxyCodeLine{00056\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_vehicle_control_ab46abdeb60d341fa0547ab07f007037f}{isDMCEnabled}}()\ \textcolor{keyword}{const};}
-\DoxyCodeLine{00057\ \ \ \ \ }
-\DoxyCodeLine{00058\ \ \ \ \ \textcolor{comment}{//\ Configuration\ methods}}
-\DoxyCodeLine{00059\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_vehicle_control_aeeead8dc56ced72558564016510265e4}{setOPDEnabled}}(\textcolor{keywordtype}{bool}\ enabled)\ \{\ \mbox{\hyperlink{class_vehicle_control_a31ba729072fde5c4b6ea6e54f5b3fd9b}{isOPDEnabled}}\ =\ enabled;\ \}}
-\DoxyCodeLine{00060\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_vehicle_control_a874a9f63a0ed236f177518c5ca4c8e28}{setRegenEnabled}}(\textcolor{keywordtype}{bool}\ enabled)\ \{\ \mbox{\hyperlink{class_vehicle_control_a407b8ad28e14e934e93929f9b6d90628}{isRegenEnabled}}\ =\ enabled;\ \}}
-\DoxyCodeLine{00061\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_vehicle_control_acc1490071b408dc62e2ec309715e1ce0}{setGearRatio}}(\mbox{\hyperlink{config_8h_ac5e05c5a7d57d23d56fbc19df0ecf645}{GearRatio}}\ ratio)\ \{\ \mbox{\hyperlink{class_vehicle_control_af6fe4aa401a18c4fe479a051817a089b}{currentGearRatio}}\ =\ ratio;\ \}}
-\DoxyCodeLine{00062\ \ \ \ \ }
-\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_a80eda80a14c3c360773c8086d0300f7f}{MAX\_VEHICLE\_SPEED}}\ =\ 120.0f;\ \ \textcolor{comment}{//\ kph}}
-\DoxyCodeLine{00064\ }
-\DoxyCodeLine{00065\ \textcolor{keyword}{private}:}
-\DoxyCodeLine{00070\ \ \ \ \ int32\_t\ \mbox{\hyperlink{class_vehicle_control_aaa67e6a454776e4134c9c8799104d075}{samplePedalPosition}}();}
-\DoxyCodeLine{00071\ }
-\DoxyCodeLine{00076\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_aab4410aea7677f92f31aafbf87a27979}{calculateVehicleSpeed}}();}
-\DoxyCodeLine{00077\ \ \ \ \ }
-\DoxyCodeLine{00078\ \ \ \ \ \textcolor{comment}{//\ Driving\ mode\ handlers}}
-\DoxyCodeLine{00079\ \ \ \ \ int16\_t\ \mbox{\hyperlink{class_vehicle_control_aee3609644506e5b76ac02108f7d5d07b}{handleLegacyMode}}(\textcolor{keywordtype}{float}\ throttlePosition);}
-\DoxyCodeLine{00080\ \ \ \ \ int16\_t\ \mbox{\hyperlink{class_vehicle_control_a4399007eb8ef230f01e6227e2a7bae78}{handleRegenMode}}(\textcolor{keywordtype}{float}\ throttlePosition,\ \textcolor{keywordtype}{float}\ speed);}
-\DoxyCodeLine{00081\ \ \ \ \ int16\_t\ \mbox{\hyperlink{class_vehicle_control_a2f07a054eade29547b88842b35bb65c3}{handleOPDMode}}(\textcolor{keywordtype}{float}\ throttlePosition,\ \textcolor{keywordtype}{float}\ speed);}
-\DoxyCodeLine{00082\ \ \ \ \ }
-\DoxyCodeLine{00083\ \ \ \ \ \textcolor{comment}{//\ OPD\ calculations}}
-\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_aa8e205ba6872b201ea8a00470c4fa2ac}{calculateCoastUpperBound}}(\textcolor{keywordtype}{float}\ speed);}
-\DoxyCodeLine{00085\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_ad4c6b681f6a2afc16f956c5611819d97}{calculateCoastLowerBound}}(\textcolor{keywordtype}{float}\ speed);}
-\DoxyCodeLine{00086\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_a7f9a52358ede7c2106524c824f238a8d}{calculateMaxRegenerativeTorque}}(\textcolor{keywordtype}{float}\ speed);}
-\DoxyCodeLine{00087\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_a8e1f3cbeef05da62109a83d2d4c7c026}{calculateMaxDriveTorque}}(\textcolor{keywordtype}{float}\ speed);}
-\DoxyCodeLine{00088\ \ \ \ \ }
-\DoxyCodeLine{00094\ \ \ \ \ int16\_t\ \mbox{\hyperlink{class_vehicle_control_a5cb0e6e6505a509172f20331ff84942e}{applyTorqueLimits}}(int16\_t\ requestedTorque);}
-\DoxyCodeLine{00095\ }
-\DoxyCodeLine{00101\ \ \ \ \ int16\_t\ \mbox{\hyperlink{class_vehicle_control_a30cf56fd18bf83a739cf93f9ce411197}{applyDeadbandHysteresis}}(int16\_t\ torque);}
-\DoxyCodeLine{00102\ \ \ \ \ }
-\DoxyCodeLine{00103\ \ \ \ \ \textcolor{comment}{//\ Member\ variables}}
-\DoxyCodeLine{00104\ \ \ \ \ ADS1115\&\ \mbox{\hyperlink{class_vehicle_control_a5b359885d36fd5b369b5fe9ba245e26f}{ads}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Reference\ to\ ADC}}
-\DoxyCodeLine{00105\ \ \ \ \ \mbox{\hyperlink{config_8h_a785f94b7f1a29eb5a7001c09bad64c01}{DriveMode}}\ \mbox{\hyperlink{class_vehicle_control_abfc6ce11a4e233ef219d263436f85ea7}{currentDrivingMode}};\ \ \ \ \textcolor{comment}{//\ Current\ driving\ mode}}
-\DoxyCodeLine{00106\ \ \ \ \ \mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cd}{GearState}}\ \mbox{\hyperlink{class_vehicle_control_a45a0e34140d9e5c07e98ae707cc33d0d}{currentGear}};\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Current\ gear\ state}}
-\DoxyCodeLine{00107\ \ \ \ \ \mbox{\hyperlink{config_8h_ac5e05c5a7d57d23d56fbc19df0ecf645}{GearRatio}}\ \mbox{\hyperlink{class_vehicle_control_af6fe4aa401a18c4fe479a051817a089b}{currentGearRatio}};\ \ \ \ \ \ \textcolor{comment}{//\ Current\ gear\ ratio}}
-\DoxyCodeLine{00108\ \ \ \ \ }
-\DoxyCodeLine{00109\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_vehicle_control_a31ba729072fde5c4b6ea6e54f5b3fd9b}{isOPDEnabled}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ OPD\ mode\ flag}}
-\DoxyCodeLine{00110\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_vehicle_control_a407b8ad28e14e934e93929f9b6d90628}{isRegenEnabled}};\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Regeneration\ enabled\ flag}}
-\DoxyCodeLine{00111\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_vehicle_control_a104e3171491dfa479f76ccc36502679b}{enableDMC}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ DMC\ enable\ flag}}
-\DoxyCodeLine{00112\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_vehicle_control_a903dc2b6279d04f50eb8c2c33f9cf537}{wasInDeadband}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Deadband\ hysteresis\ state}}
-\DoxyCodeLine{00113\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_vehicle_control_a691c84d9e1b5ad1eee5147433f0c6726}{wasEnabled}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Previous\ enable\ state}}
-\DoxyCodeLine{00114\ \ \ \ \ }
-\DoxyCodeLine{00115\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_a0cdfc88cd1fcab4476cba7dff02817ff}{lastTorque}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Last\ calculated\ torque}}
-\DoxyCodeLine{00116\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_a688b949933676e0ca5db45863020a0e7}{motorSpeed}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Current\ motor\ speed}}
-\DoxyCodeLine{00117\ \};}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ Simple\ PID\ controller\ for\ OPD\ anti-\/rollback\ protection.}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ (This\ class\ can\ be\ moved\ to\ a\ separate\ file\ if\ desired.)}}
+\DoxyCodeLine{00022\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_p_i_d_controller}{PIDController}}\ \{}
+\DoxyCodeLine{00023\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00024\ \ \ \ \ \mbox{\hyperlink{class_p_i_d_controller_af50f86800ed8b6c79ff3fc10c6f6f645}{PIDController}}(\textcolor{keywordtype}{float}\ kp,\ \textcolor{keywordtype}{float}\ ki,\ \textcolor{keywordtype}{float}\ kd)}
+\DoxyCodeLine{00025\ \ \ \ \ \ \ \ \ :\ \mbox{\hyperlink{class_p_i_d_controller_a7abe8e43b88d28f7df05fc4a338ea69a}{kp\_}}(kp),\ \mbox{\hyperlink{class_p_i_d_controller_a29a4b35864f64ed29e65398417b48da8}{ki\_}}(ki),\ \mbox{\hyperlink{class_p_i_d_controller_a97fc1422b5bd43d3c6a1ca395427c458}{kd\_}}(kd),\ \mbox{\hyperlink{class_p_i_d_controller_ad0a5e91ca64b72411f077b5d658295ce}{integral\_}}(0.0f),\ \mbox{\hyperlink{class_p_i_d_controller_acef82105fd0ee954173342ff68cabeda}{prevError\_}}(0.0f),\ \mbox{\hyperlink{class_p_i_d_controller_a31352e87eaf0fbcfd3acfd7b1753ac20}{setpoint\_}}(0.0f)\ \{\}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_p_i_d_controller_a865b0f3b1329f4de9f5459a5a9d4e675}{update}}(\textcolor{keywordtype}{float}\ measurement,\ \textcolor{keywordtype}{float}\ dt)\ \{}
+\DoxyCodeLine{00034\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{float}\ error\ =\ \mbox{\hyperlink{class_p_i_d_controller_a31352e87eaf0fbcfd3acfd7b1753ac20}{setpoint\_}}\ -\/\ measurement;}
+\DoxyCodeLine{00035\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{class_p_i_d_controller_ad0a5e91ca64b72411f077b5d658295ce}{integral\_}}\ +=\ error\ *\ dt;}
+\DoxyCodeLine{00036\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{float}\ derivative\ =\ (error\ -\/\ \mbox{\hyperlink{class_p_i_d_controller_acef82105fd0ee954173342ff68cabeda}{prevError\_}})\ /\ dt;}
+\DoxyCodeLine{00037\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{class_p_i_d_controller_acef82105fd0ee954173342ff68cabeda}{prevError\_}}\ =\ error;}
+\DoxyCodeLine{00038\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{class_p_i_d_controller_a7abe8e43b88d28f7df05fc4a338ea69a}{kp\_}}\ *\ error\ +\ \mbox{\hyperlink{class_p_i_d_controller_a29a4b35864f64ed29e65398417b48da8}{ki\_}}\ *\ \mbox{\hyperlink{class_p_i_d_controller_ad0a5e91ca64b72411f077b5d658295ce}{integral\_}}\ +\ \mbox{\hyperlink{class_p_i_d_controller_a97fc1422b5bd43d3c6a1ca395427c458}{kd\_}}\ *\ derivative;}
+\DoxyCodeLine{00039\ \ \ \ \ \}}
+\DoxyCodeLine{00040\ \ \ \ \ }
+\DoxyCodeLine{00041\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_p_i_d_controller_a430197f60d8e2371a16a474869e7efc8}{setSetpoint}}(\textcolor{keywordtype}{float}\ sp)\ \{\ \mbox{\hyperlink{class_p_i_d_controller_a31352e87eaf0fbcfd3acfd7b1753ac20}{setpoint\_}}\ =\ sp;\ \}}
+\DoxyCodeLine{00042\ \ \ \ \ }
+\DoxyCodeLine{00043\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00044\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_p_i_d_controller_a7abe8e43b88d28f7df05fc4a338ea69a}{kp\_}},\ \mbox{\hyperlink{class_p_i_d_controller_a29a4b35864f64ed29e65398417b48da8}{ki\_}},\ \mbox{\hyperlink{class_p_i_d_controller_a97fc1422b5bd43d3c6a1ca395427c458}{kd\_}};}
+\DoxyCodeLine{00045\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_p_i_d_controller_ad0a5e91ca64b72411f077b5d658295ce}{integral\_}},\ \mbox{\hyperlink{class_p_i_d_controller_acef82105fd0ee954173342ff68cabeda}{prevError\_}};}
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_p_i_d_controller_a31352e87eaf0fbcfd3acfd7b1753ac20}{setpoint\_}};}
+\DoxyCodeLine{00047\ \};}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_vehicle_control}{VehicleControl}}\ \{}
+\DoxyCodeLine{00050\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00055\ \ \ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{class_vehicle_control_a58a56e235f86e223c10a168e13f6a81f}{VehicleControl}}(ADS1115\&\ \mbox{\hyperlink{class_vehicle_control_a5b359885d36fd5b369b5fe9ba245e26f}{ads}});}
+\DoxyCodeLine{00056\ \ \ \ \ }
+\DoxyCodeLine{00061\ \ \ \ \ int16\_t\ \mbox{\hyperlink{class_vehicle_control_a4a40ba078d06a53fb52153d80c01ae69}{calculateTorque}}();}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00067\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_vehicle_control_a78c126780c83734a048e0b908786c202}{updateGearState}}();}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00073\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_vehicle_control_a7a598d53412fde2f576e731976bf1629}{setMotorSpeed}}(\textcolor{keywordtype}{float}\ speed);}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00079\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_vehicle_control_a6a0ec19cf7b6ede44ff761bfcfe4207c}{setCurrentGear}}(\mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cd}{GearState}}\ gear);}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00085\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_vehicle_control_a84d97a2f0b89b4e85f54a62871bf621e}{setDrivingMode}}(\mbox{\hyperlink{config_8h_a785f94b7f1a29eb5a7001c09bad64c01}{DriveMode}}\ mode);}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00091\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_vehicle_control_ab46abdeb60d341fa0547ab07f007037f}{isDMCEnabled}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00092\ \ \ \ \ }
+\DoxyCodeLine{00093\ \ \ \ \ \textcolor{comment}{//\ Configuration\ methods}}
+\DoxyCodeLine{00094\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_vehicle_control_aeeead8dc56ced72558564016510265e4}{setOPDEnabled}}(\textcolor{keywordtype}{bool}\ enabled)\ \{\ \mbox{\hyperlink{class_vehicle_control_a31ba729072fde5c4b6ea6e54f5b3fd9b}{isOPDEnabled}}\ =\ enabled;\ \}}
+\DoxyCodeLine{00095\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_vehicle_control_a874a9f63a0ed236f177518c5ca4c8e28}{setRegenEnabled}}(\textcolor{keywordtype}{bool}\ enabled)\ \{\ \mbox{\hyperlink{class_vehicle_control_a407b8ad28e14e934e93929f9b6d90628}{isRegenEnabled}}\ =\ enabled;\ \}}
+\DoxyCodeLine{00096\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_vehicle_control_acc1490071b408dc62e2ec309715e1ce0}{setGearRatio}}(\mbox{\hyperlink{config_8h_ac5e05c5a7d57d23d56fbc19df0ecf645}{GearRatio}}\ ratio)\ \{\ \mbox{\hyperlink{class_vehicle_control_af6fe4aa401a18c4fe479a051817a089b}{currentGearRatio}}\ =\ ratio;\ \}}
+\DoxyCodeLine{00097\ \ \ \ \ }
+\DoxyCodeLine{00098\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_a80eda80a14c3c360773c8086d0300f7f}{MAX\_VEHICLE\_SPEED}}\ =\ 120.0f;\ \ \textcolor{comment}{//\ kph}}
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00100\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00105\ \ \ \ \ int32\_t\ \mbox{\hyperlink{class_vehicle_control_aaa67e6a454776e4134c9c8799104d075}{samplePedalPosition}}();}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00111\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_aab4410aea7677f92f31aafbf87a27979}{calculateVehicleSpeed}}();}
+\DoxyCodeLine{00112\ \ \ \ \ }
+\DoxyCodeLine{00113\ \ \ \ \ \textcolor{comment}{//\ Driving\ mode\ handlers}}
+\DoxyCodeLine{00114\ \ \ \ \ int16\_t\ \mbox{\hyperlink{class_vehicle_control_aee3609644506e5b76ac02108f7d5d07b}{handleLegacyMode}}(\textcolor{keywordtype}{float}\ throttlePosition);}
+\DoxyCodeLine{00115\ \ \ \ \ int16\_t\ \mbox{\hyperlink{class_vehicle_control_a4399007eb8ef230f01e6227e2a7bae78}{handleRegenMode}}(\textcolor{keywordtype}{float}\ throttlePosition,\ \textcolor{keywordtype}{float}\ speed);}
+\DoxyCodeLine{00116\ \ \ \ \ int16\_t\ \mbox{\hyperlink{class_vehicle_control_a2f07a054eade29547b88842b35bb65c3}{handleOPDMode}}(\textcolor{keywordtype}{float}\ throttlePosition,\ \textcolor{keywordtype}{float}\ speed);}
+\DoxyCodeLine{00117\ \ \ \ \ }
+\DoxyCodeLine{00118\ \ \ \ \ \textcolor{comment}{//\ (Optional)\ Additional\ functions\ for\ OPD\ calculations.}}
+\DoxyCodeLine{00119\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_aa8e205ba6872b201ea8a00470c4fa2ac}{calculateCoastUpperBound}}(\textcolor{keywordtype}{float}\ speed);}
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_ad4c6b681f6a2afc16f956c5611819d97}{calculateCoastLowerBound}}(\textcolor{keywordtype}{float}\ speed);}
+\DoxyCodeLine{00121\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_a7f9a52358ede7c2106524c824f238a8d}{calculateMaxRegenerativeTorque}}(\textcolor{keywordtype}{float}\ speed);}
+\DoxyCodeLine{00122\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_a8e1f3cbeef05da62109a83d2d4c7c026}{calculateMaxDriveTorque}}(\textcolor{keywordtype}{float}\ speed);}
+\DoxyCodeLine{00123\ \ \ \ \ }
+\DoxyCodeLine{00129\ \ \ \ \ int16\_t\ \mbox{\hyperlink{class_vehicle_control_a5cb0e6e6505a509172f20331ff84942e}{applyTorqueLimits}}(int16\_t\ requestedTorque);}
+\DoxyCodeLine{00130\ }
+\DoxyCodeLine{00136\ \ \ \ \ int16\_t\ \mbox{\hyperlink{class_vehicle_control_a30cf56fd18bf83a739cf93f9ce411197}{applyDeadbandHysteresis}}(int16\_t\ torque);}
+\DoxyCodeLine{00137\ }
+\DoxyCodeLine{00143\ \ \ \ \ int16\_t\ \mbox{\hyperlink{class_vehicle_control_a23a03afca9dcef1b53994f70d90ae70f}{applyTorqueCutoff}}(int16\_t\ requestedTorque);}
+\DoxyCodeLine{00144\ \ \ \ \ }
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{comment}{//\ Member\ variables}}
+\DoxyCodeLine{00146\ \ \ \ \ ADS1115\&\ \mbox{\hyperlink{class_vehicle_control_a5b359885d36fd5b369b5fe9ba245e26f}{ads}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Reference\ to\ ADC}}
+\DoxyCodeLine{00147\ \ \ \ \ \mbox{\hyperlink{config_8h_a785f94b7f1a29eb5a7001c09bad64c01}{DriveMode}}\ \mbox{\hyperlink{class_vehicle_control_abfc6ce11a4e233ef219d263436f85ea7}{currentDrivingMode}};\ \ \ \ \textcolor{comment}{//\ Current\ driving\ mode}}
+\DoxyCodeLine{00148\ \ \ \ \ \mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cd}{GearState}}\ \mbox{\hyperlink{class_vehicle_control_a45a0e34140d9e5c07e98ae707cc33d0d}{currentGear}};\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Current\ gear\ state}}
+\DoxyCodeLine{00149\ \ \ \ \ \mbox{\hyperlink{config_8h_ac5e05c5a7d57d23d56fbc19df0ecf645}{GearRatio}}\ \mbox{\hyperlink{class_vehicle_control_af6fe4aa401a18c4fe479a051817a089b}{currentGearRatio}};\ \ \ \ \ \ \textcolor{comment}{//\ Current\ gear\ ratio}}
+\DoxyCodeLine{00150\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_vehicle_control_a0778dca45abeea99b3757185caa21849}{shiftAttempted}};\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Track\ shift\ attempts\ at\ high\ speed}}
+\DoxyCodeLine{00151\ \ \ \ \ }
+\DoxyCodeLine{00152\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_vehicle_control_a31ba729072fde5c4b6ea6e54f5b3fd9b}{isOPDEnabled}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ OPD\ mode\ flag}}
+\DoxyCodeLine{00153\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_vehicle_control_a407b8ad28e14e934e93929f9b6d90628}{isRegenEnabled}};\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Regeneration\ enabled\ flag}}
+\DoxyCodeLine{00154\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_vehicle_control_a104e3171491dfa479f76ccc36502679b}{enableDMC}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ DMC\ enable\ flag}}
+\DoxyCodeLine{00155\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_vehicle_control_a903dc2b6279d04f50eb8c2c33f9cf537}{wasInDeadband}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Deadband\ hysteresis\ state}}
+\DoxyCodeLine{00156\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_vehicle_control_a691c84d9e1b5ad1eee5147433f0c6726}{wasEnabled}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Previous\ enable\ state}}
+\DoxyCodeLine{00157\ \ \ \ \ }
+\DoxyCodeLine{00158\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_a0cdfc88cd1fcab4476cba7dff02817ff}{lastTorque}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Last\ calculated\ torque}}
+\DoxyCodeLine{00159\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_vehicle_control_a688b949933676e0ca5db45863020a0e7}{motorSpeed}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Current\ motor\ speed}}
+\DoxyCodeLine{00160\ }
+\DoxyCodeLine{00161\ \ \ \ \ \textcolor{comment}{//\ PID\ controller\ for\ OPD\ anti-\/rollback\ protection.}}
+\DoxyCodeLine{00162\ \ \ \ \ \textcolor{comment}{//\ This\ member\ is\ used\ to\ hold\ the\ vehicle\ when\ speed\ is\ near\ zero.}}
+\DoxyCodeLine{00163\ \ \ \ \ \mbox{\hyperlink{class_p_i_d_controller}{PIDController}}\ \mbox{\hyperlink{class_vehicle_control_ae99e32126a741ee0c593892b59d5c983}{opdPid}};}
+\DoxyCodeLine{00164\ \};}
 
 \end{DoxyCode}

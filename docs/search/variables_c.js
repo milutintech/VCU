@@ -1,11 +1,25 @@
 var searchData=
 [
-  ['pedal_5fgamma_0',['PEDAL_GAMMA',['../struct_vehicle_params_1_1_control.html#a64a6317e3278137ad1705a430b3544ba',1,'VehicleParams::Control']]],
-  ['phi_1',['PHI',['../struct_vehicle_params_1_1_o_p_d.html#a1a8014c8c28e4fd2252eb6f42ae157ed',1,'VehicleParams::OPD']]],
-  ['pot_5fdeadband_2',['POT_DEADBAND',['../struct_vehicle_params_1_1_a_d_c.html#a892a9b543c66d82c8a958dc9f9789e5c',1,'VehicleParams::ADC']]],
-  ['precharge_5fcurrent_3',['PRECHARGE_CURRENT',['../struct_vehicle_params_1_1_battery.html#abd141f82164e239c421f242dfe6ad1d4',1,'VehicleParams::Battery']]],
-  ['precharge_5ftimeout_4',['PRECHARGE_TIMEOUT',['../struct_vehicle_params_1_1_timing.html#aade931d0b80c96936287a31b30fa4e84',1,'VehicleParams::Timing']]],
-  ['precharge_5ftimeout_5fms_5',['PRECHARGE_TIMEOUT_MS',['../namespace_constants.html#a56616bd7b9fe987943ac98f5d3598408',1,'Constants']]],
-  ['pump_6',['PUMP',['../namespace_pins.html#a3b62641ccbcba7c41587f1a4a8e5159c',1,'Pins']]],
-  ['pw1_7',['PW1',['../namespace_pins.html#a2fbac616f8074f2796f8512edc11be6f',1,'Pins']]]
+  ['nlg_5fact_5fcharge_0',['NLG_ACT_CHARGE',['../namespace_charger_states.html#a57035bd5e789822c17c41e87df7d04b3',1,'ChargerStates']]],
+  ['nlg_5fact_5ferr_1',['NLG_ACT_ERR',['../namespace_c_a_n_ids.html#aa0d5c919989d539b956b41c3ed9f6e1c',1,'CANIds']]],
+  ['nlg_5fact_5flim_2',['NLG_ACT_LIM',['../namespace_c_a_n_ids.html#abd0b321887aa2db9bcb3dc5852e943a5',1,'CANIds']]],
+  ['nlg_5fact_5fplug_3',['NLG_ACT_PLUG',['../namespace_c_a_n_ids.html#acbf2a29f7389a75e284917975def872a',1,'CANIds']]],
+  ['nlg_5fact_5fready2charge_4',['NLG_ACT_READY2CHARGE',['../namespace_charger_states.html#a784325184d6e5c3b7c3b01ddc89c2ef4',1,'ChargerStates']]],
+  ['nlg_5fact_5fshutdown_5',['NLG_ACT_SHUTDOWN',['../namespace_charger_states.html#abddcc96e49f4f4d39844510439376cae',1,'ChargerStates']]],
+  ['nlg_5fact_5fsleep_6',['NLG_ACT_SLEEP',['../namespace_charger_states.html#abcb8db740fcd18376e339a33a1fed097',1,'ChargerStates']]],
+  ['nlg_5fact_5fstandby_7',['NLG_ACT_STANDBY',['../namespace_charger_states.html#ae32036c87a4c0780e50d39ae167ddffa',1,'ChargerStates']]],
+  ['nlg_5fact_5fwakeup_8',['NLG_ACT_WAKEUP',['../namespace_charger_states.html#a32ea45bfd6b4966d7af038653477d66a',1,'ChargerStates']]],
+  ['nlg_5fdem_5fcharge_9',['NLG_DEM_CHARGE',['../namespace_charger_states.html#ad31c353924ebc351eb9f12e29adb75cf',1,'ChargerStates']]],
+  ['nlg_5fdem_5flim_10',['NLG_DEM_LIM',['../namespace_c_a_n_ids.html#a629fc242c61d83b0c6ead58b97caadf4',1,'CANIds']]],
+  ['nlg_5fdem_5fsleep_11',['NLG_DEM_SLEEP',['../namespace_charger_states.html#aa883beec59a577d9244afc5bc8c5d28e',1,'ChargerStates']]],
+  ['nlg_5fdem_5fstandby_12',['NLG_DEM_STANDBY',['../namespace_charger_states.html#ae0facf27906c24cfc06eb46f467da01c',1,'ChargerStates']]],
+  ['nlg_5fhw_5fwakeup_13',['NLG_HW_Wakeup',['../namespace_pins.html#a0a25931e36958bb010ee2c1bea46f4e0',1,'Pins']]],
+  ['nlg_5fmax_14',['NLG_MAX',['../struct_vehicle_params_1_1_temperature.html#a3c80fa1cd256457e9bedbb0c4b9cc0c4',1,'VehicleParams::Temperature']]],
+  ['nlg_5fmax_5fac_15',['NLG_MAX_AC',['../struct_vehicle_params_1_1_power.html#a9c452ad6490eb648b52a2d51a2b88a2b',1,'VehicleParams::Power']]],
+  ['nlg_5funlock_5ftimeout_16',['NLG_UNLOCK_TIMEOUT',['../struct_vehicle_params_1_1_timing.html#a092d069772be517c7b5799f38d244af3',1,'VehicleParams::Timing']]],
+  ['nlgcharged_17',['nlgCharged',['../class_state_manager.html#a43b93b091b97ec4b1c2224d20e3e74e5',1,'StateManager']]],
+  ['nlgdata_18',['nlgData',['../class_c_a_n_manager.html#a861adbe06d0c26e8734d2cd8ae5f68e1',1,'CANManager']]],
+  ['nlgkl15_19',['NLGKL15',['../namespace_pins.html#a3408decc259fda478a80205ea8144e23',1,'Pins']]],
+  ['nom_5fvoltage_20',['NOM_VOLTAGE',['../struct_vehicle_params_1_1_battery.html#a59cd9801c68c9ea45ddbd7bb31eddcc3',1,'VehicleParams::Battery']]],
+  ['normal_5fratio_21',['NORMAL_RATIO',['../struct_vehicle_params_1_1_transmission.html#a72adb9f8a245696fa959983f24cafcf5',1,'VehicleParams::Transmission']]]
 ];

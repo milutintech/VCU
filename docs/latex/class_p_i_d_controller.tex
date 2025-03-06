@@ -1,0 +1,112 @@
+\doxysection{PIDController Class Reference}
+\hypertarget{class_p_i_d_controller}{}\label{class_p_i_d_controller}\index{PIDController@{PIDController}}
+
+
+{\ttfamily \#include $<$vehicle\+\_\+control.\+h$>$}
+
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{class_p_i_d_controller_af50f86800ed8b6c79ff3fc10c6f6f645}{PIDController}} (float kp, float ki, float kd)
+\item 
+float \mbox{\hyperlink{class_p_i_d_controller_a865b0f3b1329f4de9f5459a5a9d4e675}{update}} (float measurement, float dt)
+\begin{DoxyCompactList}\small\item\em Update the PID controller. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_p_i_d_controller_a430197f60d8e2371a16a474869e7efc8}{set\+Setpoint}} (float sp)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+float \mbox{\hyperlink{class_p_i_d_controller_a7abe8e43b88d28f7df05fc4a338ea69a}{kp\+\_\+}}
+\item 
+float \mbox{\hyperlink{class_p_i_d_controller_a29a4b35864f64ed29e65398417b48da8}{ki\+\_\+}}
+\item 
+float \mbox{\hyperlink{class_p_i_d_controller_a97fc1422b5bd43d3c6a1ca395427c458}{kd\+\_\+}}
+\item 
+float \mbox{\hyperlink{class_p_i_d_controller_ad0a5e91ca64b72411f077b5d658295ce}{integral\+\_\+}}
+\item 
+float \mbox{\hyperlink{class_p_i_d_controller_acef82105fd0ee954173342ff68cabeda}{prev\+Error\+\_\+}}
+\item 
+float \mbox{\hyperlink{class_p_i_d_controller_a31352e87eaf0fbcfd3acfd7b1753ac20}{setpoint\+\_\+}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{class_p_i_d_controller_af50f86800ed8b6c79ff3fc10c6f6f645}\index{PIDController@{PIDController}!PIDController@{PIDController}}
+\index{PIDController@{PIDController}!PIDController@{PIDController}}
+\doxysubsubsection{\texorpdfstring{PIDController()}{PIDController()}}
+{\footnotesize\ttfamily \label{class_p_i_d_controller_af50f86800ed8b6c79ff3fc10c6f6f645} 
+PIDController\+::\+PIDController (\begin{DoxyParamCaption}\item[{float}]{kp}{, }\item[{float}]{ki}{, }\item[{float}]{kd}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_p_i_d_controller_a430197f60d8e2371a16a474869e7efc8}\index{PIDController@{PIDController}!setSetpoint@{setSetpoint}}
+\index{setSetpoint@{setSetpoint}!PIDController@{PIDController}}
+\doxysubsubsection{\texorpdfstring{setSetpoint()}{setSetpoint()}}
+{\footnotesize\ttfamily \label{class_p_i_d_controller_a430197f60d8e2371a16a474869e7efc8} 
+void PIDController\+::set\+Setpoint (\begin{DoxyParamCaption}\item[{float}]{sp}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\Hypertarget{class_p_i_d_controller_a865b0f3b1329f4de9f5459a5a9d4e675}\index{PIDController@{PIDController}!update@{update}}
+\index{update@{update}!PIDController@{PIDController}}
+\doxysubsubsection{\texorpdfstring{update()}{update()}}
+{\footnotesize\ttfamily \label{class_p_i_d_controller_a865b0f3b1329f4de9f5459a5a9d4e675} 
+float PIDController\+::update (\begin{DoxyParamCaption}\item[{float}]{measurement}{, }\item[{float}]{dt}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Update the PID controller. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em measurement} & Current measurement (e.\+g. vehicle speed in kph). \\
+\hline
+{\em dt} & Time step in seconds. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+PID output used as a torque command. 
+\end{DoxyReturn}
+
+
+\doxysubsection{Member Data Documentation}
+\Hypertarget{class_p_i_d_controller_ad0a5e91ca64b72411f077b5d658295ce}\index{PIDController@{PIDController}!integral\_@{integral\_}}
+\index{integral\_@{integral\_}!PIDController@{PIDController}}
+\doxysubsubsection{\texorpdfstring{integral\_}{integral\_}}
+{\footnotesize\ttfamily \label{class_p_i_d_controller_ad0a5e91ca64b72411f077b5d658295ce} 
+float PIDController\+::integral\+\_\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_p_i_d_controller_a97fc1422b5bd43d3c6a1ca395427c458}\index{PIDController@{PIDController}!kd\_@{kd\_}}
+\index{kd\_@{kd\_}!PIDController@{PIDController}}
+\doxysubsubsection{\texorpdfstring{kd\_}{kd\_}}
+{\footnotesize\ttfamily \label{class_p_i_d_controller_a97fc1422b5bd43d3c6a1ca395427c458} 
+float PIDController\+::kd\+\_\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_p_i_d_controller_a29a4b35864f64ed29e65398417b48da8}\index{PIDController@{PIDController}!ki\_@{ki\_}}
+\index{ki\_@{ki\_}!PIDController@{PIDController}}
+\doxysubsubsection{\texorpdfstring{ki\_}{ki\_}}
+{\footnotesize\ttfamily \label{class_p_i_d_controller_a29a4b35864f64ed29e65398417b48da8} 
+float PIDController\+::ki\+\_\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_p_i_d_controller_a7abe8e43b88d28f7df05fc4a338ea69a}\index{PIDController@{PIDController}!kp\_@{kp\_}}
+\index{kp\_@{kp\_}!PIDController@{PIDController}}
+\doxysubsubsection{\texorpdfstring{kp\_}{kp\_}}
+{\footnotesize\ttfamily \label{class_p_i_d_controller_a7abe8e43b88d28f7df05fc4a338ea69a} 
+float PIDController\+::kp\+\_\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_p_i_d_controller_acef82105fd0ee954173342ff68cabeda}\index{PIDController@{PIDController}!prevError\_@{prevError\_}}
+\index{prevError\_@{prevError\_}!PIDController@{PIDController}}
+\doxysubsubsection{\texorpdfstring{prevError\_}{prevError\_}}
+{\footnotesize\ttfamily \label{class_p_i_d_controller_acef82105fd0ee954173342ff68cabeda} 
+float PIDController\+::prev\+Error\+\_\+\hspace{0.3cm}{\ttfamily [private]}}
+
+\Hypertarget{class_p_i_d_controller_a31352e87eaf0fbcfd3acfd7b1753ac20}\index{PIDController@{PIDController}!setpoint\_@{setpoint\_}}
+\index{setpoint\_@{setpoint\_}!PIDController@{PIDController}}
+\doxysubsubsection{\texorpdfstring{setpoint\_}{setpoint\_}}
+{\footnotesize\ttfamily \label{class_p_i_d_controller_a31352e87eaf0fbcfd3acfd7b1753ac20} 
+float PIDController\+::setpoint\+\_\+\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{vehicle__control_8h}{vehicle\+\_\+control.\+h}}\end{DoxyCompactItemize}

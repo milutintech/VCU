@@ -1,16 +1,12 @@
 var searchData=
 [
-  ['sck_0',['SCK',['../namespace_pins.html#a17a596f9a021b393095fdf34341d9e5c',1,'Pins']]],
-  ['serialconsole_1',['serialConsole',['../main_8cpp.html#abbad72488042335e1c5cb05e9d73d249',1,'main.cpp']]],
-  ['shape_5ffactor_2',['SHAPE_FACTOR',['../struct_vehicle_params_1_1_o_p_d.html#a9089992fb3c38a11d5cd1d85606299b5',1,'VehicleParams::OPD']]],
-  ['slow_5fcycle_5fms_3',['SLOW_CYCLE_MS',['../struct_vehicle_params_1_1_timing.html#a621373cf59f4b9f2204e530d27d01bad',1,'VehicleParams::Timing::SLOW_CYCLE_MS'],['../namespace_constants.html#a5672611ae21bbe7c6ab84e6d8b62dff2',1,'Constants::SLOW_CYCLE_MS']]],
-  ['soc_4',['soc',['../struct_b_m_s_data.html#a810ba65ff0942ec181d30386fd84b8fc',1,'BMSData']]],
-  ['speed_5ffactor_5',['SPEED_FACTOR',['../struct_vehicle_params_1_1_control.html#adca137e9929af662fec68b63ad4ca154',1,'VehicleParams::Control']]],
-  ['speedactual_6',['speedActual',['../struct_d_m_c_data.html#afbeeb74dbfe817c42068f4ecfa6ee998',1,'DMCData']]],
-  ['speeddemand_7',['speedDemand',['../class_c_a_n_manager.html#ab39f7df8064bac0e90bbd96da49c2207',1,'CANManager']]],
-  ['spi_5fcs_5fpin_8',['SPI_CS_PIN',['../namespace_pins.html#a248b6d2b1719a8097777b7a19e12b3bd',1,'Pins']]],
-  ['stateact_9',['stateAct',['../struct_n_l_g_data.html#a93c8390c6d70f68c0384e23909c57473',1,'NLGData']]],
-  ['statectrlpilot_10',['stateCtrlPilot',['../struct_n_l_g_data.html#a7f3a965655d74071d7ae50b5469255e5',1,'NLGData']]],
-  ['statedemand_11',['stateDemand',['../struct_n_l_g_data.html#a67cbfb0a26c99ae5ee8e27e278f55f71',1,'NLGData']]],
-  ['statemanager_12',['stateManager',['../class_c_a_n_manager.html#a4b2dd00e490cffebc7e6d74aa26f7676',1,'CANManager::stateManager'],['../class_serial_console.html#a12c3d661e26b9eab5af2749b1708c21d',1,'SerialConsole::stateManager'],['../main_8cpp.html#a01a766e1fb950604f31bd22c2253c59b',1,'stateManager:&#160;main.cpp']]]
+  ['pedal_5fgamma_0',['PEDAL_GAMMA',['../struct_vehicle_params_1_1_control.html#a64a6317e3278137ad1705a430b3544ba',1,'VehicleParams::Control']]],
+  ['phi_1',['PHI',['../struct_vehicle_params_1_1_o_p_d.html#a1a8014c8c28e4fd2252eb6f42ae157ed',1,'VehicleParams::OPD']]],
+  ['pot_5fdeadband_2',['POT_DEADBAND',['../struct_vehicle_params_1_1_a_d_c.html#a892a9b543c66d82c8a958dc9f9789e5c',1,'VehicleParams::ADC']]],
+  ['precharge_5fcurrent_3',['PRECHARGE_CURRENT',['../struct_vehicle_params_1_1_battery.html#abd141f82164e239c421f242dfe6ad1d4',1,'VehicleParams::Battery']]],
+  ['precharge_5ftimeout_4',['PRECHARGE_TIMEOUT',['../struct_vehicle_params_1_1_timing.html#aade931d0b80c96936287a31b30fa4e84',1,'VehicleParams::Timing']]],
+  ['precharge_5ftimeout_5fms_5',['PRECHARGE_TIMEOUT_MS',['../namespace_constants.html#a56616bd7b9fe987943ac98f5d3598408',1,'Constants']]],
+  ['preverror_5f_6',['prevError_',['../class_p_i_d_controller.html#acef82105fd0ee954173342ff68cabeda',1,'PIDController']]],
+  ['pump_7',['PUMP',['../namespace_pins.html#a3b62641ccbcba7c41587f1a4a8e5159c',1,'Pins']]],
+  ['pw1_8',['PW1',['../namespace_pins.html#a2fbac616f8074f2796f8512edc11be6f',1,'Pins']]]
 ];

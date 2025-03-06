@@ -123,6 +123,7 @@ void CANManager::update() {
         sendBSC();
     }
 }
+
 /**
  * @brief Check for and process incoming CAN messages
  */
@@ -137,18 +138,21 @@ void CANManager::checkAndProcessMessages() {
                     processBMSMessage(buf);
                     break;
                     
-                case 0x26A:  // BSC message
+                case CANIds::BSC_COMM:
+                case CANIds::BSC_LIM:
                     processBSCMessage(buf);
                     break;
                     
-                case 0x258:  // DMC Status
-                case 0x259:  // DMC Power
-                case 0x458:  // DMC Temperature
+                case CANIds::DMCCTRL:
+                case CANIds::DMCLIM:
+                case CANIds::DMCCTRL2:
                     processDMCMessage(id, buf);
                     break;
                     
                 case CANIds::NLG_ACT_LIM:
                 case CANIds::NLG_ACT_PLUG:
+                case CANIds::NLG_ACT_ERR:
+                case CANIds::NLG_DEM_LIM:
                     processNLGMessage(id, buf);
                     break;
             }
@@ -159,7 +163,7 @@ void CANManager::checkAndProcessMessages() {
 /**
  * @brief Process BMS status message
  */
-#define BMS_TIMEOUT_MS 1000  // Timeout duration in milliseconds
+
 unsigned long lastBMSUpdate = 0;  // Variable to track last update timestamp
 
 void CANManager::processBMSMessage(uint8_t* buf) {
@@ -311,9 +315,8 @@ void CANManager::sendDMC() {
  */
 void CANManager::sendNLG() {
     int nlgVoltageScale = static_cast<int>(VehicleParams::Battery::MAX_VOLTAGE * 10);
-
     // Check if BMS timeout has occurred
-    if (millis() - lastBMSUpdate > BMS_TIMEOUT_MS) {
+    if (millis() - lastBMSUpdate > VehicleParams::Timing::BMS_TIMEOUT_MS) {
         bmsData.maxCharge = 0;  // Set max charge current to 0 if timeout occurs
     }
 

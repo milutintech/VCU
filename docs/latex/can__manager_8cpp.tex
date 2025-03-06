@@ -9,6 +9,7 @@ Implementation of CAN communication management system.
 {\ttfamily \#include "{}state\+\_\+manager.\+h"{}}\newline
 {\ttfamily \#include $<$esp\+\_\+task\+\_\+wdt.\+h$>$}\newline
 {\ttfamily \#include "{}config.\+h"{}}\newline
+{\ttfamily \#include $<$algorithm$>$}\newline
 Include dependency graph for can\+\_\+manager.\+cpp\+:\nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -16,6 +17,16 @@ Include dependency graph for can\+\_\+manager.\+cpp\+:\nopagebreak
 \includegraphics[width=350pt]{can__manager_8cpp__incl}
 \end{center}
 \end{figure}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{can__manager_8cpp_ad4fd1a352daac0bcf191e312c5736348}{BMS\+\_\+\+TIMEOUT\+\_\+\+MS}}~1000
+\begin{DoxyCompactList}\small\item\em Process BMS status message. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+unsigned long \mbox{\hyperlink{can__manager_8cpp_a4e246280c7c28882e93826915cfb65ec}{last\+BMSUpdate}} = 0
+\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -30,3 +41,24 @@ Handles all CAN bus communication between vehicle subsystems including\+:
 \end{DoxyItemize}
 
 Uses MCP2515 CAN controller via SPI interface. 
+
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{can__manager_8cpp_ad4fd1a352daac0bcf191e312c5736348}\index{can\_manager.cpp@{can\_manager.cpp}!BMS\_TIMEOUT\_MS@{BMS\_TIMEOUT\_MS}}
+\index{BMS\_TIMEOUT\_MS@{BMS\_TIMEOUT\_MS}!can\_manager.cpp@{can\_manager.cpp}}
+\doxysubsubsection{\texorpdfstring{BMS\_TIMEOUT\_MS}{BMS\_TIMEOUT\_MS}}
+{\footnotesize\ttfamily \label{can__manager_8cpp_ad4fd1a352daac0bcf191e312c5736348} 
+\#define BMS\+\_\+\+TIMEOUT\+\_\+\+MS~1000}
+
+
+
+Process BMS status message. 
+
+
+
+\doxysubsection{Variable Documentation}
+\Hypertarget{can__manager_8cpp_a4e246280c7c28882e93826915cfb65ec}\index{can\_manager.cpp@{can\_manager.cpp}!lastBMSUpdate@{lastBMSUpdate}}
+\index{lastBMSUpdate@{lastBMSUpdate}!can\_manager.cpp@{can\_manager.cpp}}
+\doxysubsubsection{\texorpdfstring{lastBMSUpdate}{lastBMSUpdate}}
+{\footnotesize\ttfamily \label{can__manager_8cpp_a4e246280c7c28882e93826915cfb65ec} 
+unsigned long last\+BMSUpdate = 0}
+

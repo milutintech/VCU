@@ -27,7 +27,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.2</span>
+   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.7</span>
    </div>
    <div id="projectbrief">ESP32-based Electric Vehicle Control System</div>
   </td>
@@ -118,7 +118,7 @@ $(function(){initNavTree('functions_vars.html',''); initResizable(true); });
 
 <h3><a id="index_c" name="index_c"></a>- c -</h3><ul>
 <li>CAN&#160;:&#160;<a class="el" href="class_c_a_n_manager.html#ac0c6cbc36b0295cc3608f9ce053d4ad7">CANManager</a></li>
-<li>canManager&#160;:&#160;<a class="el" href="class_serial_console.html#aad9ba9e517cb1b8f734425d827cacae4">SerialConsole</a></li>
+<li>canManager&#160;:&#160;<a class="el" href="class_serial_console.html#aad9ba9e517cb1b8f734425d827cacae4">SerialConsole</a>, <a class="el" href="class_state_manager.html#af91a817ac566236e2870a866995c456d">StateManager</a></li>
 <li>chargeLedDemand&#160;:&#160;<a class="el" href="class_state_manager.html#a9c4bd962a0a27709da96637aab1bc549">StateManager</a></li>
 <li>chargerState&#160;:&#160;<a class="el" href="class_state_manager.html#ac860df5618ddc4e8601cc3bf26539d4d">StateManager</a></li>
 <li>chargerStateDemand&#160;:&#160;<a class="el" href="class_state_manager.html#adacb6ae71caafe77cf8b3d9599e908f7">StateManager</a></li>
@@ -127,6 +127,7 @@ $(function(){initNavTree('functions_vars.html',''); initResizable(true); });
 <li>COAST_POSITION_MIN&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_control.html#a0520f92f4e577a64151b9ccf514688ac">VehicleParams::Control</a></li>
 <li>COAST_RANGE&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_o_p_d.html#acb5f72a8340c76c8d671f1ea53ffe947">VehicleParams::OPD</a></li>
 <li>connectorLocked&#160;:&#160;<a class="el" href="struct_n_l_g_data.html#a50a8ba010c0106eb9be76d5541ff38b3">NLGData</a>, <a class="el" href="class_state_manager.html#a406040789a1b551912daeea93c5072ec">StateManager</a></li>
+<li>CONTROL_DT&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_control.html#ae5278583d4230ecc27bac3a3e3ce12e9">VehicleParams::Control</a></li>
 <li>controlBufferBSC&#160;:&#160;<a class="el" href="class_c_a_n_manager.html#aac653d4efc4589bb640e539ffd2828c7">CANManager</a></li>
 <li>controlBufferDMC&#160;:&#160;<a class="el" href="class_c_a_n_manager.html#a0bda836dc12bcc76a396f11f1976c365">CANManager</a></li>
 <li>controlBufferNLG&#160;:&#160;<a class="el" href="class_c_a_n_manager.html#aa80d70da464c74629d04810e48f66e08">CANManager</a></li>
@@ -178,11 +179,19 @@ $(function(){initNavTree('functions_vars.html',''); initResizable(true); });
 
 <h3><a id="index_i" name="index_i"></a>- i -</h3><ul>
 <li>inputBuffer&#160;:&#160;<a class="el" href="class_serial_console.html#adb275912fb244d684f9e613c7ae8e143">SerialConsole</a></li>
+<li>integral_&#160;:&#160;<a class="el" href="class_p_i_d_controller.html#ad0a5e91ca64b72411f077b5d658295ce">PIDController</a></li>
 <li>INV_HIGH&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_temperature.html#a9831a8d6b5634e918a299018fb423243">VehicleParams::Temperature</a></li>
 <li>INV_LOW&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_temperature.html#a1c7266f93514a365deb508df1253b50a">VehicleParams::Temperature</a></li>
 <li>inverterTemp&#160;:&#160;<a class="el" href="class_state_manager.html#aa57c6c93846cc017830e9847919af81f">StateManager</a></li>
 <li>isOPDEnabled&#160;:&#160;<a class="el" href="class_vehicle_control.html#a31ba729072fde5c4b6ea6e54f5b3fd9b">VehicleControl</a></li>
 <li>isRegenEnabled&#160;:&#160;<a class="el" href="class_vehicle_control.html#a407b8ad28e14e934e93929f9b6d90628">VehicleControl</a></li>
+</ul>
+
+
+<h3><a id="index_k" name="index_k"></a>- k -</h3><ul>
+<li>kd_&#160;:&#160;<a class="el" href="class_p_i_d_controller.html#a97fc1422b5bd43d3c6a1ca395427c458">PIDController</a></li>
+<li>ki_&#160;:&#160;<a class="el" href="class_p_i_d_controller.html#a29a4b35864f64ed29e65398417b48da8">PIDController</a></li>
+<li>kp_&#160;:&#160;<a class="el" href="class_p_i_d_controller.html#a7abe8e43b88d28f7df05fc4a338ea69a">PIDController</a></li>
 </ul>
 
 
@@ -214,6 +223,7 @@ $(function(){initNavTree('functions_vars.html',''); initResizable(true); });
 <li>MAX_REQ_TRQ&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_motor.html#a3b439fc6c5bb426683d474a9c4b9bc53">VehicleParams::Motor</a></li>
 <li>MAX_REVERSE_SPEED&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_limits.html#a512951a7957fdc5f4309070b8e6033c9">VehicleParams::Limits</a></li>
 <li>MAX_REVERSE_TRQ&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_motor.html#ac24cfcb5d4bb226ff1e67cfd393c3ea6">VehicleParams::Motor</a></li>
+<li>MAX_RPM&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_motor.html#ad3e7f0bb9e1fc37ba125487114708cb5">VehicleParams::Motor</a></li>
 <li>MAX_SPEED&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_limits.html#afaf47ce9ca55bbbe2e544e3562f46829">VehicleParams::Limits</a>, <a class="el" href="struct_vehicle_params_1_1_o_p_d.html#ad74504c9db636f62e2f52e84887a1f36">VehicleParams::OPD</a></li>
 <li>MAX_TRQ&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_motor.html#ae9414c3611811b6cbf786de61c3ef9e3">VehicleParams::Motor</a></li>
 <li>MAX_VEHICLE_SPEED&#160;:&#160;<a class="el" href="class_vehicle_control.html#a80eda80a14c3c360773c8086d0300f7f">VehicleControl</a></li>
@@ -221,6 +231,7 @@ $(function(){initNavTree('functions_vars.html',''); initResizable(true); });
 <li>maxCharge&#160;:&#160;<a class="el" href="struct_b_m_s_data.html#a49100c6896b3e1736c12facf09c9a8b9">BMSData</a></li>
 <li>maxDischarge&#160;:&#160;<a class="el" href="struct_b_m_s_data.html#ab33e0a27e69403fba2e9e9391af2d152">BMSData</a></li>
 <li>mechPower&#160;:&#160;<a class="el" href="struct_d_m_c_data.html#a72e4b2d7261fe9a54391a1a3cc197f4c">DMCData</a></li>
+<li>MIN_LVVOLTAGE&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_battery.html#afa61f60f0e60dc7f1bc04e406d1a12f8">VehicleParams::Battery</a></li>
 <li>MIN_PEDAL_THRESHOLD&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_control.html#a33ab93ff996bdf8dfb2ae910ae66cd40">VehicleParams::Control</a></li>
 <li>MIN_POT_VALUE&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_a_d_c.html#aeb74d29cc63ea8c82c611f82c1aeba65">VehicleParams::ADC</a></li>
 <li>MIN_SPEED&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_regen.html#a315bf27ee0fd53e65da3cc257811c993">VehicleParams::Regen</a></li>
@@ -245,18 +256,25 @@ $(function(){initNavTree('functions_vars.html',''); initResizable(true); });
 </ul>
 
 
+<h3><a id="index_o" name="index_o"></a>- o -</h3><ul>
+<li>opdPid&#160;:&#160;<a class="el" href="class_vehicle_control.html#ae99e32126a741ee0c593892b59d5c983">VehicleControl</a></li>
+</ul>
+
+
 <h3><a id="index_p" name="index_p"></a>- p -</h3><ul>
 <li>PEDAL_GAMMA&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_control.html#a64a6317e3278137ad1705a430b3544ba">VehicleParams::Control</a></li>
 <li>PHI&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_o_p_d.html#a1a8014c8c28e4fd2252eb6f42ae157ed">VehicleParams::OPD</a></li>
 <li>POT_DEADBAND&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_a_d_c.html#a892a9b543c66d82c8a958dc9f9789e5c">VehicleParams::ADC</a></li>
 <li>PRECHARGE_CURRENT&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_battery.html#abd141f82164e239c421f242dfe6ad1d4">VehicleParams::Battery</a></li>
 <li>PRECHARGE_TIMEOUT&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_timing.html#aade931d0b80c96936287a31b30fa4e84">VehicleParams::Timing</a></li>
+<li>prevError_&#160;:&#160;<a class="el" href="class_p_i_d_controller.html#acef82105fd0ee954173342ff68cabeda">PIDController</a></li>
 </ul>
 
 
 <h3><a id="index_r" name="index_r"></a>- r -</h3><ul>
 <li>ready&#160;:&#160;<a class="el" href="struct_d_m_c_data.html#abe04509562688743d335258ac642b576">DMCData</a></li>
 <li>REDUCED_RATIO&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_transmission.html#aa0efbcd12f990bd8c73a72af882903cc">VehicleParams::Transmission</a></li>
+<li>REGEN_TORQUE_CAP&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_o_p_d.html#ae651047cb9f9fc33168c262ecc6b80cc">VehicleParams::OPD</a></li>
 <li>ROLLBACK_SPEED&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_o_p_d.html#a9f8867b92d11b7b8163722695cb742a9">VehicleParams::OPD</a></li>
 <li>ROLLBACK_TORQUE&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_o_p_d.html#a7027a7b67adf17a486ff65de0951cf8f">VehicleParams::OPD</a></li>
 <li>RPM_SHIFT_THRESHOLD&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_transmission.html#a8de5beeca87629a1bd91044d886460d9">VehicleParams::Transmission</a></li>
@@ -265,8 +283,11 @@ $(function(){initNavTree('functions_vars.html',''); initResizable(true); });
 
 
 <h3><a id="index_s" name="index_s"></a>- s -</h3><ul>
+<li>setpoint_&#160;:&#160;<a class="el" href="class_p_i_d_controller.html#a31352e87eaf0fbcfd3acfd7b1753ac20">PIDController</a></li>
 <li>SHAPE_FACTOR&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_o_p_d.html#a9089992fb3c38a11d5cd1d85606299b5">VehicleParams::OPD</a></li>
+<li>shiftAttempted&#160;:&#160;<a class="el" href="class_vehicle_control.html#a0778dca45abeea99b3757185caa21849">VehicleControl</a></li>
 <li>SLOW_CYCLE_MS&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_timing.html#a621373cf59f4b9f2204e530d27d01bad">VehicleParams::Timing</a></li>
+<li>SLOW_SPEED_REGEN_CAP&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_o_p_d.html#ae49254c454f02626b1dc281bd40b522e">VehicleParams::OPD</a></li>
 <li>soc&#160;:&#160;<a class="el" href="struct_b_m_s_data.html#a810ba65ff0942ec181d30386fd84b8fc">BMSData</a></li>
 <li>SPEED_FACTOR&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_control.html#adca137e9929af662fec68b63ad4ca154">VehicleParams::Control</a></li>
 <li>speedActual&#160;:&#160;<a class="el" href="struct_d_m_c_data.html#afbeeb74dbfe817c42068f4ecfa6ee998">DMCData</a></li>
@@ -274,7 +295,7 @@ $(function(){initNavTree('functions_vars.html',''); initResizable(true); });
 <li>stateAct&#160;:&#160;<a class="el" href="struct_n_l_g_data.html#a93c8390c6d70f68c0384e23909c57473">NLGData</a></li>
 <li>stateCtrlPilot&#160;:&#160;<a class="el" href="struct_n_l_g_data.html#a7f3a965655d74071d7ae50b5469255e5">NLGData</a></li>
 <li>stateDemand&#160;:&#160;<a class="el" href="struct_n_l_g_data.html#a67cbfb0a26c99ae5ee8e27e278f55f71">NLGData</a></li>
-<li>stateManager&#160;:&#160;<a class="el" href="class_c_a_n_manager.html#a4b2dd00e490cffebc7e6d74aa26f7676">CANManager</a>, <a class="el" href="class_serial_console.html#a12c3d661e26b9eab5af2749b1708c21d">SerialConsole</a></li>
+<li>stateManager&#160;:&#160;<a class="el" href="class_c_a_n_manager.html#a233ae19f20492b222b2660d1d4534d31">CANManager</a>, <a class="el" href="class_serial_console.html#a12c3d661e26b9eab5af2749b1708c21d">SerialConsole</a></li>
 </ul>
 
 
@@ -313,6 +334,7 @@ $(function(){initNavTree('functions_vars.html',''); initResizable(true); });
 
 <h3><a id="index_z" name="index_z"></a>- z -</h3><ul>
 <li>ZERO_SPEED&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_regen.html#acccd156f3fc446fcb287c3557ebe1ae6">VehicleParams::Regen</a></li>
+<li>ZERO_SPEED_THRESHOLD&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_o_p_d.html#a5f94406d686ae93246a6ba56fdcdfbaa">VehicleParams::OPD</a></li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->

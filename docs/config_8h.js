@@ -64,6 +64,8 @@ var config_8h =
     [ "PW1", "config_8h.html#a2fbac616f8074f2796f8512edc11be6f", null ],
     [ "REVERSE", "config_8h.html#a2e08225129b3b2fb2986e97394b0e160", null ],
     [ "SCK", "config_8h.html#a17a596f9a021b393095fdf34341d9e5c", null ],
+    [ "SCL", "config_8h.html#a183422dd8afb3ce149bdaac8e59429af", null ],
+    [ "SDA", "config_8h.html#a4c2a73bb2608a242d313dacd630eec73", null ],
     [ "SLOW_CYCLE_MS", "config_8h.html#a5672611ae21bbe7c6ab84e6d8b62dff2", null ],
     [ "SPI_CS_PIN", "config_8h.html#a248b6d2b1719a8097777b7a19e12b3bd", null ],
     [ "UNLCKCON", "config_8h.html#a995c57706ebe6754b5674d2629b53e4e", null ],

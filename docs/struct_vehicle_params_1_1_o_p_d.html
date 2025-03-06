@@ -27,7 +27,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.2</span>
+   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.7</span>
    </div>
    <div id="projectbrief">ESP32-based Electric Vehicle Control System</div>
   </td>
@@ -114,6 +114,9 @@ Static Public Attributes</h2></td></tr>
 <tr class="memitem:ad74504c9db636f62e2f52e84887a1f36" id="r_ad74504c9db636f62e2f52e84887a1f36"><td class="memItemLeft" align="right" valign="top">static constexpr double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad74504c9db636f62e2f52e84887a1f36">MAX_SPEED</a> = 120.0</td></tr>
 <tr class="memdesc:ad74504c9db636f62e2f52e84887a1f36"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum vehicle speed (kph)  <br /></td></tr>
 <tr class="separator:ad74504c9db636f62e2f52e84887a1f36"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5f94406d686ae93246a6ba56fdcdfbaa" id="r_a5f94406d686ae93246a6ba56fdcdfbaa"><td class="memItemLeft" align="right" valign="top">static constexpr double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5f94406d686ae93246a6ba56fdcdfbaa">ZERO_SPEED_THRESHOLD</a> = 1.0</td></tr>
+<tr class="memdesc:a5f94406d686ae93246a6ba56fdcdfbaa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Threshold below which the vehicle is considered nearly stopped (kph)  <br /></td></tr>
+<tr class="separator:a5f94406d686ae93246a6ba56fdcdfbaa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acb5f72a8340c76c8d671f1ea53ffe947" id="r_acb5f72a8340c76c8d671f1ea53ffe947"><td class="memItemLeft" align="right" valign="top">static constexpr double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#acb5f72a8340c76c8d671f1ea53ffe947">COAST_RANGE</a> = 10.0</td></tr>
 <tr class="memdesc:acb5f72a8340c76c8d671f1ea53ffe947"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pedal coast range (%)  <br /></td></tr>
 <tr class="separator:acb5f72a8340c76c8d671f1ea53ffe947"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -121,23 +124,28 @@ Static Public Attributes</h2></td></tr>
 <tr class="memdesc:a1a8014c8c28e4fd2252eb6f42ae157ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Top speed pedal position (%)  <br /></td></tr>
 <tr class="separator:a1a8014c8c28e4fd2252eb6f42ae157ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9089992fb3c38a11d5cd1d85606299b5" id="r_a9089992fb3c38a11d5cd1d85606299b5"><td class="memItemLeft" align="right" valign="top">static constexpr double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9089992fb3c38a11d5cd1d85606299b5">SHAPE_FACTOR</a> = 2.0</td></tr>
-<tr class="memdesc:a9089992fb3c38a11d5cd1d85606299b5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pedal map curve shape.  <br /></td></tr>
+<tr class="memdesc:a9089992fb3c38a11d5cd1d85606299b5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pedal map curve shape factor.  <br /></td></tr>
 <tr class="separator:a9089992fb3c38a11d5cd1d85606299b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9f8867b92d11b7b8163722695cb742a9" id="r_a9f8867b92d11b7b8163722695cb742a9"><td class="memItemLeft" align="right" valign="top">static constexpr double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9f8867b92d11b7b8163722695cb742a9">ROLLBACK_SPEED</a> = 3.0</td></tr>
 <tr class="memdesc:a9f8867b92d11b7b8163722695cb742a9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Anti-rollback threshold (kph)  <br /></td></tr>
 <tr class="separator:a9f8867b92d11b7b8163722695cb742a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7027a7b67adf17a486ff65de0951cf8f" id="r_a7027a7b67adf17a486ff65de0951cf8f"><td class="memItemLeft" align="right" valign="top">static constexpr double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7027a7b67adf17a486ff65de0951cf8f">ROLLBACK_TORQUE</a> = 15.0</td></tr>
-<tr class="memdesc:a7027a7b67adf17a486ff65de0951cf8f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Anti-rollback torque (%)  <br /></td></tr>
+<tr class="memdesc:a7027a7b67adf17a486ff65de0951cf8f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Anti-rollback torque (% of MAX_TRQ)  <br /></td></tr>
 <tr class="separator:a7027a7b67adf17a486ff65de0951cf8f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aea32e951b3557e55f2bbbbb394168515" id="r_aea32e951b3557e55f2bbbbb394168515"><td class="memItemLeft" align="right" valign="top">static constexpr double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aea32e951b3557e55f2bbbbb394168515">MAX_REGEN</a> = 80.0</td></tr>
-<tr class="memdesc:aea32e951b3557e55f2bbbbb394168515"><td class="mdescLeft">&#160;</td><td class="mdescRight">Max regen torque (%)  <br /></td></tr>
+<tr class="memdesc:aea32e951b3557e55f2bbbbb394168515"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum regenerative braking level (% of MAX_TRQ)  <br /></td></tr>
 <tr class="separator:aea32e951b3557e55f2bbbbb394168515"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab4e2161ec32d9909ff034e09bbd43c4b" id="r_ab4e2161ec32d9909ff034e09bbd43c4b"><td class="memItemLeft" align="right" valign="top">static constexpr double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab4e2161ec32d9909ff034e09bbd43c4b">MAX_DRIVE</a> = 100.0</td></tr>
-<tr class="memdesc:ab4e2161ec32d9909ff034e09bbd43c4b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Max drive torque (%)  <br /></td></tr>
+<tr class="memdesc:ab4e2161ec32d9909ff034e09bbd43c4b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum drive torque level (% of MAX_TRQ)  <br /></td></tr>
 <tr class="separator:ab4e2161ec32d9909ff034e09bbd43c4b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad0c18ef0d3e52bb2725727905c1d2fae" id="r_ad0c18ef0d3e52bb2725727905c1d2fae"><td class="memItemLeft" align="right" valign="top">static constexpr double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad0c18ef0d3e52bb2725727905c1d2fae">BRAKE_LIGHT_THRESHOLD</a> = 20.0</td></tr>
-<tr class="memdesc:ad0c18ef0d3e52bb2725727905c1d2fae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Brake light activation (%)  <br /></td></tr>
+<tr class="memdesc:ad0c18ef0d3e52bb2725727905c1d2fae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Brake light activation threshold (%)  <br /></td></tr>
 <tr class="separator:ad0c18ef0d3e52bb2725727905c1d2fae"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae49254c454f02626b1dc281bd40b522e" id="r_ae49254c454f02626b1dc281bd40b522e"><td class="memItemLeft" align="right" valign="top">static constexpr double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae49254c454f02626b1dc281bd40b522e">SLOW_SPEED_REGEN_CAP</a> = 200.0</td></tr>
+<tr class="memdesc:ae49254c454f02626b1dc281bd40b522e"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="struct_vehicle_params_1_1_regen.html" title="Regenerative Braking Parameters Defines regen behavior and limits.">Regen</a> torque cap at slow speeds (Nm)  <br /></td></tr>
+<tr class="separator:ae49254c454f02626b1dc281bd40b522e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae651047cb9f9fc33168c262ecc6b80cc" id="r_ae651047cb9f9fc33168c262ecc6b80cc"><td class="memItemLeft" align="right" valign="top">static constexpr double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae651047cb9f9fc33168c262ecc6b80cc">REGEN_TORQUE_CAP</a> = 300</td></tr>
+<tr class="separator:ae651047cb9f9fc33168c262ecc6b80cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>One Pedal Drive Configuration Defines <a class="el" href="struct_vehicle_params_1_1_o_p_d.html" title="One Pedal Drive Configuration Defines OPD behavior and response curves.">OPD</a> behavior and response curves. </p>
@@ -162,7 +170,7 @@ Static Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Brake light activation (%) </p>
+<p>Brake light activation threshold (%) </p>
 
 </div>
 </div>
@@ -210,7 +218,7 @@ Static Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Max drive torque (%) </p>
+<p>Maximum drive torque level (% of MAX_TRQ) </p>
 
 </div>
 </div>
@@ -234,7 +242,7 @@ Static Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Max regen torque (%) </p>
+<p>Maximum regenerative braking level (% of MAX_TRQ) </p>
 
 </div>
 </div>
@@ -286,6 +294,28 @@ Static Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="ae651047cb9f9fc33168c262ecc6b80cc" name="ae651047cb9f9fc33168c262ecc6b80cc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae651047cb9f9fc33168c262ecc6b80cc">&#9670;&#160;</a></span>REGEN_TORQUE_CAP</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">double VehicleParams::OPD::REGEN_TORQUE_CAP = 300</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a9f8867b92d11b7b8163722695cb742a9" name="a9f8867b92d11b7b8163722695cb742a9"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a9f8867b92d11b7b8163722695cb742a9">&#9670;&#160;</a></span>ROLLBACK_SPEED</h2>
 
@@ -330,7 +360,7 @@ Static Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Anti-rollback torque (%) </p>
+<p>Anti-rollback torque (% of MAX_TRQ) </p>
 
 </div>
 </div>
@@ -354,7 +384,55 @@ Static Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Pedal map curve shape. </p>
+<p>Pedal map curve shape factor. </p>
+
+</div>
+</div>
+<a id="ae49254c454f02626b1dc281bd40b522e" name="ae49254c454f02626b1dc281bd40b522e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae49254c454f02626b1dc281bd40b522e">&#9670;&#160;</a></span>SLOW_SPEED_REGEN_CAP</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">double VehicleParams::OPD::SLOW_SPEED_REGEN_CAP = 200.0</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p><a class="el" href="struct_vehicle_params_1_1_regen.html" title="Regenerative Braking Parameters Defines regen behavior and limits.">Regen</a> torque cap at slow speeds (Nm) </p>
+
+</div>
+</div>
+<a id="a5f94406d686ae93246a6ba56fdcdfbaa" name="a5f94406d686ae93246a6ba56fdcdfbaa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5f94406d686ae93246a6ba56fdcdfbaa">&#9670;&#160;</a></span>ZERO_SPEED_THRESHOLD</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">double VehicleParams::OPD::ZERO_SPEED_THRESHOLD = 1.0</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Threshold below which the vehicle is considered nearly stopped (kph) </p>
 
 </div>
 </div>

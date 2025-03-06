@@ -27,7 +27,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.2</span>
+   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.7</span>
    </div>
    <div id="projectbrief">ESP32-based Electric Vehicle Control System</div>
   </td>
@@ -115,17 +115,20 @@ $(function(){initNavTree('class_c_a_n_manager.html',''); initResizable(true); })
 <div id="dynsection-0-summary" class="dynsummary" style="display:block;">
 </div>
 <div id="dynsection-0-content" class="dyncontent" style="display:none;">
-<div class="center"><iframe scrolling="no" frameborder="0" src="class_c_a_n_manager__coll__graph.svg" width="523" height="126"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+<div class="center"><iframe scrolling="no" frameborder="0" src="class_c_a_n_manager__coll__graph.svg" width="396" height="214"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
 <center><span class="legend">[<a target="top" href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a617eca77fdc9d386503940c0756405b4" id="r_a617eca77fdc9d386503940c0756405b4"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a617eca77fdc9d386503940c0756405b4">CANManager</a> (uint8_t cs_pin, <a class="el" href="class_state_manager.html">StateManager</a> &amp;<a class="el" href="#a4b2dd00e490cffebc7e6d74aa26f7676">stateManager</a>)</td></tr>
-<tr class="memdesc:a617eca77fdc9d386503940c0756405b4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a new CAN Manager.  <br /></td></tr>
-<tr class="separator:a617eca77fdc9d386503940c0756405b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac39674d04a62c10d38586c7f32c142c9" id="r_ac39674d04a62c10d38586c7f32c142c9"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac39674d04a62c10d38586c7f32c142c9">CANManager</a> (uint8_t cs_pin)</td></tr>
+<tr class="memdesc:ac39674d04a62c10d38586c7f32c142c9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a new CAN Manager.  <br /></td></tr>
+<tr class="separator:ac39674d04a62c10d38586c7f32c142c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acb783ab842953c4c91fe2389542daa64" id="r_acb783ab842953c4c91fe2389542daa64"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#acb783ab842953c4c91fe2389542daa64">~CANManager</a> ()</td></tr>
 <tr class="memdesc:acb783ab842953c4c91fe2389542daa64"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor - cleans up SPI interface.  <br /></td></tr>
 <tr class="separator:acb783ab842953c4c91fe2389542daa64"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a114efe37cce8a2bfb6f91169f9f80e34" id="r_a114efe37cce8a2bfb6f91169f9f80e34"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a114efe37cce8a2bfb6f91169f9f80e34">setStateManager</a> (<a class="el" href="class_state_manager.html">StateManager</a> *sm)</td></tr>
+<tr class="memdesc:a114efe37cce8a2bfb6f91169f9f80e34"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the State Manager after initialization.  <br /></td></tr>
+<tr class="separator:a114efe37cce8a2bfb6f91169f9f80e34"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a277563f05624b88e8fb096b320f86ac0" id="r_a277563f05624b88e8fb096b320f86ac0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a277563f05624b88e8fb096b320f86ac0">begin</a> ()</td></tr>
 <tr class="memdesc:a277563f05624b88e8fb096b320f86ac0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize CAN hardware and communication Sets up MCP2515 controller and message filters.  <br /></td></tr>
 <tr class="separator:a277563f05624b88e8fb096b320f86ac0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -159,6 +162,8 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:aa5d39dcfe3d5c908828888e10d9abb62"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9ca9827803043a85678a3a1eb5f67f3d" id="r_a9ca9827803043a85678a3a1eb5f67f3d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9ca9827803043a85678a3a1eb5f67f3d">setModeBSC</a> (bool mode)</td></tr>
 <tr class="separator:a9ca9827803043a85678a3a1eb5f67f3d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab1c144af09ef718bf2379a80c1333f0b" id="r_ab1c144af09ef718bf2379a80c1333f0b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab1c144af09ef718bf2379a80c1333f0b">setHVVoltage</a> (uint16_t voltage)</td></tr>
+<tr class="separator:ab1c144af09ef718bf2379a80c1333f0b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pri-methods" name="pri-methods"></a>
 Private Member Functions</h2></td></tr>
@@ -216,9 +221,9 @@ Private Attributes</h2></td></tr>
 <tr class="memitem:a861adbe06d0c26e8734d2cd8ae5f68e1" id="r_a861adbe06d0c26e8734d2cd8ae5f68e1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_n_l_g_data.html">NLGData</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a861adbe06d0c26e8734d2cd8ae5f68e1">nlgData</a></td></tr>
 <tr class="memdesc:a861adbe06d0c26e8734d2cd8ae5f68e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Charging system data.  <br /></td></tr>
 <tr class="separator:a861adbe06d0c26e8734d2cd8ae5f68e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4b2dd00e490cffebc7e6d74aa26f7676" id="r_a4b2dd00e490cffebc7e6d74aa26f7676"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_state_manager.html">StateManager</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4b2dd00e490cffebc7e6d74aa26f7676">stateManager</a></td></tr>
-<tr class="memdesc:a4b2dd00e490cffebc7e6d74aa26f7676"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reference to state manager.  <br /></td></tr>
-<tr class="separator:a4b2dd00e490cffebc7e6d74aa26f7676"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a233ae19f20492b222b2660d1d4534d31" id="r_a233ae19f20492b222b2660d1d4534d31"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_state_manager.html">StateManager</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a233ae19f20492b222b2660d1d4534d31">stateManager</a></td></tr>
+<tr class="memdesc:a233ae19f20492b222b2660d1d4534d31"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pointer to state manager.  <br /></td></tr>
+<tr class="separator:a233ae19f20492b222b2660d1d4534d31"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a25b33e5e2be3f0465d03066e9aa964f9" id="r_a25b33e5e2be3f0465d03066e9aa964f9"><td class="memItemLeft" align="right" valign="top">float&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a25b33e5e2be3f0465d03066e9aa964f9">torqueDemand</a></td></tr>
 <tr class="memdesc:a25b33e5e2be3f0465d03066e9aa964f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Requested motor torque.  <br /></td></tr>
 <tr class="separator:a25b33e5e2be3f0465d03066e9aa964f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -251,8 +256,8 @@ Private Attributes</h2></td></tr>
 <div class="textblock"><p>CAN Communication Manager Class. </p>
 <p>Handles all CAN bus communication for the vehicle control system. Manages message timing, data parsing, and system coordination. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a617eca77fdc9d386503940c0756405b4" name="a617eca77fdc9d386503940c0756405b4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a617eca77fdc9d386503940c0756405b4">&#9670;&#160;</a></span>CANManager()</h2>
+<a id="ac39674d04a62c10d38586c7f32c142c9" name="ac39674d04a62c10d38586c7f32c142c9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac39674d04a62c10d38586c7f32c142c9">&#9670;&#160;</a></span>CANManager()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -263,12 +268,8 @@ Private Attributes</h2></td></tr>
         <tr>
           <td class="memname">CANManager::CANManager </td>
           <td>(</td>
-          <td class="paramtype">uint8_t</td>          <td class="paramname"><span class="paramname"><em>cs_pin</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
+          <td class="paramtype">uint8_t</td>          <td class="paramname"><span class="paramname"><em>cs_pin</em></span></td><td>)</td>
           <td></td>
-          <td class="paramtype"><a class="el" href="class_state_manager.html">StateManager</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>stateManager</em></span>&#160;)</td>
         </tr>
       </table>
   </td>
@@ -282,10 +283,8 @@ Private Attributes</h2></td></tr>
 <p>Constructs the CAN manager.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">cs_pin</td><td>SPI chip select pin for CAN controller </td></tr>
-    <tr><td class="paramname">stateManager</td><td>Reference to vehicle state manager</td></tr>
-    <tr><td class="paramname">cs_pin</td><td>SPI chip select pin for CAN controller </td></tr>
-    <tr><td class="paramname">stateManager</td><td>Reference to the vehicle state manager</td></tr>
+    <tr><td class="paramname">cs_pin</td><td>SPI chip select pin for CAN controller</td></tr>
+    <tr><td class="paramname">cs_pin</td><td>SPI chip select pin for CAN controller</td></tr>
   </table>
   </dd>
 </dl>
@@ -358,8 +357,7 @@ Private Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Check for and process incoming messages. </p>
-<p>Check for and process incoming CAN messages.</p>
-<p>Reads available messages and routes them to appropriate handlers based on message ID. </p>
+<p>Check for and process incoming CAN messages. </p>
 
 </div>
 </div>
@@ -489,17 +487,10 @@ Private Attributes</h2></td></tr>
 <p>Process BMS status message. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">buf</td><td>Message data buffer</td></tr>
-    <tr><td class="paramname">buf</td><td>Pointer to message data buffer</td></tr>
+    <tr><td class="paramname">buf</td><td>Message data buffer </td></tr>
   </table>
   </dd>
 </dl>
-<p>Extracts and scales battery management system parameters:</p><ul>
-<li>State of charge</li>
-<li>Battery voltage</li>
-<li>Current</li>
-<li>Maximum discharge/charge limits </li>
-</ul>
 
 </div>
 </div>
@@ -529,16 +520,10 @@ Private Attributes</h2></td></tr>
 <p>Process BSC status message. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">buf</td><td>Message data buffer</td></tr>
-    <tr><td class="paramname">buf</td><td>Pointer to message data buffer</td></tr>
+    <tr><td class="paramname">buf</td><td>Message data buffer </td></tr>
   </table>
   </dd>
 </dl>
-<p>Extracts and scales DC-DC converter parameters:</p><ul>
-<li>HV/LV voltages</li>
-<li>HV/LV currents</li>
-<li>Operating mode </li>
-</ul>
 
 </div>
 </div>
@@ -573,17 +558,10 @@ Private Attributes</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">id</td><td>Message identifier </td></tr>
-    <tr><td class="paramname">buf</td><td>Message data buffer</td></tr>
-    <tr><td class="paramname">id</td><td>Message identifier for different DMC message types </td></tr>
-    <tr><td class="paramname">buf</td><td>Pointer to message data buffer</td></tr>
+    <tr><td class="paramname">buf</td><td>Message data buffer </td></tr>
   </table>
   </dd>
 </dl>
-<p>Processes various DMC messages:</p><ul>
-<li>0x258: Status (ready, running, torque, speed)</li>
-<li>0x259: Power (voltages, currents)</li>
-<li>0x458: Temperature (inverter, motor, system) </li>
-</ul>
 
 </div>
 </div>
@@ -615,20 +593,13 @@ Private Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Process NLG status messages. </p>
-<p>Process NLG (charger) messages.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">id</td><td>Message identifier </td></tr>
-    <tr><td class="paramname">buf</td><td>Message data buffer</td></tr>
-    <tr><td class="paramname">id</td><td>Message identifier for different NLG message types </td></tr>
-    <tr><td class="paramname">buf</td><td>Pointer to message data buffer</td></tr>
+    <tr><td class="paramname">buf</td><td>Message data buffer </td></tr>
   </table>
   </dd>
 </dl>
-<p>Processes charger status messages:</p><ul>
-<li>NLG_ACT_LIM: Control pilot state, voltage, current</li>
-<li>NLG_ACT_PLUG: Cooling request, temperature </li>
-</ul>
 
 </div>
 </div>
@@ -689,12 +660,7 @@ Private Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Send BSC control and limit messages Transmits DC-DC converter control parameters. </p>
-<p>Send BSC control messages.</p>
-<p>Transmits DC-DC converter control parameters:</p><ul>
-<li>Enable/mode control</li>
-<li>Voltage setpoints</li>
-<li>Current limits </li>
-</ul>
+<p>Send BSC control messages. </p>
 
 </div>
 </div>
@@ -714,12 +680,7 @@ Private Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Send DMC control and limit messages Transmits motor control parameters. </p>
-<p>Send DMC control messages.</p>
-<p>Transmits motor controller parameters:</p><ul>
-<li>Enable/control flags</li>
-<li>Torque and speed demands</li>
-<li>Operating limits </li>
-</ul>
+<p>Send DMC control messages. </p>
 
 </div>
 </div>
@@ -739,12 +700,7 @@ Private Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Send NLG control messages Transmits charging control parameters. </p>
-<p>Send NLG control messages.</p>
-<p>Transmits charger control parameters:</p><ul>
-<li>Voltage and current limits</li>
-<li>Control flags</li>
-<li>LED status </li>
-</ul>
+<p>Send NLG control messages. </p>
 
 </div>
 </div>
@@ -786,6 +742,31 @@ Private Attributes</h2></td></tr>
           <td class="memname">void CANManager::setEnableDMC </td>
           <td>(</td>
           <td class="paramtype">bool</td>          <td class="paramname"><span class="paramname"><em>enable</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ab1c144af09ef718bf2379a80c1333f0b" name="ab1c144af09ef718bf2379a80c1333f0b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab1c144af09ef718bf2379a80c1333f0b">&#9670;&#160;</a></span>setHVVoltage()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void CANManager::setHVVoltage </td>
+          <td>(</td>
+          <td class="paramtype">uint16_t</td>          <td class="paramname"><span class="paramname"><em>voltage</em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -845,6 +826,39 @@ Private Attributes</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="a114efe37cce8a2bfb6f91169f9f80e34" name="a114efe37cce8a2bfb6f91169f9f80e34"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a114efe37cce8a2bfb6f91169f9f80e34">&#9670;&#160;</a></span>setStateManager()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void CANManager::setStateManager </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="class_state_manager.html">StateManager</a> *</td>          <td class="paramname"><span class="paramname"><em>sm</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Set the State Manager after initialization. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">sm</td><td>Pointer to the state manager instance </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -1354,8 +1368,8 @@ Private Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a4b2dd00e490cffebc7e6d74aa26f7676" name="a4b2dd00e490cffebc7e6d74aa26f7676"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4b2dd00e490cffebc7e6d74aa26f7676">&#9670;&#160;</a></span>stateManager</h2>
+<a id="a233ae19f20492b222b2660d1d4534d31" name="a233ae19f20492b222b2660d1d4534d31"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a233ae19f20492b222b2660d1d4534d31">&#9670;&#160;</a></span>stateManager</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1364,7 +1378,7 @@ Private Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="class_state_manager.html">StateManager</a>&amp; CANManager::stateManager</td>
+          <td class="memname"><a class="el" href="class_state_manager.html">StateManager</a>* CANManager::stateManager</td>
         </tr>
       </table>
   </td>
@@ -1374,7 +1388,7 @@ Private Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Reference to state manager. </p>
+<p>Pointer to state manager. </p>
 
 </div>
 </div>

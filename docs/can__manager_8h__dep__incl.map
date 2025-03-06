@@ -1,13 +1,15 @@
 <map id="include/can_manager.h" name="include/can_manager.h">
-<area shape="rect" id="Node000001" title="CAN Communication Manager for Vehicle Control System." alt="" coords="195,5,349,31"/>
+<area shape="rect" id="Node000001" title="CAN Communication Manager for Vehicle Control System." alt="" coords="242,5,396,31"/>
 <area shape="rect" id="Node000002" href="$_serial_console_8h.html" title="Debug Console Interface for Vehicle Control System." alt="" coords="32,79,190,105"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="232,40,139,81,137,76,230,35"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="270,39,147,81,145,76,268,34"/>
 <area shape="rect" id="Node000004" href="$main_8cpp.html" title="Main Vehicle Control Unit (VCU) Program." alt="" coords="178,153,275,178"/>
-<area shape="poly" id="edge8_Node000001_Node000004" title=" " alt="" coords="265,47,255,80,233,153,227,152,249,78,260,45"/>
+<area shape="poly" id="edge8_Node000001_Node000004" title=" " alt="" coords="290,43,271,60,254,80,238,119,231,153,225,152,233,117,250,78,267,56,286,39"/>
 <area shape="rect" id="Node000005" href="$setup_8h.html" title="System Initialization and Safety Configuration." alt="" coords="264,79,373,105"/>
-<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="290,42,313,77,309,80,286,45"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="321,46,321,79,316,79,316,46"/>
 <area shape="rect" id="Node000007" href="$can__manager_8cpp.html" title="Implementation of CAN communication management system." alt="" coords="398,79,543,105"/>
-<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="321,34,438,76,436,81,319,39"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="359,36,446,76,444,81,357,40"/>
+<area shape="rect" id="Node000008" href="$state__manager_8cpp.html" title="Implementation of the vehicle state management system." alt="" coords="567,79,721,105"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="389,32,589,76,588,81,388,37"/>
 <area shape="rect" id="Node000003" href="$_serial_console_8cpp.html" title="Implementation of debug console interface for vehicle control system." alt="" coords="5,153,155,178"/>
 <area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="102,120,88,153,83,151,97,118"/>
 <area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="144,111,208,150,206,154,142,115"/>

@@ -8,10 +8,10 @@
 \DoxyCodeLine{00015\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{config_8h}{config.h}}"{}}}
 \DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{vehicle__parameters_8h}{vehicle\_parameters.h}}"{}}}
 \DoxyCodeLine{00017\ }
-\DoxyCodeLine{00018\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_state_manager}{StateManager}}\ \{}
-\DoxyCodeLine{00019\ \textcolor{keyword}{public}:}
-\DoxyCodeLine{00020\ \ \ \ \ \mbox{\hyperlink{class_state_manager_a3e2be96d935eb56813b096a885d58587}{StateManager}}();}
-\DoxyCodeLine{00021\ \ \ \ \ }
+\DoxyCodeLine{00018\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_c_a_n_manager}{CANManager}};\ \textcolor{comment}{//\ Forward\ declaration}}
+\DoxyCodeLine{00019\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_state_manager}{StateManager}}\ \{}
+\DoxyCodeLine{00020\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00021\ \ \ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{class_state_manager_a76acd0244b310927e05e5603de4ef7e1}{StateManager}}(\mbox{\hyperlink{class_c_a_n_manager}{CANManager}}\&\ canMgr);\ \ \ \ }
 \DoxyCodeLine{00026\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_a81d6c48d941963ab5be7a1e642c26d98}{update}}();}
 \DoxyCodeLine{00027\ }
 \DoxyCodeLine{00032\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_ae698ee0fb986e6b7790d6a17c9a26b82}{handleWakeup}}();}
@@ -48,48 +48,51 @@
 \DoxyCodeLine{00113\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_a24a16da5b3f05f322340dc935650d87e}{setInverterTemp}}(\textcolor{keywordtype}{float}\ temp)\ \{\ \mbox{\hyperlink{class_state_manager_aa57c6c93846cc017830e9847919af81f}{inverterTemp}}\ =\ temp;\ \}}
 \DoxyCodeLine{00114\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_af14813c64481da905dc9e53877a9cc8a}{setMotorTemp}}(\textcolor{keywordtype}{float}\ temp)\ \{\ \mbox{\hyperlink{class_state_manager_aa10509cf3a8d459cf85e7b43658aa53f}{motorTemp}}\ =\ temp;\ \}}
 \DoxyCodeLine{00115\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_a126ef9445ee529fa3d83be0d4bd825e4}{setCoolingRequest}}(uint8\_t\ request)\ \{\ \mbox{\hyperlink{class_state_manager_a0851805b171942f25e6f1f40849ed94e}{coolingRequest}}\ =\ request;\ \}}
-\DoxyCodeLine{00116\ \ \ \ \ }
-\DoxyCodeLine{00117\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00116\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_aceb7b86c640bcdd54fd94b5cdcdecc74}{setHVVoltageActual}}(\textcolor{keywordtype}{float}\ voltage)\ \{\ \mbox{\hyperlink{class_state_manager_a6ea9ae4e08f875031d5a008fc5736fc8}{hvVoltageActual}}\ =\ voltage;\ \}}
+\DoxyCodeLine{00117\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_aee79788443117d48ac4124b22ceb4724}{setHVVoltage}}(uint16\_t\ voltage)\ \{\ \mbox{\hyperlink{class_state_manager_a1b8041afd24d472be63a42f2d83a3cc3}{hvVoltage}}\ =\ voltage;\ \}}
+\DoxyCodeLine{00118\ \ \ \ \ uint16\_t\ \mbox{\hyperlink{class_state_manager_aca4a6b00dffd598a526f14643c0e7ce5}{getHVVoltage}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{class_state_manager_a1b8041afd24d472be63a42f2d83a3cc3}{hvVoltage}};\ \}}
+\DoxyCodeLine{00119\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_state_manager_ab6100d9309a59c6099dbc28c4316e2f7}{getHVVoltageActual}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{class_state_manager_a6ea9ae4e08f875031d5a008fc5736fc8}{hvVoltageActual}};\ \}}
+\DoxyCodeLine{00120\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00121\ \ \ \ \ \textcolor{comment}{//\ Private\ member\ functions}}
 \DoxyCodeLine{00122\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_a89c8beceadb6aba3725d3a583a4f01d3}{handleStandbyState}}();}
-\DoxyCodeLine{00123\ }
-\DoxyCodeLine{00128\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_a1f16a49ecbbb069166eb2883a7ff4591}{handleRunState}}();}
-\DoxyCodeLine{00129\ }
-\DoxyCodeLine{00134\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_abfcbdbaff125ae6d962549882335e9e8}{handleChargingState}}();}
-\DoxyCodeLine{00135\ \ \ \ \ }
-\DoxyCodeLine{00140\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_abc0fc265ea74e974fdf4eb4c369adb87}{handleConnectorUnlock}}();}
-\DoxyCodeLine{00141\ }
-\DoxyCodeLine{00146\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_ab4d30fe38f27a5dbd12363e959b70fdf}{handlePersistentUnlock}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\&\ unlockTimeout);}
-\DoxyCodeLine{00147\ \ \ \ \ }
-\DoxyCodeLine{00148\ \ \ \ \ \textcolor{comment}{//\ Internal\ state\ variables}}
-\DoxyCodeLine{00149\ \ \ \ \ \mbox{\hyperlink{config_8h_a75c52206c3c79acb62c0fddc66df3676}{VehicleState}}\ \mbox{\hyperlink{class_state_manager_abdcc20b128f2755ebff3592e52a1cbf2}{currentState}};\ \ \ \ \ \textcolor{comment}{//\ Current\ vehicle\ operational\ state}}
-\DoxyCodeLine{00150\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a911c4a5f4c4fc5d8d166409a6dd6feb5}{batteryArmed}};\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Battery\ system\ active\ flag}}
-\DoxyCodeLine{00151\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a854c82f75852c57160a46a6bce3b5901}{hasPreCharged}};\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Precharge\ complete\ flag}}
-\DoxyCodeLine{00152\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a43b93b091b97ec4b1c2224d20e3e74e5}{nlgCharged}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Charge\ complete\ flag}}
-\DoxyCodeLine{00153\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a406040789a1b551912daeea93c5072ec}{connectorLocked}};\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Charge\ connector\ state}}
-\DoxyCodeLine{00154\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a976d42b3968564a0456c073b36894c8e}{unlockPersist}};\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Persistent\ unlock\ request\ flag}}
-\DoxyCodeLine{00155\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a3aa030b95942adb7986b3319abc4e02c}{conUlockInterrupt}};\ \ \ \ \ \ \ \textcolor{comment}{//\ Connector\ unlock\ interrupt\ flag}}
-\DoxyCodeLine{00156\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a48537ec445ff8d66cb9977f8820cf5dd}{enableBSC}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ BSC\ enable\ state}}
-\DoxyCodeLine{00157\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a99c5ac54d6186c257e7cf59041a12d5e}{modeBSC}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ BSC\ mode\ (buck/boost)}}
-\DoxyCodeLine{00158\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_adf75c08507f42721af2ac30dba129cd0}{errorLatch}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Error\ state\ latch}}
-\DoxyCodeLine{00159\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_acb440cdcaed11f13b73941b7adafe1a8}{enableDMC}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ DMC\ enable\ state}}
-\DoxyCodeLine{00160\ \ \ \ \ }
-\DoxyCodeLine{00161\ \ \ \ \ \mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cd}{GearState}}\ \mbox{\hyperlink{class_state_manager_a2c40afa83f250c64421aca80f1e4eab8}{currentGear}}\ =\ \mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cda31ba17aa58cdb681423f07ca21a6efc7}{GearState::NEUTRAL}};\ \ }
-\DoxyCodeLine{00162\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a789a97e89fc4c11e4541abc2e3b08ea4}{unlockConnectorRequest}}\ =\ \textcolor{keyword}{false};\ \ \ \ \ \ \ \ \ }
-\DoxyCodeLine{00163\ }
-\DoxyCodeLine{00164\ \ \ \ \ \textcolor{comment}{//\ System\ parameters}}
-\DoxyCodeLine{00165\ \ \ \ \ uint16\_t\ \mbox{\hyperlink{class_state_manager_a48cb157ae9ca2f82a324c668db37f9e5}{batteryVoltage}};\ \ \ \ \ \ \textcolor{comment}{//\ Current\ battery\ voltage}}
-\DoxyCodeLine{00166\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_state_manager_aa57c6c93846cc017830e9847919af81f}{inverterTemp}};\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Inverter\ temperature}}
-\DoxyCodeLine{00167\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_state_manager_aa10509cf3a8d459cf85e7b43658aa53f}{motorTemp}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Motor\ temperature}}
-\DoxyCodeLine{00168\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_state_manager_a0851805b171942f25e6f1f40849ed94e}{coolingRequest}};\ \ \ \ \ \ \ \textcolor{comment}{//\ Cooling\ system\ demand}}
-\DoxyCodeLine{00169\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_state_manager_ac860df5618ddc4e8601cc3bf26539d4d}{chargerState}};\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Current\ charger\ state}}
-\DoxyCodeLine{00170\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_state_manager_adacb6ae71caafe77cf8b3d9599e908f7}{chargerStateDemand}};\ \ \ \textcolor{comment}{//\ Requested\ charger\ state}}
-\DoxyCodeLine{00171\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_state_manager_a9c4bd962a0a27709da96637aab1bc549}{chargeLedDemand}};\ \ \ \ \ \ \textcolor{comment}{//\ Charge\ LED\ state\ request}}
-\DoxyCodeLine{00172\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_state_manager_a6ea9ae4e08f875031d5a008fc5736fc8}{hvVoltageActual}};\ \ \ \ \ \ \ \ \textcolor{comment}{//\ Actual\ HV\ bus\ voltage}}
-\DoxyCodeLine{00173\ \ \ \ \ uint16\_t\ \mbox{\hyperlink{class_state_manager_a1b8041afd24d472be63a42f2d83a3cc3}{hvVoltage}};\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Target\ HV\ bus\ voltage}}
-\DoxyCodeLine{00174\ \ \ \ \ }
-\DoxyCodeLine{00175\ \ \ \ \ \textcolor{comment}{//\ Timing\ management}}
-\DoxyCodeLine{00176\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{class_state_manager_a750dcf6d290875102ea4b588c4e4ee61}{lastModeChangeTime}};\ \ \ \ \ \ \textcolor{comment}{//\ Last\ state\ change\ timestamp}}
-\DoxyCodeLine{00177\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{class_state_manager_a459c7d3909d464353eae07ecbaa1b450}{lastPrechargeAttempt}};\ \ \ \ \textcolor{comment}{//\ Last\ precharge\ attempt\ timestamp}}
-\DoxyCodeLine{00178\ \};}
+\DoxyCodeLine{00123\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_a1f16a49ecbbb069166eb2883a7ff4591}{handleRunState}}();}
+\DoxyCodeLine{00124\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_abfcbdbaff125ae6d962549882335e9e8}{handleChargingState}}();}
+\DoxyCodeLine{00125\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_abc0fc265ea74e974fdf4eb4c369adb87}{handleConnectorUnlock}}();}
+\DoxyCodeLine{00126\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_state_manager_ab4d30fe38f27a5dbd12363e959b70fdf}{handlePersistentUnlock}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\&\ unlockTimeout);}
+\DoxyCodeLine{00127\ }
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{comment}{//\ System\ references}}
+\DoxyCodeLine{00129\ \ \ \ \ \mbox{\hyperlink{class_c_a_n_manager}{CANManager}}\&\ \mbox{\hyperlink{class_state_manager_af91a817ac566236e2870a866995c456d}{canManager}};}
+\DoxyCodeLine{00130\ }
+\DoxyCodeLine{00131\ \ \ \ \ \textcolor{comment}{//\ Internal\ state\ variables}}
+\DoxyCodeLine{00132\ \ \ \ \ \mbox{\hyperlink{config_8h_a75c52206c3c79acb62c0fddc66df3676}{VehicleState}}\ \mbox{\hyperlink{class_state_manager_abdcc20b128f2755ebff3592e52a1cbf2}{currentState}};\ \ \ \ \ \textcolor{comment}{//\ Current\ vehicle\ operational\ state}}
+\DoxyCodeLine{00133\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a911c4a5f4c4fc5d8d166409a6dd6feb5}{batteryArmed}};\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Battery\ system\ active\ flag}}
+\DoxyCodeLine{00134\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a854c82f75852c57160a46a6bce3b5901}{hasPreCharged}};\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Precharge\ complete\ flag}}
+\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a43b93b091b97ec4b1c2224d20e3e74e5}{nlgCharged}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Charge\ complete\ flag}}
+\DoxyCodeLine{00136\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a406040789a1b551912daeea93c5072ec}{connectorLocked}};\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Charge\ connector\ state}}
+\DoxyCodeLine{00137\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a976d42b3968564a0456c073b36894c8e}{unlockPersist}};\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Persistent\ unlock\ request\ flag}}
+\DoxyCodeLine{00138\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a3aa030b95942adb7986b3319abc4e02c}{conUlockInterrupt}};\ \ \ \ \ \ \ \textcolor{comment}{//\ Connector\ unlock\ interrupt\ flag}}
+\DoxyCodeLine{00139\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a48537ec445ff8d66cb9977f8820cf5dd}{enableBSC}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ BSC\ enable\ state}}
+\DoxyCodeLine{00140\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a99c5ac54d6186c257e7cf59041a12d5e}{modeBSC}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ BSC\ mode\ (buck/boost)}}
+\DoxyCodeLine{00141\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_adf75c08507f42721af2ac30dba129cd0}{errorLatch}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Error\ state\ latch}}
+\DoxyCodeLine{00142\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_acb440cdcaed11f13b73941b7adafe1a8}{enableDMC}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ DMC\ enable\ state}}
+\DoxyCodeLine{00143\ \ \ \ \ }
+\DoxyCodeLine{00144\ \ \ \ \ \mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cd}{GearState}}\ \mbox{\hyperlink{class_state_manager_a2c40afa83f250c64421aca80f1e4eab8}{currentGear}}\ =\ \mbox{\hyperlink{config_8h_a8c420f89485dc6c08d6e89605a8166cda31ba17aa58cdb681423f07ca21a6efc7}{GearState::NEUTRAL}};\ \ }
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_state_manager_a789a97e89fc4c11e4541abc2e3b08ea4}{unlockConnectorRequest}}\ =\ \textcolor{keyword}{false};\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00146\ }
+\DoxyCodeLine{00147\ \ \ \ \ \textcolor{comment}{//\ System\ parameters}}
+\DoxyCodeLine{00148\ \ \ \ \ uint16\_t\ \mbox{\hyperlink{class_state_manager_a48cb157ae9ca2f82a324c668db37f9e5}{batteryVoltage}};\ \ \ \ \ \ \textcolor{comment}{//\ Current\ battery\ voltage}}
+\DoxyCodeLine{00149\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_state_manager_aa57c6c93846cc017830e9847919af81f}{inverterTemp}};\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Inverter\ temperature}}
+\DoxyCodeLine{00150\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_state_manager_aa10509cf3a8d459cf85e7b43658aa53f}{motorTemp}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Motor\ temperature}}
+\DoxyCodeLine{00151\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_state_manager_a0851805b171942f25e6f1f40849ed94e}{coolingRequest}};\ \ \ \ \ \ \ \textcolor{comment}{//\ Cooling\ system\ demand}}
+\DoxyCodeLine{00152\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_state_manager_ac860df5618ddc4e8601cc3bf26539d4d}{chargerState}};\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Current\ charger\ state}}
+\DoxyCodeLine{00153\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_state_manager_adacb6ae71caafe77cf8b3d9599e908f7}{chargerStateDemand}};\ \ \ \textcolor{comment}{//\ Requested\ charger\ state}}
+\DoxyCodeLine{00154\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_state_manager_a9c4bd962a0a27709da96637aab1bc549}{chargeLedDemand}};\ \ \ \ \ \ \textcolor{comment}{//\ Charge\ LED\ state\ request}}
+\DoxyCodeLine{00155\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_state_manager_a6ea9ae4e08f875031d5a008fc5736fc8}{hvVoltageActual}};\ \ \ \ \ \ \ \ \textcolor{comment}{//\ Actual\ HV\ bus\ voltage}}
+\DoxyCodeLine{00156\ \ \ \ \ uint16\_t\ \mbox{\hyperlink{class_state_manager_a1b8041afd24d472be63a42f2d83a3cc3}{hvVoltage}};\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Target\ HV\ bus\ voltage}}
+\DoxyCodeLine{00157\ \ \ \ \ }
+\DoxyCodeLine{00158\ \ \ \ \ \textcolor{comment}{//\ Timing\ management}}
+\DoxyCodeLine{00159\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{class_state_manager_a750dcf6d290875102ea4b588c4e4ee61}{lastModeChangeTime}};\ \ \ \ \ \ \textcolor{comment}{//\ Last\ state\ change\ timestamp}}
+\DoxyCodeLine{00160\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{class_state_manager_a459c7d3909d464353eae07ecbaa1b450}{lastPrechargeAttempt}};\ \ \ \ \textcolor{comment}{//\ Last\ precharge\ attempt\ timestamp}}
+\DoxyCodeLine{00161\ \};}
 
 \end{DoxyCode}

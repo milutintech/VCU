@@ -1,13 +1,15 @@
 <map id="src/can_manager.cpp" name="src/can_manager.cpp">
-<area shape="rect" id="Node000001" title="Implementation of CAN communication management system." alt="" coords="98,5,244,31"/>
+<area shape="rect" id="Node000001" title="Implementation of CAN communication management system." alt="" coords="153,5,298,31"/>
 <area shape="rect" id="Node000002" href="$can__manager_8h.html" title="CAN Communication Manager for Vehicle Control System." alt="" coords="171,79,280,105"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="182,30,209,65,205,68,178,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="228,31,228,63,223,63,223,31"/>
 <area shape="rect" id="Node000006" href="$config_8h.html" title=" " alt="" coords="5,226,73,252"/>
-<area shape="poly" id="edge14_Node000001_Node000006" title=" " alt="" coords="152,34,124,53,91,80,60,114,36,154,31,182,34,211,29,211,26,182,31,152,55,111,87,77,121,49,149,29"/>
+<area shape="poly" id="edge14_Node000001_Node000006" title=" " alt="" coords="193,34,154,52,109,77,68,111,50,132,36,154,30,182,33,211,28,212,24,182,31,152,46,128,64,108,106,73,151,47,190,29"/>
 <area shape="rect" id="Node000008" href="$state__manager_8h.html" title="Vehicle State Management System." alt="" coords="63,153,180,178"/>
-<area shape="poly" id="edge12_Node000001_Node000008" title=" " alt="" coords="169,32,133,139,128,137,164,30"/>
+<area shape="poly" id="edge12_Node000001_Node000008" title=" " alt="" coords="210,34,185,54,161,81,144,110,132,139,127,137,139,107,157,77,182,50,207,29"/>
 <area shape="rect" id="Node000009" title=" " alt="" coords="305,79,418,105"/>
-<area shape="poly" id="edge13_Node000001_Node000009" title=" " alt="" coords="204,29,316,71,314,76,202,34"/>
+<area shape="poly" id="edge13_Node000001_Node000009" title=" " alt="" coords="250,29,326,69,324,74,248,34"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="442,79,516,105"/>
+<area shape="poly" id="edge15_Node000001_Node000010" title=" " alt="" coords="269,29,428,73,426,78,268,34"/>
 <area shape="rect" id="Node000003" title=" " alt="" coords="84,300,160,326"/>
 <area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="280,103,373,127,411,140,432,151,436,165,432,179,419,222,408,238,390,254,338,283,281,301,224,311,175,315,175,309,224,306,279,296,336,278,387,250,404,234,414,219,427,178,431,165,428,154,409,144,372,132,278,108"/>
 <area shape="rect" id="Node000004" title=" " alt="" coords="204,153,258,178"/>

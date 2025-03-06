@@ -27,7 +27,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.2</span>
+   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.7</span>
    </div>
    <div id="projectbrief">ESP32-based Electric Vehicle Control System</div>
   </td>
@@ -118,14 +118,17 @@ Static Public Attributes</h2></td></tr>
 <tr class="memdesc:adca137e9929af662fec68b63ad4ca154"><td class="mdescLeft">&#160;</td><td class="mdescRight">Speed scaling factor.  <br /></td></tr>
 <tr class="separator:adca137e9929af662fec68b63ad4ca154"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a33ab93ff996bdf8dfb2ae910ae66cd40" id="r_a33ab93ff996bdf8dfb2ae910ae66cd40"><td class="memItemLeft" align="right" valign="top">static constexpr float&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a33ab93ff996bdf8dfb2ae910ae66cd40">MIN_PEDAL_THRESHOLD</a> = 2.0f</td></tr>
-<tr class="memdesc:a33ab93ff996bdf8dfb2ae910ae66cd40"><td class="mdescLeft">&#160;</td><td class="mdescRight">Min pedal activation (%)  <br /></td></tr>
+<tr class="memdesc:a33ab93ff996bdf8dfb2ae910ae66cd40"><td class="mdescLeft">&#160;</td><td class="mdescRight">Minimum pedal activation (%)  <br /></td></tr>
 <tr class="separator:a33ab93ff996bdf8dfb2ae910ae66cd40"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0520f92f4e577a64151b9ccf514688ac" id="r_a0520f92f4e577a64151b9ccf514688ac"><td class="memItemLeft" align="right" valign="top">static constexpr float&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0520f92f4e577a64151b9ccf514688ac">COAST_POSITION_MIN</a> = 20.0f</td></tr>
-<tr class="memdesc:a0520f92f4e577a64151b9ccf514688ac"><td class="mdescLeft">&#160;</td><td class="mdescRight">Min coast pedal position (%)  <br /></td></tr>
+<tr class="memdesc:a0520f92f4e577a64151b9ccf514688ac"><td class="mdescLeft">&#160;</td><td class="mdescRight">Minimum coast pedal position (%)  <br /></td></tr>
 <tr class="separator:a0520f92f4e577a64151b9ccf514688ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2be573ba12cb77be130730e10e039152" id="r_a2be573ba12cb77be130730e10e039152"><td class="memItemLeft" align="right" valign="top">static constexpr float&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2be573ba12cb77be130730e10e039152">COAST_POSITION_MAX</a> = 50.0f</td></tr>
-<tr class="memdesc:a2be573ba12cb77be130730e10e039152"><td class="mdescLeft">&#160;</td><td class="mdescRight">Max coast pedal position (%)  <br /></td></tr>
+<tr class="memdesc:a2be573ba12cb77be130730e10e039152"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum coast pedal position (%)  <br /></td></tr>
 <tr class="separator:a2be573ba12cb77be130730e10e039152"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae5278583d4230ecc27bac3a3e3ce12e9" id="r_ae5278583d4230ecc27bac3a3e3ce12e9"><td class="memItemLeft" align="right" valign="top">static constexpr float&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae5278583d4230ecc27bac3a3e3ce12e9">CONTROL_DT</a> = 0.01f</td></tr>
+<tr class="memdesc:ae5278583d4230ecc27bac3a3e3ce12e9"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="struct_vehicle_params_1_1_control.html" title="Vehicle Control Parameters Defines pedal response and control behavior.">Control</a> loop time step (seconds)  <br /></td></tr>
+<tr class="separator:ae5278583d4230ecc27bac3a3e3ce12e9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Vehicle <a class="el" href="struct_vehicle_params_1_1_control.html" title="Vehicle Control Parameters Defines pedal response and control behavior.">Control</a> Parameters Defines pedal response and control behavior. </p>
@@ -150,7 +153,7 @@ Static Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Max coast pedal position (%) </p>
+<p>Maximum coast pedal position (%) </p>
 
 </div>
 </div>
@@ -174,7 +177,31 @@ Static Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Min coast pedal position (%) </p>
+<p>Minimum coast pedal position (%) </p>
+
+</div>
+</div>
+<a id="ae5278583d4230ecc27bac3a3e3ce12e9" name="ae5278583d4230ecc27bac3a3e3ce12e9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae5278583d4230ecc27bac3a3e3ce12e9">&#9670;&#160;</a></span>CONTROL_DT</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">float VehicleParams::Control::CONTROL_DT = 0.01f</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p><a class="el" href="struct_vehicle_params_1_1_control.html" title="Vehicle Control Parameters Defines pedal response and control behavior.">Control</a> loop time step (seconds) </p>
 
 </div>
 </div>
@@ -198,7 +225,7 @@ Static Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Min pedal activation (%) </p>
+<p>Minimum pedal activation (%) </p>
 
 </div>
 </div>

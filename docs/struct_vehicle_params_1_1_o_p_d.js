@@ -6,7 +6,10 @@ var struct_vehicle_params_1_1_o_p_d =
     [ "MAX_REGEN", "struct_vehicle_params_1_1_o_p_d.html#aea32e951b3557e55f2bbbbb394168515", null ],
     [ "MAX_SPEED", "struct_vehicle_params_1_1_o_p_d.html#ad74504c9db636f62e2f52e84887a1f36", null ],
     [ "PHI", "struct_vehicle_params_1_1_o_p_d.html#a1a8014c8c28e4fd2252eb6f42ae157ed", null ],
+    [ "REGEN_TORQUE_CAP", "struct_vehicle_params_1_1_o_p_d.html#ae651047cb9f9fc33168c262ecc6b80cc", null ],
     [ "ROLLBACK_SPEED", "struct_vehicle_params_1_1_o_p_d.html#a9f8867b92d11b7b8163722695cb742a9", null ],
     [ "ROLLBACK_TORQUE", "struct_vehicle_params_1_1_o_p_d.html#a7027a7b67adf17a486ff65de0951cf8f", null ],
-    [ "SHAPE_FACTOR", "struct_vehicle_params_1_1_o_p_d.html#a9089992fb3c38a11d5cd1d85606299b5", null ]
+    [ "SHAPE_FACTOR", "struct_vehicle_params_1_1_o_p_d.html#a9089992fb3c38a11d5cd1d85606299b5", null ],
+    [ "SLOW_SPEED_REGEN_CAP", "struct_vehicle_params_1_1_o_p_d.html#ae49254c454f02626b1dc281bd40b522e", null ],
+    [ "ZERO_SPEED_THRESHOLD", "struct_vehicle_params_1_1_o_p_d.html#a5f94406d686ae93246a6ba56fdcdfbaa", null ]
 ];

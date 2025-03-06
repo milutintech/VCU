@@ -314,10 +314,22 @@ void StateManager::armCoolingSys(bool arm) {
  * - Connector locking
  * - Charge completion
  */
+
+
 void StateManager::chargeManage() {
     static unsigned long unlockTimeout = 0;
 
     if (currentState == VehicleState::CHARGING) {
+
+        // === NEW: Stop charging if SOC is too high ===
+        if (canManager.getBMSData().soc >= VehicleParams::Battery::MAX_SOC) {
+            Serial.println("SOC limit reached! Stopping charge.");
+            chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
+            unlockConnectorRequest = true;
+            unlockPersist = true;
+            unlockTimeout = millis();
+        }
+
         switch (chargerState) {
             case ChargerStates::NLG_ACT_SLEEP:
                 chargeLedDemand = 0;

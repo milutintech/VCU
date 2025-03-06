@@ -27,7 +27,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.2</span>
+   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.7</span>
    </div>
    <div id="projectbrief">ESP32-based Electric Vehicle Control System</div>
   </td>
@@ -113,16 +113,23 @@ $(function(){initNavTree('functions_s.html',''); initResizable(true); });
 <li>setEnableBSC()&#160;:&#160;<a class="el" href="class_c_a_n_manager.html#aa5d39dcfe3d5c908828888e10d9abb62">CANManager</a></li>
 <li>setEnableDMC()&#160;:&#160;<a class="el" href="class_c_a_n_manager.html#a43fcdafcf58b2dc20c892bc046b68ec8">CANManager</a></li>
 <li>setGearRatio()&#160;:&#160;<a class="el" href="class_vehicle_control.html#acc1490071b408dc62e2ec309715e1ce0">VehicleControl</a></li>
+<li>setHVVoltage()&#160;:&#160;<a class="el" href="class_c_a_n_manager.html#ab1c144af09ef718bf2379a80c1333f0b">CANManager</a>, <a class="el" href="class_state_manager.html#aee79788443117d48ac4124b22ceb4724">StateManager</a></li>
+<li>setHVVoltageActual()&#160;:&#160;<a class="el" href="class_state_manager.html#aceb7b86c640bcdd54fd94b5cdcdecc74">StateManager</a></li>
 <li>setInverterTemp()&#160;:&#160;<a class="el" href="class_state_manager.html#a24a16da5b3f05f322340dc935650d87e">StateManager</a></li>
 <li>setModeBSC()&#160;:&#160;<a class="el" href="class_c_a_n_manager.html#a9ca9827803043a85678a3a1eb5f67f3d">CANManager</a></li>
 <li>setMotorSpeed()&#160;:&#160;<a class="el" href="class_vehicle_control.html#a7a598d53412fde2f576e731976bf1629">VehicleControl</a></li>
 <li>setMotorTemp()&#160;:&#160;<a class="el" href="class_state_manager.html#af14813c64481da905dc9e53877a9cc8a">StateManager</a></li>
 <li>setOPDEnabled()&#160;:&#160;<a class="el" href="class_vehicle_control.html#aeeead8dc56ced72558564016510265e4">VehicleControl</a></li>
+<li>setpoint_&#160;:&#160;<a class="el" href="class_p_i_d_controller.html#a31352e87eaf0fbcfd3acfd7b1753ac20">PIDController</a></li>
 <li>setRegenEnabled()&#160;:&#160;<a class="el" href="class_vehicle_control.html#a874a9f63a0ed236f177518c5ca4c8e28">VehicleControl</a></li>
+<li>setSetpoint()&#160;:&#160;<a class="el" href="class_p_i_d_controller.html#a430197f60d8e2371a16a474869e7efc8">PIDController</a></li>
 <li>setSpeedDemand()&#160;:&#160;<a class="el" href="class_c_a_n_manager.html#aaa56580dc04ee0451d8a38c439be990c">CANManager</a></li>
+<li>setStateManager()&#160;:&#160;<a class="el" href="class_c_a_n_manager.html#a114efe37cce8a2bfb6f91169f9f80e34">CANManager</a></li>
 <li>setTorqueDemand()&#160;:&#160;<a class="el" href="class_c_a_n_manager.html#a905807ce5663f91104705a096e88f353">CANManager</a></li>
 <li>SHAPE_FACTOR&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_o_p_d.html#a9089992fb3c38a11d5cd1d85606299b5">VehicleParams::OPD</a></li>
+<li>shiftAttempted&#160;:&#160;<a class="el" href="class_vehicle_control.html#a0778dca45abeea99b3757185caa21849">VehicleControl</a></li>
 <li>SLOW_CYCLE_MS&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_timing.html#a621373cf59f4b9f2204e530d27d01bad">VehicleParams::Timing</a></li>
+<li>SLOW_SPEED_REGEN_CAP&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_o_p_d.html#ae49254c454f02626b1dc281bd40b522e">VehicleParams::OPD</a></li>
 <li>soc&#160;:&#160;<a class="el" href="struct_b_m_s_data.html#a810ba65ff0942ec181d30386fd84b8fc">BMSData</a></li>
 <li>SPEED_FACTOR&#160;:&#160;<a class="el" href="struct_vehicle_params_1_1_control.html#adca137e9929af662fec68b63ad4ca154">VehicleParams::Control</a></li>
 <li>speedActual&#160;:&#160;<a class="el" href="struct_d_m_c_data.html#afbeeb74dbfe817c42068f4ecfa6ee998">DMCData</a></li>
@@ -130,8 +137,8 @@ $(function(){initNavTree('functions_s.html',''); initResizable(true); });
 <li>stateAct&#160;:&#160;<a class="el" href="struct_n_l_g_data.html#a93c8390c6d70f68c0384e23909c57473">NLGData</a></li>
 <li>stateCtrlPilot&#160;:&#160;<a class="el" href="struct_n_l_g_data.html#a7f3a965655d74071d7ae50b5469255e5">NLGData</a></li>
 <li>stateDemand&#160;:&#160;<a class="el" href="struct_n_l_g_data.html#a67cbfb0a26c99ae5ee8e27e278f55f71">NLGData</a></li>
-<li>StateManager()&#160;:&#160;<a class="el" href="class_state_manager.html#a3e2be96d935eb56813b096a885d58587">StateManager</a></li>
-<li>stateManager&#160;:&#160;<a class="el" href="class_c_a_n_manager.html#a4b2dd00e490cffebc7e6d74aa26f7676">CANManager</a>, <a class="el" href="class_serial_console.html#a12c3d661e26b9eab5af2749b1708c21d">SerialConsole</a></li>
+<li>StateManager()&#160;:&#160;<a class="el" href="class_state_manager.html#a76acd0244b310927e05e5603de4ef7e1">StateManager</a></li>
+<li>stateManager&#160;:&#160;<a class="el" href="class_c_a_n_manager.html#a233ae19f20492b222b2660d1d4534d31">CANManager</a>, <a class="el" href="class_serial_console.html#a12c3d661e26b9eab5af2749b1708c21d">SerialConsole</a></li>
 <li>SystemSetup()&#160;:&#160;<a class="el" href="class_system_setup.html#ae4ae0dceb8cd18f3028d2157b9e36d86">SystemSetup</a></li>
 </ul>
 </div><!-- contents -->

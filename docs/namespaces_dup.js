@@ -59,6 +59,8 @@ var namespaces_dup =
       [ "PUMP", "namespace_pins.html#a3b62641ccbcba7c41587f1a4a8e5159c", null ],
       [ "PW1", "namespace_pins.html#a2fbac616f8074f2796f8512edc11be6f", null ],
       [ "SCK", "namespace_pins.html#a17a596f9a021b393095fdf34341d9e5c", null ],
+      [ "SCL", "namespace_pins.html#a183422dd8afb3ce149bdaac8e59429af", null ],
+      [ "SDA", "namespace_pins.html#a4c2a73bb2608a242d313dacd630eec73", null ],
       [ "SPI_CS_PIN", "namespace_pins.html#a248b6d2b1719a8097777b7a19e12b3bd", null ],
       [ "UNLCKCON", "namespace_pins.html#a995c57706ebe6754b5674d2629b53e4e", null ]
     ] ],

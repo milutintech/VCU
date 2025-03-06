@@ -1,0 +1,14 @@
+<map id="StateManager" name="StateManager">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,108,31"/>
+<area shape="rect" id="Node000002" href="$class_c_a_n_manager.html" title="CAN Communication Manager Class." alt="" coords="225,94,325,120"/>
+<area shape="poly" id="edge6_Node000002_Node000001" title=" " alt="" coords="33,43,26,57,29,69,41,77,60,85,111,96,170,101,224,103,224,108,169,106,110,101,58,90,39,82,25,71,21,56,29,41"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="209,94,144,72,106,53,73,34,76,29,108,49,147,68,211,89"/>
+<area shape="rect" id="Node000003" href="$struct_b_m_s_data.html" title="Battery Management System data structure Contains battery state information from BMS." alt="" coords="176,5,254,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="224,45,235,68,259,92,255,95,231,72,219,47"/>
+<area shape="rect" id="Node000004" href="$struct_d_m_c_data.html" title="Drive Motor Controller data structure Contains motor and inverter operational data." alt="" coords="279,5,359,31"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="309,46,284,95,279,92,304,44"/>
+<area shape="rect" id="Node000005" href="$struct_b_s_c_data.html" title="Battery Switch Controller data structure Contains DC&#45;DC converter operational data." alt="" coords="383,5,460,31"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="400,44,363,72,313,96,311,91,360,68,397,40"/>
+<area shape="rect" id="Node000006" href="$struct_n_l_g_data.html" title="Network Load Gateway data structure Contains charging system data." alt="" coords="485,5,561,31"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="497,42,443,72,383,91,326,102,325,97,382,86,441,68,494,38"/>
+</map>

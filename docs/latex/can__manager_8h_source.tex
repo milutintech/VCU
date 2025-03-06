@@ -59,76 +59,79 @@
 \DoxyCodeLine{00083\ }
 \DoxyCodeLine{00090\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_c_a_n_manager}{CANManager}}\ \{}
 \DoxyCodeLine{00091\ \textcolor{keyword}{public}:}
-\DoxyCodeLine{00097\ \ \ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{class_c_a_n_manager_a617eca77fdc9d386503940c0756405b4}{CANManager}}(uint8\_t\ cs\_pin,\ \mbox{\hyperlink{class_state_manager}{StateManager}}\&\ \mbox{\hyperlink{class_c_a_n_manager_a4b2dd00e490cffebc7e6d74aa26f7676}{stateManager}});}
-\DoxyCodeLine{00098\ \ \ \ \ \mbox{\hyperlink{class_c_a_n_manager_acb783ab842953c4c91fe2389542daa64}{\string~CANManager}}();}
-\DoxyCodeLine{00099\ \ \ \ \ }
-\DoxyCodeLine{00104\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a277563f05624b88e8fb096b320f86ac0}{begin}}();}
-\DoxyCodeLine{00105\ }
-\DoxyCodeLine{00111\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_afd0bd22653e68906054964cad9df684c}{update}}();}
-\DoxyCodeLine{00112\ \ \ \ \ }
-\DoxyCodeLine{00117\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a444184be8dcf153ee03ac6526076fe4a}{sendBSC}}();}
-\DoxyCodeLine{00118\ }
-\DoxyCodeLine{00123\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_ad9c3494761f6c066e9f89a0a38f0e371}{sendDMC}}();}
-\DoxyCodeLine{00124\ }
-\DoxyCodeLine{00129\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_ab9c0e9cc72eee5775db0b381f6457adf}{sendNLG}}();}
-\DoxyCodeLine{00130\ \ \ \ \ }
-\DoxyCodeLine{00131\ \ \ \ \ \textcolor{comment}{//\ Data\ access\ methods}}
-\DoxyCodeLine{00132\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{struct_b_m_s_data}{BMSData}}\&\ \mbox{\hyperlink{class_c_a_n_manager_a18bc411043cd2eef4e3697d932ca7de7}{getBMSData}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{class_c_a_n_manager_a6026a355309175f4f5a5a848e48a46e3}{bmsData}};\ \}}
-\DoxyCodeLine{00133\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{struct_d_m_c_data}{DMCData}}\&\ \mbox{\hyperlink{class_c_a_n_manager_a5f7d0cafb4fc3af935b897ee4d362f95}{getDMCData}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{class_c_a_n_manager_ad2afc5d4c4a131945f2c0566b1d1df95}{dmcData}};\ \}}
-\DoxyCodeLine{00134\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{struct_b_s_c_data}{BSCData}}\&\ \mbox{\hyperlink{class_c_a_n_manager_aa2d3468d1b0f41c7c3e4e695f2277eed}{getBSCData}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{class_c_a_n_manager_a0b87e95cd752b58e504d2471b2be68f7}{bscData}};\ \}}
-\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{struct_n_l_g_data}{NLGData}}\&\ \mbox{\hyperlink{class_c_a_n_manager_ae9b4523bdff929ff3cf50a6f5c811ea8}{getNLGData}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{class_c_a_n_manager_a861adbe06d0c26e8734d2cd8ae5f68e1}{nlgData}};\ \}}
-\DoxyCodeLine{00136\ \ \ \ \ }
-\DoxyCodeLine{00137\ \ \ \ \ \textcolor{comment}{//\ Control\ methods}}
-\DoxyCodeLine{00138\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a905807ce5663f91104705a096e88f353}{setTorqueDemand}}(\textcolor{keywordtype}{float}\ torque)\ \{\ \mbox{\hyperlink{class_c_a_n_manager_a25b33e5e2be3f0465d03066e9aa964f9}{torqueDemand}}\ =\ torque;\ \}}
-\DoxyCodeLine{00139\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_aaa56580dc04ee0451d8a38c439be990c}{setSpeedDemand}}(int16\_t\ speed)\ \{\ \mbox{\hyperlink{class_c_a_n_manager_ab39f7df8064bac0e90bbd96da49c2207}{speedDemand}}\ =\ speed;\ \}}
-\DoxyCodeLine{00140\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a43fcdafcf58b2dc20c892bc046b68ec8}{setEnableDMC}}(\textcolor{keywordtype}{bool}\ enable)\ \{\ \mbox{\hyperlink{class_c_a_n_manager_ac3a895770c02fa3156aa43755477e62d}{enableDMC}}\ =\ enable;\ \}}
-\DoxyCodeLine{00141\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_aa5d39dcfe3d5c908828888e10d9abb62}{setEnableBSC}}(\textcolor{keywordtype}{bool}\ enable)\ \{\ \mbox{\hyperlink{class_c_a_n_manager_a8942aadf7f675ca6e6241af75ca903b0}{enableBSC}}\ =\ enable;\ \}}
-\DoxyCodeLine{00142\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a9ca9827803043a85678a3a1eb5f67f3d}{setModeBSC}}(\textcolor{keywordtype}{bool}\ mode)\ \{\ \mbox{\hyperlink{class_c_a_n_manager_a752aaf300ec916bc2142c414e09396a4}{modeBSC}}\ =\ mode;\ \}}
-\DoxyCodeLine{00143\ \ \ \ \ }
-\DoxyCodeLine{00144\ \textcolor{keyword}{private}:}
-\DoxyCodeLine{00149\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a45eecb3a776bac9379862445e390a389}{processBMSMessage}}(uint8\_t*\ buf);}
-\DoxyCodeLine{00150\ }
-\DoxyCodeLine{00155\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a3483bf7e9726d6af2f7faa488d3c5b56}{processBSCMessage}}(uint8\_t*\ buf);}
+\DoxyCodeLine{00096\ \ \ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{class_c_a_n_manager_ac39674d04a62c10d38586c7f32c142c9}{CANManager}}(uint8\_t\ cs\_pin);}
+\DoxyCodeLine{00097\ \ \ \ \ \mbox{\hyperlink{class_c_a_n_manager_acb783ab842953c4c91fe2389542daa64}{\string~CANManager}}();}
+\DoxyCodeLine{00098\ \ \ \ \ }
+\DoxyCodeLine{00103\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a114efe37cce8a2bfb6f91169f9f80e34}{setStateManager}}(\mbox{\hyperlink{class_state_manager}{StateManager}}*\ sm)\ \{\ \mbox{\hyperlink{class_c_a_n_manager_a233ae19f20492b222b2660d1d4534d31}{stateManager}}\ =\ sm;\ \}}
+\DoxyCodeLine{00104\ \ \ \ \ }
+\DoxyCodeLine{00109\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a277563f05624b88e8fb096b320f86ac0}{begin}}();}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00116\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_afd0bd22653e68906054964cad9df684c}{update}}();}
+\DoxyCodeLine{00117\ \ \ \ \ }
+\DoxyCodeLine{00122\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a444184be8dcf153ee03ac6526076fe4a}{sendBSC}}();}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_ad9c3494761f6c066e9f89a0a38f0e371}{sendDMC}}();}
+\DoxyCodeLine{00129\ }
+\DoxyCodeLine{00134\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_ab9c0e9cc72eee5775db0b381f6457adf}{sendNLG}}();}
+\DoxyCodeLine{00135\ \ \ \ \ }
+\DoxyCodeLine{00136\ \ \ \ \ \textcolor{comment}{//\ Data\ access\ methods}}
+\DoxyCodeLine{00137\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{struct_b_m_s_data}{BMSData}}\&\ \mbox{\hyperlink{class_c_a_n_manager_a18bc411043cd2eef4e3697d932ca7de7}{getBMSData}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{class_c_a_n_manager_a6026a355309175f4f5a5a848e48a46e3}{bmsData}};\ \}}
+\DoxyCodeLine{00138\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{struct_d_m_c_data}{DMCData}}\&\ \mbox{\hyperlink{class_c_a_n_manager_a5f7d0cafb4fc3af935b897ee4d362f95}{getDMCData}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{class_c_a_n_manager_ad2afc5d4c4a131945f2c0566b1d1df95}{dmcData}};\ \}}
+\DoxyCodeLine{00139\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{struct_b_s_c_data}{BSCData}}\&\ \mbox{\hyperlink{class_c_a_n_manager_aa2d3468d1b0f41c7c3e4e695f2277eed}{getBSCData}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{class_c_a_n_manager_a0b87e95cd752b58e504d2471b2be68f7}{bscData}};\ \}}
+\DoxyCodeLine{00140\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{struct_n_l_g_data}{NLGData}}\&\ \mbox{\hyperlink{class_c_a_n_manager_ae9b4523bdff929ff3cf50a6f5c811ea8}{getNLGData}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{class_c_a_n_manager_a861adbe06d0c26e8734d2cd8ae5f68e1}{nlgData}};\ \}}
+\DoxyCodeLine{00141\ \ \ \ \ }
+\DoxyCodeLine{00142\ \ \ \ \ \textcolor{comment}{//\ Control\ methods}}
+\DoxyCodeLine{00143\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a905807ce5663f91104705a096e88f353}{setTorqueDemand}}(\textcolor{keywordtype}{float}\ torque)\ \{\ \mbox{\hyperlink{class_c_a_n_manager_a25b33e5e2be3f0465d03066e9aa964f9}{torqueDemand}}\ =\ torque;\ \}}
+\DoxyCodeLine{00144\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_aaa56580dc04ee0451d8a38c439be990c}{setSpeedDemand}}(int16\_t\ speed)\ \{\ \mbox{\hyperlink{class_c_a_n_manager_ab39f7df8064bac0e90bbd96da49c2207}{speedDemand}}\ =\ speed;\ \}}
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a43fcdafcf58b2dc20c892bc046b68ec8}{setEnableDMC}}(\textcolor{keywordtype}{bool}\ enable)\ \{\ \mbox{\hyperlink{class_c_a_n_manager_ac3a895770c02fa3156aa43755477e62d}{enableDMC}}\ =\ enable;\ \}}
+\DoxyCodeLine{00146\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_aa5d39dcfe3d5c908828888e10d9abb62}{setEnableBSC}}(\textcolor{keywordtype}{bool}\ enable)\ \{\ \mbox{\hyperlink{class_c_a_n_manager_a8942aadf7f675ca6e6241af75ca903b0}{enableBSC}}\ =\ enable;\ \}}
+\DoxyCodeLine{00147\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a9ca9827803043a85678a3a1eb5f67f3d}{setModeBSC}}(\textcolor{keywordtype}{bool}\ mode)\ \{\ \mbox{\hyperlink{class_c_a_n_manager_a752aaf300ec916bc2142c414e09396a4}{modeBSC}}\ =\ mode;\ \}}
+\DoxyCodeLine{00148\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_ab1c144af09ef718bf2379a80c1333f0b}{setHVVoltage}}(uint16\_t\ voltage)\ \{\ \mbox{\hyperlink{class_c_a_n_manager_aff72573b61ae2a60ec521533bbc30c13}{hvVoltage}}\ =\ voltage;\ \}}
+\DoxyCodeLine{00149\ }
+\DoxyCodeLine{00150\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00155\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a45eecb3a776bac9379862445e390a389}{processBMSMessage}}(uint8\_t*\ buf);}
 \DoxyCodeLine{00156\ }
-\DoxyCodeLine{00162\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a8700b6ec99fbe8df780b6d22839881fc}{processDMCMessage}}(uint32\_t\ \textcolor{keywordtype}{id},\ uint8\_t*\ buf);}
-\DoxyCodeLine{00163\ }
-\DoxyCodeLine{00169\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a3dc09f30dbf9c60812c482ec056d0419}{processNLGMessage}}(uint32\_t\ \textcolor{keywordtype}{id},\ uint8\_t*\ buf);}
-\DoxyCodeLine{00170\ \ \ \ \ }
-\DoxyCodeLine{00174\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_aeea95c87b0ec1e648d6ef85d55f0db7e}{resetMessageBuffers}}();}
-\DoxyCodeLine{00175\ }
-\DoxyCodeLine{00179\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a6c05739d05ba41aa132d22ec64af8c85}{checkAndProcessMessages}}();}
-\DoxyCodeLine{00180\ \ \ \ \ }
-\DoxyCodeLine{00181\ \ \ \ \ \textcolor{comment}{//\ Hardware\ interfaces}}
-\DoxyCodeLine{00182\ \ \ \ \ mcp2515\_can\ \mbox{\hyperlink{class_c_a_n_manager_ac0c6cbc36b0295cc3608f9ce053d4ad7}{CAN}};\ \ \ \ \ \ \ \ \ }
-\DoxyCodeLine{00183\ \ \ \ \ SPIClass*\ \mbox{\hyperlink{class_c_a_n_manager_a95a020162f73273c97d267468e1a9a26}{customSPI}};\ \ \ \ \ }
-\DoxyCodeLine{00184\ \ \ \ \ }
-\DoxyCodeLine{00185\ \ \ \ \ \textcolor{comment}{//\ Message\ buffers\ for\ different\ subsystems}}
-\DoxyCodeLine{00186\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_c_a_n_manager_a0bda836dc12bcc76a396f11f1976c365}{controlBufferDMC}}[8];\ \ }
-\DoxyCodeLine{00187\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_c_a_n_manager_aac653d4efc4589bb640e539ffd2828c7}{controlBufferBSC}}[8];\ \ }
-\DoxyCodeLine{00188\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_c_a_n_manager_a84506d67758b05a4362333f5fb213829}{limitBufferBSC}}[8];\ \ \ \ }
-\DoxyCodeLine{00189\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_c_a_n_manager_a0f442e3c6c8dc0b5d750352f85d8a866}{limitBufferDMC}}[8];\ \ \ \ }
-\DoxyCodeLine{00190\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_c_a_n_manager_aa80d70da464c74629d04810e48f66e08}{controlBufferNLG}}[8];\ \ }
-\DoxyCodeLine{00191\ \ \ \ \ }
-\DoxyCodeLine{00192\ \ \ \ \ \textcolor{comment}{//\ System\ data\ storage}}
-\DoxyCodeLine{00193\ \ \ \ \ \mbox{\hyperlink{struct_b_m_s_data}{BMSData}}\ \mbox{\hyperlink{class_c_a_n_manager_a6026a355309175f4f5a5a848e48a46e3}{bmsData}};\ \ \ \ \ \ \ \ \ }
-\DoxyCodeLine{00194\ \ \ \ \ \mbox{\hyperlink{struct_d_m_c_data}{DMCData}}\ \mbox{\hyperlink{class_c_a_n_manager_ad2afc5d4c4a131945f2c0566b1d1df95}{dmcData}};\ \ \ \ \ \ \ \ \ }
-\DoxyCodeLine{00195\ \ \ \ \ \mbox{\hyperlink{struct_b_s_c_data}{BSCData}}\ \mbox{\hyperlink{class_c_a_n_manager_a0b87e95cd752b58e504d2471b2be68f7}{bscData}};\ \ \ \ \ \ \ \ \ }
-\DoxyCodeLine{00196\ \ \ \ \ \mbox{\hyperlink{struct_n_l_g_data}{NLGData}}\ \mbox{\hyperlink{class_c_a_n_manager_a861adbe06d0c26e8734d2cd8ae5f68e1}{nlgData}};\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00161\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a3483bf7e9726d6af2f7faa488d3c5b56}{processBSCMessage}}(uint8\_t*\ buf);}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00168\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a8700b6ec99fbe8df780b6d22839881fc}{processDMCMessage}}(uint32\_t\ \textcolor{keywordtype}{id},\ uint8\_t*\ buf);}
+\DoxyCodeLine{00169\ }
+\DoxyCodeLine{00175\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a3dc09f30dbf9c60812c482ec056d0419}{processNLGMessage}}(uint32\_t\ \textcolor{keywordtype}{id},\ uint8\_t*\ buf);}
+\DoxyCodeLine{00176\ \ \ \ \ }
+\DoxyCodeLine{00180\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_aeea95c87b0ec1e648d6ef85d55f0db7e}{resetMessageBuffers}}();}
+\DoxyCodeLine{00181\ }
+\DoxyCodeLine{00185\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_c_a_n_manager_a6c05739d05ba41aa132d22ec64af8c85}{checkAndProcessMessages}}();}
+\DoxyCodeLine{00186\ \ \ \ \ }
+\DoxyCodeLine{00187\ \ \ \ \ \textcolor{comment}{//\ Hardware\ interfaces}}
+\DoxyCodeLine{00188\ \ \ \ \ mcp2515\_can\ \mbox{\hyperlink{class_c_a_n_manager_ac0c6cbc36b0295cc3608f9ce053d4ad7}{CAN}};\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00189\ \ \ \ \ SPIClass*\ \mbox{\hyperlink{class_c_a_n_manager_a95a020162f73273c97d267468e1a9a26}{customSPI}};\ \ \ \ \ }
+\DoxyCodeLine{00190\ \ \ \ \ }
+\DoxyCodeLine{00191\ \ \ \ \ \textcolor{comment}{//\ Message\ buffers\ for\ different\ subsystems}}
+\DoxyCodeLine{00192\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_c_a_n_manager_a0bda836dc12bcc76a396f11f1976c365}{controlBufferDMC}}[8];\ \ }
+\DoxyCodeLine{00193\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_c_a_n_manager_aac653d4efc4589bb640e539ffd2828c7}{controlBufferBSC}}[8];\ \ }
+\DoxyCodeLine{00194\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_c_a_n_manager_a84506d67758b05a4362333f5fb213829}{limitBufferBSC}}[8];\ \ \ \ }
+\DoxyCodeLine{00195\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_c_a_n_manager_a0f442e3c6c8dc0b5d750352f85d8a866}{limitBufferDMC}}[8];\ \ \ \ }
+\DoxyCodeLine{00196\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{class_c_a_n_manager_aa80d70da464c74629d04810e48f66e08}{controlBufferNLG}}[8];\ \ }
 \DoxyCodeLine{00197\ \ \ \ \ }
-\DoxyCodeLine{00198\ \ \ \ \ \mbox{\hyperlink{class_state_manager}{StateManager}}\&\ \mbox{\hyperlink{class_c_a_n_manager_a4b2dd00e490cffebc7e6d74aa26f7676}{stateManager}};\ \ }
-\DoxyCodeLine{00199\ \ \ \ \ }
-\DoxyCodeLine{00200\ \ \ \ \ \textcolor{comment}{//\ Control\ parameters}}
-\DoxyCodeLine{00201\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_c_a_n_manager_a25b33e5e2be3f0465d03066e9aa964f9}{torqueDemand}};\ \ \ \ \ \ }
-\DoxyCodeLine{00202\ \ \ \ \ int16\_t\ \mbox{\hyperlink{class_c_a_n_manager_ab39f7df8064bac0e90bbd96da49c2207}{speedDemand}};\ \ \ \ \ }
-\DoxyCodeLine{00203\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_c_a_n_manager_ac3a895770c02fa3156aa43755477e62d}{enableDMC}};\ \ \ \ \ \ \ \ \ \ }
-\DoxyCodeLine{00204\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_c_a_n_manager_a8942aadf7f675ca6e6241af75ca903b0}{enableBSC}};\ \ \ \ \ \ \ \ \ \ }
-\DoxyCodeLine{00205\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_c_a_n_manager_a752aaf300ec916bc2142c414e09396a4}{modeBSC}};\ \ \ \ \ \ \ \ \ \ \ \ }
-\DoxyCodeLine{00206\ \ \ \ \ uint16\_t\ \mbox{\hyperlink{class_c_a_n_manager_aa0f053eff41f7d49ebcc2cef09d017d2}{lvVoltage}};\ \ \ \ \ \ }
-\DoxyCodeLine{00207\ \ \ \ \ uint16\_t\ \mbox{\hyperlink{class_c_a_n_manager_aff72573b61ae2a60ec521533bbc30c13}{hvVoltage}};\ \ \ \ \ \ }
-\DoxyCodeLine{00208\ \ \ \ \ }
-\DoxyCodeLine{00209\ \ \ \ \ \textcolor{comment}{//\ Timing\ management}}
-\DoxyCodeLine{00210\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{class_c_a_n_manager_ae424c842c71cb917499da9dbed4637fc}{lastFastCycle}};\ \ \ }
-\DoxyCodeLine{00211\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{class_c_a_n_manager_a2f3d61dedfc92bff9490e0b32ca13700}{lastSlowCycle}};\ \ \ }
-\DoxyCodeLine{00212\ \};}
+\DoxyCodeLine{00198\ \ \ \ \ \textcolor{comment}{//\ System\ data\ storage}}
+\DoxyCodeLine{00199\ \ \ \ \ \mbox{\hyperlink{struct_b_m_s_data}{BMSData}}\ \mbox{\hyperlink{class_c_a_n_manager_a6026a355309175f4f5a5a848e48a46e3}{bmsData}};\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00200\ \ \ \ \ \mbox{\hyperlink{struct_d_m_c_data}{DMCData}}\ \mbox{\hyperlink{class_c_a_n_manager_ad2afc5d4c4a131945f2c0566b1d1df95}{dmcData}};\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00201\ \ \ \ \ \mbox{\hyperlink{struct_b_s_c_data}{BSCData}}\ \mbox{\hyperlink{class_c_a_n_manager_a0b87e95cd752b58e504d2471b2be68f7}{bscData}};\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00202\ \ \ \ \ \mbox{\hyperlink{struct_n_l_g_data}{NLGData}}\ \mbox{\hyperlink{class_c_a_n_manager_a861adbe06d0c26e8734d2cd8ae5f68e1}{nlgData}};\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00203\ \ \ \ \ }
+\DoxyCodeLine{00204\ \ \ \ \ \mbox{\hyperlink{class_state_manager}{StateManager}}*\ \mbox{\hyperlink{class_c_a_n_manager_a233ae19f20492b222b2660d1d4534d31}{stateManager}};\ \ }
+\DoxyCodeLine{00205\ \ \ \ \ }
+\DoxyCodeLine{00206\ \ \ \ \ \textcolor{comment}{//\ Control\ parameters}}
+\DoxyCodeLine{00207\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{class_c_a_n_manager_a25b33e5e2be3f0465d03066e9aa964f9}{torqueDemand}};\ \ \ \ \ \ }
+\DoxyCodeLine{00208\ \ \ \ \ int16\_t\ \mbox{\hyperlink{class_c_a_n_manager_ab39f7df8064bac0e90bbd96da49c2207}{speedDemand}};\ \ \ \ \ }
+\DoxyCodeLine{00209\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_c_a_n_manager_ac3a895770c02fa3156aa43755477e62d}{enableDMC}};\ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00210\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_c_a_n_manager_a8942aadf7f675ca6e6241af75ca903b0}{enableBSC}};\ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00211\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_c_a_n_manager_a752aaf300ec916bc2142c414e09396a4}{modeBSC}};\ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00212\ \ \ \ \ uint16\_t\ \mbox{\hyperlink{class_c_a_n_manager_aa0f053eff41f7d49ebcc2cef09d017d2}{lvVoltage}};\ \ \ \ \ \ }
+\DoxyCodeLine{00213\ \ \ \ \ uint16\_t\ \mbox{\hyperlink{class_c_a_n_manager_aff72573b61ae2a60ec521533bbc30c13}{hvVoltage}};\ \ \ \ \ \ }
+\DoxyCodeLine{00214\ \ \ \ \ }
+\DoxyCodeLine{00215\ \ \ \ \ \textcolor{comment}{//\ Timing\ management}}
+\DoxyCodeLine{00216\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{class_c_a_n_manager_ae424c842c71cb917499da9dbed4637fc}{lastFastCycle}};\ \ \ }
+\DoxyCodeLine{00217\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{class_c_a_n_manager_a2f3d61dedfc92bff9490e0b32ca13700}{lastSlowCycle}};\ \ \ }
+\DoxyCodeLine{00218\ \};}
 
 \end{DoxyCode}

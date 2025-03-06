@@ -1,6 +1,6 @@
 var class_c_a_n_manager =
 [
-    [ "CANManager", "class_c_a_n_manager.html#a617eca77fdc9d386503940c0756405b4", null ],
+    [ "CANManager", "class_c_a_n_manager.html#ac39674d04a62c10d38586c7f32c142c9", null ],
     [ "~CANManager", "class_c_a_n_manager.html#acb783ab842953c4c91fe2389542daa64", null ],
     [ "begin", "class_c_a_n_manager.html#a277563f05624b88e8fb096b320f86ac0", null ],
     [ "checkAndProcessMessages", "class_c_a_n_manager.html#a6c05739d05ba41aa132d22ec64af8c85", null ],
@@ -18,8 +18,10 @@ var class_c_a_n_manager =
     [ "sendNLG", "class_c_a_n_manager.html#ab9c0e9cc72eee5775db0b381f6457adf", null ],
     [ "setEnableBSC", "class_c_a_n_manager.html#aa5d39dcfe3d5c908828888e10d9abb62", null ],
     [ "setEnableDMC", "class_c_a_n_manager.html#a43fcdafcf58b2dc20c892bc046b68ec8", null ],
+    [ "setHVVoltage", "class_c_a_n_manager.html#ab1c144af09ef718bf2379a80c1333f0b", null ],
     [ "setModeBSC", "class_c_a_n_manager.html#a9ca9827803043a85678a3a1eb5f67f3d", null ],
     [ "setSpeedDemand", "class_c_a_n_manager.html#aaa56580dc04ee0451d8a38c439be990c", null ],
+    [ "setStateManager", "class_c_a_n_manager.html#a114efe37cce8a2bfb6f91169f9f80e34", null ],
     [ "setTorqueDemand", "class_c_a_n_manager.html#a905807ce5663f91104705a096e88f353", null ],
     [ "update", "class_c_a_n_manager.html#afd0bd22653e68906054964cad9df684c", null ],
     [ "bmsData", "class_c_a_n_manager.html#a6026a355309175f4f5a5a848e48a46e3", null ],
@@ -41,6 +43,6 @@ var class_c_a_n_manager =
     [ "modeBSC", "class_c_a_n_manager.html#a752aaf300ec916bc2142c414e09396a4", null ],
     [ "nlgData", "class_c_a_n_manager.html#a861adbe06d0c26e8734d2cd8ae5f68e1", null ],
     [ "speedDemand", "class_c_a_n_manager.html#ab39f7df8064bac0e90bbd96da49c2207", null ],
-    [ "stateManager", "class_c_a_n_manager.html#a4b2dd00e490cffebc7e6d74aa26f7676", null ],
+    [ "stateManager", "class_c_a_n_manager.html#a233ae19f20492b222b2660d1d4534d31", null ],
     [ "torqueDemand", "class_c_a_n_manager.html#a25b33e5e2be3f0465d03066e9aa964f9", null ]
 ];

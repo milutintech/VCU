@@ -2,6 +2,7 @@ var class_vehicle_control =
 [
     [ "VehicleControl", "class_vehicle_control.html#a58a56e235f86e223c10a168e13f6a81f", null ],
     [ "applyDeadbandHysteresis", "class_vehicle_control.html#a30cf56fd18bf83a739cf93f9ce411197", null ],
+    [ "applyTorqueCutoff", "class_vehicle_control.html#a23a03afca9dcef1b53994f70d90ae70f", null ],
     [ "applyTorqueLimits", "class_vehicle_control.html#a5cb0e6e6505a509172f20331ff84942e", null ],
     [ "calculateCoastLowerBound", "class_vehicle_control.html#ad4c6b681f6a2afc16f956c5611819d97", null ],
     [ "calculateCoastUpperBound", "class_vehicle_control.html#aa8e205ba6872b201ea8a00470c4fa2ac", null ],
@@ -20,6 +21,7 @@ var class_vehicle_control =
     [ "setMotorSpeed", "class_vehicle_control.html#a7a598d53412fde2f576e731976bf1629", null ],
     [ "setOPDEnabled", "class_vehicle_control.html#aeeead8dc56ced72558564016510265e4", null ],
     [ "setRegenEnabled", "class_vehicle_control.html#a874a9f63a0ed236f177518c5ca4c8e28", null ],
+    [ "updateGearState", "class_vehicle_control.html#a78c126780c83734a048e0b908786c202", null ],
     [ "ads", "class_vehicle_control.html#a5b359885d36fd5b369b5fe9ba245e26f", null ],
     [ "currentDrivingMode", "class_vehicle_control.html#abfc6ce11a4e233ef219d263436f85ea7", null ],
     [ "currentGear", "class_vehicle_control.html#a45a0e34140d9e5c07e98ae707cc33d0d", null ],
@@ -30,6 +32,8 @@ var class_vehicle_control =
     [ "lastTorque", "class_vehicle_control.html#a0cdfc88cd1fcab4476cba7dff02817ff", null ],
     [ "MAX_VEHICLE_SPEED", "class_vehicle_control.html#a80eda80a14c3c360773c8086d0300f7f", null ],
     [ "motorSpeed", "class_vehicle_control.html#a688b949933676e0ca5db45863020a0e7", null ],
+    [ "opdPid", "class_vehicle_control.html#ae99e32126a741ee0c593892b59d5c983", null ],
+    [ "shiftAttempted", "class_vehicle_control.html#a0778dca45abeea99b3757185caa21849", null ],
     [ "wasEnabled", "class_vehicle_control.html#a691c84d9e1b5ad1eee5147433f0c6726", null ],
     [ "wasInDeadband", "class_vehicle_control.html#a903dc2b6279d04f50eb8c2c33f9cf537", null ]
 ];

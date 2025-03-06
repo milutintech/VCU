@@ -27,7 +27,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.2</span>
+   <div id="projectname">Vehicle Control Unit<span id="projectnumber">&#160;1.7</span>
    </div>
    <div id="projectbrief">ESP32-based Electric Vehicle Control System</div>
   </td>
@@ -97,6 +97,9 @@ $(function(){initNavTree('can__manager_8cpp.html',''); initResizable(true); });
 </div>
 
 <div class="header">
+  <div class="summary">
+<a href="#define-members">Macros</a> &#124;
+<a href="#var-members">Variables</a>  </div>
   <div class="headertitle"><div class="title">can_manager.cpp File Reference</div></div>
 </div><!--header-->
 <div class="contents">
@@ -107,14 +110,27 @@ $(function(){initNavTree('can__manager_8cpp.html',''); initResizable(true); });
 <code>#include &quot;<a class="el" href="state__manager_8h_source.html">state_manager.h</a>&quot;</code><br />
 <code>#include &lt;esp_task_wdt.h&gt;</code><br />
 <code>#include &quot;<a class="el" href="config_8h_source.html">config.h</a>&quot;</code><br />
+<code>#include &lt;algorithm&gt;</code><br />
 </div><div class="textblock"><div id="dynsection-0" onclick="return dynsection.toggleVisibility(this)" class="dynheader closed" style="cursor:pointer;">
   <img id="dynsection-0-trigger" src="closed.png" alt="+"/> Include dependency graph for can_manager.cpp:</div>
 <div id="dynsection-0-summary" class="dynsummary" style="display:block;">
 </div>
 <div id="dynsection-0-content" class="dyncontent" style="display:none;">
-<div class="center"><iframe scrolling="no" frameborder="0" src="can__manager_8cpp__incl.svg" width="439" height="331"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+<div class="center"><iframe scrolling="no" frameborder="0" src="can__manager_8cpp__incl.svg" width="522" height="331"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
 </div>
-</div><a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+</div><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="define-members" name="define-members"></a>
+Macros</h2></td></tr>
+<tr class="memitem:ad4fd1a352daac0bcf191e312c5736348" id="r_ad4fd1a352daac0bcf191e312c5736348"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad4fd1a352daac0bcf191e312c5736348">BMS_TIMEOUT_MS</a>&#160;&#160;&#160;1000</td></tr>
+<tr class="memdesc:ad4fd1a352daac0bcf191e312c5736348"><td class="mdescLeft">&#160;</td><td class="mdescRight">Process BMS status message.  <br /></td></tr>
+<tr class="separator:ad4fd1a352daac0bcf191e312c5736348"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
+Variables</h2></td></tr>
+<tr class="memitem:a4e246280c7c28882e93826915cfb65ec" id="r_a4e246280c7c28882e93826915cfb65ec"><td class="memItemLeft" align="right" valign="top">unsigned long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4e246280c7c28882e93826915cfb65ec">lastBMSUpdate</a> = 0</td></tr>
+<tr class="separator:a4e246280c7c28882e93826915cfb65ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Implementation of CAN communication management system. </p>
 <p>Handles all CAN bus communication between vehicle subsystems including:</p><ul>
 <li>Message transmission and reception</li>
@@ -123,7 +139,39 @@ $(function(){initNavTree('can__manager_8cpp.html',''); initResizable(true); });
 <li>System state coordination</li>
 </ul>
 <p>Uses MCP2515 CAN controller via SPI interface. </p>
-</div></div><!-- contents -->
+</div><h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="ad4fd1a352daac0bcf191e312c5736348" name="ad4fd1a352daac0bcf191e312c5736348"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad4fd1a352daac0bcf191e312c5736348">&#9670;&#160;</a></span>BMS_TIMEOUT_MS</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define BMS_TIMEOUT_MS&#160;&#160;&#160;1000</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Process BMS status message. </p>
+
+</div>
+</div>
+<h2 class="groupheader">Variable Documentation</h2>
+<a id="a4e246280c7c28882e93826915cfb65ec" name="a4e246280c7c28882e93826915cfb65ec"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4e246280c7c28882e93826915cfb65ec">&#9670;&#160;</a></span>lastBMSUpdate</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">unsigned long lastBMSUpdate = 0</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+</div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
