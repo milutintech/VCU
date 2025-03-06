@@ -71,7 +71,6 @@ void canTask(void* parameter) {
     ads.begin();
     ads.setGain(2);         // Set ADC gain for pedal reading
     canManager->begin();
-    vehicleControl->setDrivingMode(DriveMode::LEGACY);
     esp_task_wdt_init(5, true);  // 5 second watchdog timeout
     
     for(;;) {

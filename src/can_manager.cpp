@@ -202,7 +202,8 @@ void CANManager::processDMCMessage(uint32_t id, uint8_t* buf) {
             dmcData.running = buf[0] & 0x40;
             dmcData.torqueAvailable = ((buf[2] << 8) | buf[3]) * 0.01;
             dmcData.torqueActual = ((buf[4] << 8) | buf[5]) * 0.01;
-            dmcData.speedActual = static_cast<float>((buf[6] << 8) | buf[7]);
+            dmcData.speedActual = static_cast<float>(static_cast<int16_t>((buf[6] << 8) | buf[7]));
+            //Serial.println(dmcData.speedActual);
             break;
             
         case 0x259:  // Power message

@@ -158,6 +158,7 @@ int16_t VehicleControl::handleLegacyMode(float throttlePosition) {
            -VehicleParams::Motor::MAX_TRQ : VehicleParams::Motor::MAX_REVERSE_TRQ);
 }
 
+
 /**
  * @brief Handle Regenerative driving mode.
  * @param throttlePosition Processed pedal position (0-100%).
@@ -165,36 +166,105 @@ int16_t VehicleControl::handleLegacyMode(float throttlePosition) {
  * @return Calculated torque for regen mode.
  */
 int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
-    // Define key points in the throttle range
-    const float REGEN_END = VehicleParams::Regen::END_POINT;     // Max regen threshold (e.g., 20% throttle)
-    const float COAST_END = VehicleParams::Regen::COAST_END;     // Start of acceleration (e.g., 30% throttle)
-    const float ZERO_SPEED_DEADBAND = VehicleParams::Regen::ZERO_SPEED;  // Speed deadband (e.g., 1 kph)
+    // Constants for pedal mapping
+    const float FULL_REGEN_POINT = 5.0f;      // Max regen below this point
+    const float REGEN_END = 30.0f;            // End of regen zone
+    const float ACCELERATION_START = 40.0f;   // Begin acceleration
+    const float DEADBAND_RPM = 30.0f;         // RPM deadband around zero
 
-    // If in neutral, no torque should be applied
+    // Debug info
+    Serial.print("RPM: ");
+    Serial.println(motorSpeed);
+    
+    // Check neutral gear - no torque applied
     if (currentGear == GearState::NEUTRAL) {
         return 0;
     }
-
-    // Standstill deadband: No regen or acceleration when in deadband range
-    if (fabs(speed) < ZERO_SPEED_DEADBAND) {
-        return 0;
+    
+    // Direction handling using motor RPM, not speed
+    // Remember: Negative RPM/torque = forward, Positive RPM/torque = reverse
+    bool isMovingForward = (motorSpeed < 0);
+    bool isMovingReverse = (motorSpeed > 0);
+    bool isDriveGear = (currentGear == GearState::DRIVE);
+    bool isReverseGear = (currentGear == GearState::REVERSE);
+    float absRPM = fabs(motorSpeed);
+    
+    // Regen zone (0-30% pedal)
+    if (throttlePosition <= REGEN_END) {
+        // Calculate regen strength based on pedal position - max at low pedal position
+        float regenStrength;
+        if (throttlePosition <= FULL_REGEN_POINT) {
+            regenStrength = 1.0f; // Full regen
+        } else {
+            // Linear ramp from full to zero
+            regenStrength = 1.0f - ((throttlePosition - FULL_REGEN_POINT) / (REGEN_END - FULL_REGEN_POINT));
+        }
+        
+        // Smooth RPM scaling with enhanced taper near threshold
+        const float MIN_REGEN_RPM = DEADBAND_RPM;     // Start tapering at deadband
+        const float FADE_RPM = 300.0f;                // Full regen available above this RPM
+        
+        // Calculate RPM factor with smooth taper
+        float rpmFactor;
+        if (absRPM <= MIN_REGEN_RPM + 20.0f) {
+            // Sharp taper just after deadband for smoother transition
+            rpmFactor = 0.1f * (absRPM - MIN_REGEN_RPM) / 20.0f;
+        } else if (absRPM <= FADE_RPM) {
+            // Progressive curve from threshold to full regen
+            float normalizedRpm = (absRPM - (MIN_REGEN_RPM + 20.0f)) / (FADE_RPM - (MIN_REGEN_RPM + 20.0f));
+            rpmFactor = 0.1f + 0.9f * pow(normalizedRpm, 1.5f); // Non-linear ramp
+        } else {
+            rpmFactor = 1.0f; // Full strength above FADE_RPM
+        }
+        
+        // Base regen torque value
+        float maxRegenTorque = VehicleParams::Motor::MAX_REQ_TRQ * 0.8f;
+        float regenTorque = regenStrength * maxRegenTorque * rpmFactor;
+        
+        // Apply correct regen direction based on current motion
+        // To apply regen: torque must oppose current motion
+        if (isMovingForward) {
+            // Moving forward (negative RPM) -> apply positive torque to slow down
+            return static_cast<int16_t>(regenTorque);
+        } else if (isMovingReverse) {
+            // Moving reverse (positive RPM) -> apply negative torque to slow down
+            return static_cast<int16_t>(-regenTorque);
+        }
+        return 0; // Fallback if not moving
     }
-
-    // ** Regenerative Braking Zone (Throttle 0% - REGEN_END%) **
-    if (throttlePosition < REGEN_END) {
-        float regenFactor = 1.0f - (throttlePosition / REGEN_END);
-        return regenFactor * VehicleParams::Motor::MAX_REQ_TRQ;  // Regen torque (positive value)
+    
+    // Coast zone (30-40% pedal)
+    if (throttlePosition < ACCELERATION_START) {
+        return 0; // Zero torque = coast
     }
-
-    // ** Coast Zone (Throttle REGEN_END% - COAST_END%) **
-    if (throttlePosition < COAST_END) {
-        return 0;  // No torque (coasting)
+    
+    // Acceleration zone (40-100% pedal)
+    float accelPercent = (throttlePosition - ACCELERATION_START) / (100.0f - ACCELERATION_START);
+    
+    // Smooth acceleration curve with dynamic speed scaling
+    float accelFactor = pow(accelPercent, 1.6f);
+    
+    // Apply speed-based taper for acceleration power (more gentle at low speeds)
+    if (absRPM < 100.0f) {
+        // Gentle acceleration from standstill
+        float speedScale = std::min(absRPM / 100.0f, 1.0f);
+        accelFactor *= (0.2f + 0.8f * speedScale); // At least 20% power at very low speeds
     }
-
-    // ** Acceleration Zone (Throttle > COAST_END%) **
-    float accelFactor = (throttlePosition - COAST_END) / (100.0f - COAST_END);
-    return -accelFactor * VehicleParams::Motor::MAX_TRQ;  // Negative torque for forward acceleration
+    // Apply torque based on selected gear, respecting direction
+    if (isDriveGear) {
+        // Drive gear applies negative torque (forward motion)
+        if(motorSpeed > -90 && (0 < static_cast<int16_t>(-accelFactor * VehicleParams::Motor::MAX_TRQ))){
+            return 0;
+        }
+        return static_cast<int16_t>(-accelFactor * VehicleParams::Motor::MAX_TRQ);
+    } else if (isReverseGear) {
+        // Reverse gear applies positive torque (reverse motion)
+        return static_cast<int16_t>(accelFactor * VehicleParams::Motor::MAX_REVERSE_TRQ);
+    }
+    
+    return 0; // Fallback
 }
+
 
 /**
  * @brief Handle One Pedal Drive (OPD) mode with PID anti-rollback and torque capping.

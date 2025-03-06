@@ -133,6 +133,11 @@ private:
     // System references
     CANManager& canManager;
 
+    unsigned long lastNlgWakeupCheck;
+    bool wasNlgWakeupHigh;
+    static constexpr unsigned long NLG_WAKEUP_CHECK_INTERVAL = 500; // Check every 500ms
+    static constexpr unsigned long CHARGER_TRANSITION_TIMEOUT = 5000; // 5 second timeout
+    
     // Internal state variables
     VehicleState currentState;     // Current vehicle operational state
     bool batteryArmed;            // Battery system active flag
