@@ -108,7 +108,12 @@ public:
      */
     uint8_t getWakeupReason();
     
-    // Configuration methods
+     /**
+     * @brief Interrupt handler for connector unlock button
+     * Called by ISR when the unlock button is pressed
+     */
+    void handleConnectorUnlockInterrupt() { conUlockInterrupt = true; }
+    
     void setBatteryVoltage(uint16_t voltage) { batteryVoltage = voltage; }
     void setInverterTemp(float temp) { inverterTemp = temp; }
     void setMotorTemp(float temp) { motorTemp = temp; }

@@ -320,7 +320,6 @@ void CANManager::sendNLG() {
 
     float limitedCurrent = std::min(VehicleParams::Battery::MAX_NLG_CURRENT, static_cast<int>(bmsData.maxCharge));
     int nlgCurrentScale = static_cast<int>((limitedCurrent + 102.4) * 10);
-    Serial.println(limitedCurrent);
     controlBufferNLG[0] = (false << 7) | (nlgData.unlockRequest << 6) | (false << 5) | ((nlgVoltageScale >> 8) & 0x1F);
     controlBufferNLG[1] = nlgVoltageScale & 0xFF;
     controlBufferNLG[2] = (nlgData.stateDemand << 5) | ((nlgCurrentScale >> 8) & 0x07);

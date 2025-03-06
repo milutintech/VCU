@@ -41,6 +41,14 @@ SerialConsole* serialConsole = nullptr; // Debug console interface
 TaskHandle_t canTaskHandle = nullptr;     // CAN task handle (Core 0)
 TaskHandle_t controlTaskHandle = nullptr; // Control task handle (Core 1)
 
+// Connector unlock ISR function
+void IRAM_ATTR connectorUnlockISR() {
+    if (stateManager) {
+        stateManager->handleConnectorUnlockInterrupt();
+        //Serial.println("innterrupt");
+    }
+}
+
 /**
  * @brief CAN and Fast Control Task (Core 0)
  * 
@@ -167,6 +175,7 @@ void setup() {
 
     // Initialize hardware
     SystemSetup::initializeGPIO();
+    attachInterrupt(digitalPinToInterrupt(Pins::UNLCKCON), connectorUnlockISR, RISING);
     SystemSetup::initializeSleep();
     
     // Create tasks with error checking
