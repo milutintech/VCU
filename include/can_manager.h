@@ -146,6 +146,9 @@ public:
     void setEnableBSC(bool enable) { enableBSC = enable; }
     void setModeBSC(bool mode) { modeBSC = mode; }
     void setHVVoltage(uint16_t voltage) { hvVoltage = voltage; }
+    void setNLGStateDemand(uint8_t state) { nlgData.stateDemand = state; }
+    void setNLGLedDemand(uint8_t led) { nlgData.ledDemand = led; }
+    void setNLGUnlockRequest(bool unlock) { nlgData.unlockRequest = unlock; }
         
 private:
     /**
@@ -184,6 +187,8 @@ private:
      */
     void checkAndProcessMessages();
     
+    
+
     // Hardware interfaces
     mcp2515_can CAN;         ///< CAN controller instance
     SPIClass* customSPI;     ///< Custom SPI interface

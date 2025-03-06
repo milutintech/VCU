@@ -195,6 +195,9 @@ void StateManager::handleChargingState() {
     
     armCoolingSys(true);
     chargeManage();
+    canManager.setNLGStateDemand(chargerStateDemand);
+    canManager.setNLGLedDemand(chargeLedDemand);
+    canManager.setNLGUnlockRequest(unlockConnectorRequest);
 }
 
 /**
@@ -320,7 +323,7 @@ void StateManager::chargeManage() {
     static unsigned long unlockTimeout = 0;
 
     if (currentState == VehicleState::CHARGING) {
-
+        chargerState = canManager.getNLGData().stateAct;
         // === NEW: Stop charging if SOC is too high ===
         if (canManager.getBMSData().soc >= VehicleParams::Battery::MAX_SOC) {
             Serial.println("SOC limit reached! Stopping charge.");
