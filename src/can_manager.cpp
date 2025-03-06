@@ -15,7 +15,7 @@
 #include "state_manager.h"
 #include <esp_task_wdt.h>
 #include "config.h"
-
+#include <algorithm>
 /**
  * @brief Constructs the CAN manager
  * @param cs_pin SPI chip select pin for CAN controller
@@ -159,15 +159,19 @@ void CANManager::checkAndProcessMessages() {
 /**
  * @brief Process BMS status message
  */
+#define BMS_TIMEOUT_MS 1000  // Timeout duration in milliseconds
+unsigned long lastBMSUpdate = 0;  // Variable to track last update timestamp
+
 void CANManager::processBMSMessage(uint8_t* buf) {
     if (!buf) return;
     
     bmsData.soc = buf[0] / 2;
-    bmsData.voltage = (buf[2]|(buf[1]<< 8))/10;   // 370;Fixed value for testing
+    bmsData.voltage = (buf[2] | (buf[1] << 8)) / 10;
     bmsData.current = 400; //(buf[3] | (buf[4] << 8)) / 100;
     bmsData.maxDischarge = (buf[5] | (buf[6] << 8)) / 100;
     bmsData.maxCharge = buf[7] * 2;
 
+    lastBMSUpdate = millis(); // Update timestamp on valid message
 }
 
 /**
@@ -307,8 +311,15 @@ void CANManager::sendDMC() {
  */
 void CANManager::sendNLG() {
     int nlgVoltageScale = static_cast<int>(VehicleParams::Battery::MAX_VOLTAGE * 10);
-    int nlgCurrentScale = static_cast<int>((VehicleParams::Battery::MAX_NLG_CURRENT + 102.4) * 10);
-    
+
+    // Check if BMS timeout has occurred
+    if (millis() - lastBMSUpdate > BMS_TIMEOUT_MS) {
+        bmsData.maxCharge = 0;  // Set max charge current to 0 if timeout occurs
+    }
+
+    float limitedCurrent = std::min(VehicleParams::Battery::MAX_NLG_CURRENT, static_cast<int>(bmsData.maxCharge));
+    int nlgCurrentScale = static_cast<int>((limitedCurrent + 102.4) * 10);
+
     controlBufferNLG[0] = (false << 7) | (nlgData.unlockRequest << 6) | 
                          (false << 5) | ((nlgVoltageScale >> 8) & 0x1F);
     controlBufferNLG[1] = nlgVoltageScale & 0xFF;
@@ -319,7 +330,6 @@ void CANManager::sendNLG() {
     
     CAN.sendMsgBuf(CANIds::NLG_DEM_LIM, 0, 8, controlBufferNLG);
 }
-
 /**
  * @brief Reset all CAN message buffers to default state
  * 
