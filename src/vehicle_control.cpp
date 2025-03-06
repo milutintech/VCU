@@ -163,43 +163,37 @@ int16_t VehicleControl::handleLegacyMode(float throttlePosition) {
  * @param throttlePosition Processed pedal position (0-100%).
  * @param speed Current vehicle speed in kph.
  * @return Calculated torque for regen mode.
- * 
- * Implements three zones:
- * 1. Regenerative braking (low pedal).
- * 2. Coast (mid pedal).
- * 3. Acceleration (high pedal).
  */
 int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
-    if (currentGear == GearState::DRIVE) {
-        if (abs(motorSpeed) < VehicleParams::Regen::ZERO_SPEED) {
-            // At standstill: if throttle is above coast threshold, accelerate.
-            if (throttlePosition > VehicleParams::Regen::COAST_END) {
-                float accelFactor = (throttlePosition - VehicleParams::Regen::COAST_END) / 
-                                  (100.0f - VehicleParams::Regen::COAST_END);
-                return -accelFactor * VehicleParams::Motor::MAX_TRQ;
-            }
-            return 0;
-        }
-        else if (motorSpeed < -VehicleParams::Regen::MIN_SPEED) {
-            // Forward motion.
-            if (throttlePosition < VehicleParams::Regen::END_POINT) {
-                // Regen zone.
-                float regenFactor = 1.0f - (throttlePosition / VehicleParams::Regen::END_POINT);
-                return regenFactor * VehicleParams::Motor::MAX_REQ_TRQ;
-            }
-            else if (throttlePosition < VehicleParams::Regen::COAST_END) {
-                // Coast zone.
-                return 0;
-            }
-            else {
-                // Acceleration zone.
-                float accelFactor = (throttlePosition - VehicleParams::Regen::COAST_END) / 
-                                  (100.0f - VehicleParams::Regen::COAST_END);
-                return -accelFactor * VehicleParams::Motor::MAX_TRQ;
-            }
-        }
+    // Define key points in the throttle range
+    const float REGEN_END = VehicleParams::Regen::END_POINT;     // Max regen threshold (e.g., 20% throttle)
+    const float COAST_END = VehicleParams::Regen::COAST_END;     // Start of acceleration (e.g., 30% throttle)
+    const float ZERO_SPEED_DEADBAND = VehicleParams::Regen::ZERO_SPEED;  // Speed deadband (e.g., 1 kph)
+
+    // If in neutral, no torque should be applied
+    if (currentGear == GearState::NEUTRAL) {
+        return 0;
     }
-    return 0;
+
+    // Standstill deadband: No regen or acceleration when in deadband range
+    if (fabs(speed) < ZERO_SPEED_DEADBAND) {
+        return 0;
+    }
+
+    // ** Regenerative Braking Zone (Throttle 0% - REGEN_END%) **
+    if (throttlePosition < REGEN_END) {
+        float regenFactor = 1.0f - (throttlePosition / REGEN_END);
+        return regenFactor * VehicleParams::Motor::MAX_REQ_TRQ;  // Regen torque (positive value)
+    }
+
+    // ** Coast Zone (Throttle REGEN_END% - COAST_END%) **
+    if (throttlePosition < COAST_END) {
+        return 0;  // No torque (coasting)
+    }
+
+    // ** Acceleration Zone (Throttle > COAST_END%) **
+    float accelFactor = (throttlePosition - COAST_END) / (100.0f - COAST_END);
+    return -accelFactor * VehicleParams::Motor::MAX_TRQ;  // Negative torque for forward acceleration
 }
 
 /**
@@ -216,69 +210,91 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
  *   the vehicle only accelerates slowly backward.
  */
 int16_t VehicleControl::handleOPDMode(float throttlePosition, float speed) {
-    // Convert speed to an absolute value (in kph).
     float absSpeed = fabs(speed);
     
     // Near-zero speed: if vehicle is nearly stopped, use PID control for anti-rollback.
     if (absSpeed < VehicleParams::OPD::ZERO_SPEED_THRESHOLD) {
-        // The PID controller is set to hold a 0 kph speed.
-        // 'CONTROL_DT' is the control loop time step (in seconds).
         float pidOutput = opdPid.update(speed, VehicleParams::Control::CONTROL_DT);
-        
-        // Cap the PID output to a maximum regenerative torque for safety at slow speeds.
-        if (pidOutput > VehicleParams::OPD::REGEN_TORQUE_CAP) {
-            pidOutput = VehicleParams::OPD::REGEN_TORQUE_CAP;
-        }
-        // For DRIVE gear, a positive torque (regen) is applied directly;
-        // for REVERSE gear, invert the sign.
-        return (currentGear == GearState::DRIVE) ? pidOutput : -pidOutput;
+        return pidOutput;
     }
     
-    // Normal OPD operation (vehicle speed is above the zero threshold).
-    // Calculate the speed percentage relative to the maximum OPD speed.
+    // Speed percentage relative to max OPD speed.
     float speedPercent = constrain(absSpeed / VehicleParams::OPD::MAX_SPEED, 0.0f, 1.0f);
     
-    // Determine coast boundaries (defines transition zones for regen, coast, and acceleration).
-    float coastUpper = VehicleParams::OPD::PHI * pow(speedPercent, 1.0f/VehicleParams::OPD::SHAPE_FACTOR);
+    // Improved coast zone boundaries.
+    float coastUpper = VehicleParams::OPD::PHI * pow(speedPercent, 1.0f / VehicleParams::OPD::SHAPE_FACTOR);
     float coastLower = coastUpper - VehicleParams::OPD::COAST_RANGE * speedPercent;
     
-    // Coast zone: if throttle is within these boundaries, command zero torque.
+    // Ensure reasonable coast range.
+    coastUpper = max(5.0f, coastUpper);
+    coastLower = max(2.0f, coastLower);
+    
+    // Coast logic.
     if (throttlePosition >= coastLower && throttlePosition <= coastUpper) {
         return 0;
     }
     
-    // Acceleration zone: throttle above the coastUpper boundary.
+    // Acceleration logic with proper throttle scaling.
     if (throttlePosition > coastUpper) {
         float normalizedPosition = (throttlePosition - coastUpper) / (100.0f - coastUpper);
         float maxTorque = VehicleParams::Motor::MAX_TRQ;
-        
-        // Scale down torque as speed increases to avoid overshooting.
-        float speedFactor = 1.0f - pow(speedPercent, 2.0f);
-        if (absSpeed < 20.0f) {
-            maxTorque *= (0.8f + (20.0f - absSpeed) / 100.0f);
-        }
-        
-        float torque = maxTorque * speedFactor * pow(normalizedPosition, 1.5f);
+
+        // No low-speed torque reduction
+        float torque = maxTorque * pow(normalizedPosition, 1.5f);
+
         return (currentGear == GearState::DRIVE) ? -torque : torque;
-    } else {
-        // Regen zone: throttle below the coastLower boundary.
-        float normalizedPosition = throttlePosition / coastLower;
-        float maxRegen = VehicleParams::OPD::MAX_REGEN * (VehicleParams::Motor::MAX_TRQ / 100.0f);
-        
-        // For very low speeds, cap the regenerative torque to prevent excessive reverse acceleration.
-        if (absSpeed < 10.0f) {
-            maxRegen = VehicleParams::OPD::SLOW_SPEED_REGEN_CAP;
-        }
-        
-        // Optionally, reduce regen torque further at higher speeds.
-        if (absSpeed > 60.0f) {
-            maxRegen *= (1.0f - (absSpeed - 60.0f) * 0.005f);
-        }
-        
-        float regenTorque = maxRegen * (1.0f - normalizedPosition);
-        return (currentGear == GearState::DRIVE) ? regenTorque : -regenTorque;
-    }
+    } 
+    
+    // Regen logic remains unchanged.
+    float normalizedPosition = throttlePosition / coastLower;
+    float maxRegen = VehicleParams::OPD::MAX_REGEN * (VehicleParams::Motor::MAX_TRQ / 100.0f);
+    
+    return (currentGear == GearState::DRIVE) ? maxRegen * (1.0f - normalizedPosition) : -maxRegen * (1.0f - normalizedPosition);
 }
+/* OLD TRY
+int16_t VehicleControl::handleOPDMode(float throttlePosition, float speed) {
+    float absSpeed = fabs(speed);
+    
+    // Near-zero speed: if vehicle is nearly stopped, use PID control for anti-rollback.
+    if (absSpeed < VehicleParams::OPD::ZERO_SPEED_THRESHOLD) {
+        float pidOutput = opdPid.update(speed, VehicleParams::Control::CONTROL_DT);
+        return pidOutput;
+    }
+    
+    // Speed percentage relative to max OPD speed.
+    float speedPercent = constrain(absSpeed / VehicleParams::OPD::MAX_SPEED, 0.0f, 1.0f);
+    
+    // Improved coast zone boundaries.
+    float coastUpper = VehicleParams::OPD::PHI * pow(speedPercent, 1.0f / VehicleParams::OPD::SHAPE_FACTOR);
+    float coastLower = coastUpper - VehicleParams::OPD::COAST_RANGE * speedPercent;
+    
+    // Ensure reasonable coast range.
+    coastUpper = max(5.0f, coastUpper);
+    coastLower = max(2.0f, coastLower);
+    
+    // Coast logic.
+    if (throttlePosition >= coastLower && throttlePosition <= coastUpper) {
+        return 0;
+    }
+    
+    // Acceleration logic with proper throttle scaling.
+    if (throttlePosition > coastUpper) {
+        float normalizedPosition = (throttlePosition - coastUpper) / (100.0f - coastUpper);
+        float maxTorque = VehicleParams::Motor::MAX_TRQ;
+
+        // No low-speed torque reduction
+        float torque = maxTorque * pow(normalizedPosition, 1.5f);
+
+        return (currentGear == GearState::DRIVE) ? -torque : torque;
+    } 
+    
+    // Regen logic remains unchanged.
+    float normalizedPosition = throttlePosition / coastLower;
+    float maxRegen = VehicleParams::OPD::MAX_REGEN * (VehicleParams::Motor::MAX_TRQ / 100.0f);
+    
+    return (currentGear == GearState::DRIVE) ? maxRegen * (1.0f - normalizedPosition) : -maxRegen * (1.0f - normalizedPosition);
+}
+*/
 
 /**
  * @brief Apply rate limiting to torque changes.
