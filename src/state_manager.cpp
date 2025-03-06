@@ -294,17 +294,54 @@ void StateManager::armBattery(bool arm) {
  */
 void StateManager::armCoolingSys(bool arm) {
     if (batteryArmed) {
-        if (arm && ((inverterTemp > VehicleParams::Temperature::INV_HIGH) || 
-                   (motorTemp > VehicleParams::Temperature::MOT_HIGH) || 
-                   (coolingRequest > 50))) {
-            digitalWrite(Pins::LWP6, HIGH);
-            digitalWrite(Pins::LWP7, HIGH);
-        } else if ((inverterTemp < VehicleParams::Temperature::INV_LOW) && 
-                  (motorTemp < VehicleParams::Temperature::MOT_LOW) && 
-                  (coolingRequest < 0)) {
+        Serial.println("Motor Temp: " + String(motorTemp));
+        Serial.println("Inverter Temp: " + String(inverterTemp));
+        Serial.println("Cooling Request: " + String(coolingRequest));
+        Serial.println("Current State: " + String((int)currentState));
+
+        if (arm) {
+            // Separate cooling logic based on vehicle state
+            if (currentState == VehicleState::CHARGING) {
+                // When charging, only consider cooling request
+                if (coolingRequest > 50) {
+                    digitalWrite(Pins::LWP6, HIGH);
+                    digitalWrite(Pins::LWP7, HIGH);
+                    Serial.println("Cooling ON - Charging state");
+                } else {
+                    digitalWrite(Pins::LWP6, LOW);
+                    digitalWrite(Pins::LWP7, LOW);
+                    Serial.println("Cooling OFF - Charging state");
+                }
+            } else if (currentState == VehicleState::RUN) {
+                // When driving, only consider motor and inverter temps
+                if ((inverterTemp > VehicleParams::Temperature::INV_HIGH) || 
+                    (motorTemp > VehicleParams::Temperature::MOT_HIGH)) {
+                    digitalWrite(Pins::LWP6, HIGH);
+                    digitalWrite(Pins::LWP7, HIGH);
+                    Serial.println("Cooling ON - Running state");
+                } else if ((inverterTemp < VehicleParams::Temperature::INV_LOW) && 
+                          (motorTemp < VehicleParams::Temperature::MOT_LOW)) {
+                    digitalWrite(Pins::LWP6, LOW);
+                    digitalWrite(Pins::LWP7, LOW);
+                    Serial.println("Cooling OFF - Running state");
+                }
+            } else {
+                // In standby, cooling should be off
+                digitalWrite(Pins::LWP6, LOW);
+                digitalWrite(Pins::LWP7, LOW);
+                Serial.println("Cooling OFF - Standby state");
+            }
+        } else {
+            // If not armed, turn cooling off
             digitalWrite(Pins::LWP6, LOW);
-            digitalWrite(Pins::LWP7, LOW); 
+            digitalWrite(Pins::LWP7, LOW);
+            Serial.println("Cooling OFF - Not armed");
         }
+    } else {
+        // If battery not armed, turn cooling off
+        digitalWrite(Pins::LWP6, LOW);
+        digitalWrite(Pins::LWP7, LOW);
+        Serial.println("Cooling OFF - Battery not armed");
     }
 }
 

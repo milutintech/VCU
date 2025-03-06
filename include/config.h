@@ -37,7 +37,7 @@ namespace CANIds {
     // BSC Messages
     constexpr uint16_t BSC_COMM = 0x260;
     constexpr uint16_t BSC_LIM = 0x261;
-    
+    constexpr uint16_t BSC_VAL = 0x26A;
     // DMC Messages
     constexpr uint16_t DMCCTRL = 0x210;
     constexpr uint16_t DMCLIM = 0x211;

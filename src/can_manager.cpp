@@ -138,21 +138,18 @@ void CANManager::checkAndProcessMessages() {
                     processBMSMessage(buf);
                     break;
                     
-                case CANIds::BSC_COMM:
-                case CANIds::BSC_LIM:
+                case CANIds::BSC_VAL:
                     processBSCMessage(buf);
                     break;
                     
-                case CANIds::DMCCTRL:
-                case CANIds::DMCLIM:
-                case CANIds::DMCCTRL2:
+                case 0x258:  // DMC Status
+                case 0x259:  // DMC Power
+                case 0x458:  // DMC Temperature
                     processDMCMessage(id, buf);
                     break;
                     
                 case CANIds::NLG_ACT_LIM:
                 case CANIds::NLG_ACT_PLUG:
-                case CANIds::NLG_ACT_ERR:
-                case CANIds::NLG_DEM_LIM:
                     processNLGMessage(id, buf);
                     break;
             }
@@ -171,8 +168,8 @@ void CANManager::processBMSMessage(uint8_t* buf) {
     
     bmsData.soc = buf[0] / 2;
     bmsData.voltage = (buf[2] | (buf[1] << 8)) / 10;
-    bmsData.current = 400; //(buf[3] | (buf[4] << 8)) / 100;
-    bmsData.maxDischarge = (buf[5] | (buf[6] << 8)) / 100;
+    bmsData.current = (buf[4] | (buf[3] << 8));
+    bmsData.maxDischarge = (buf[6] | (buf[5] << 8));
     bmsData.maxCharge = buf[7] * 2;
 
     lastBMSUpdate = millis(); // Update timestamp on valid message
@@ -219,6 +216,7 @@ void CANManager::processDMCMessage(uint32_t id, uint8_t* buf) {
             dmcData.tempInverter = ((buf[0] << 8) | buf[1]) * 0.5;
             dmcData.tempMotor = ((buf[2] << 8) | buf[3]) * 0.5;
             dmcData.tempSystem = buf[4] - 50;
+            
             
             if (stateManager) {
                 stateManager->setInverterTemp(dmcData.tempInverter);
@@ -322,9 +320,8 @@ void CANManager::sendNLG() {
 
     float limitedCurrent = std::min(VehicleParams::Battery::MAX_NLG_CURRENT, static_cast<int>(bmsData.maxCharge));
     int nlgCurrentScale = static_cast<int>((limitedCurrent + 102.4) * 10);
-
-    controlBufferNLG[0] = (false << 7) | (nlgData.unlockRequest << 6) | 
-                         (false << 5) | ((nlgVoltageScale >> 8) & 0x1F);
+    Serial.println(limitedCurrent);
+    controlBufferNLG[0] = (false << 7) | (nlgData.unlockRequest << 6) | (false << 5) | ((nlgVoltageScale >> 8) & 0x1F);
     controlBufferNLG[1] = nlgVoltageScale & 0xFF;
     controlBufferNLG[2] = (nlgData.stateDemand << 5) | ((nlgCurrentScale >> 8) & 0x07);
     controlBufferNLG[3] = nlgCurrentScale & 0xFF;

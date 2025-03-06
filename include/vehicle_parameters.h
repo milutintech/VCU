@@ -23,7 +23,7 @@ namespace VehicleParams {
         static constexpr int NOM_VOLTAGE = 367;     ///< Nominal pack voltage (3.67V * 100S)
         static constexpr int MAX_VOLTAGE = 420;     ///< Maximum pack voltage (4.2V * 100S)
         static constexpr int MAX_DMC_CURRENT = 100; ///< Maximum motor controller current (A)
-        static constexpr int MAX_NLG_CURRENT = 72;  ///< Maximum charging current (A)
+        static constexpr int MAX_NLG_CURRENT = 62;  ///< Maximum charging current (A)
         static constexpr int PRECHARGE_CURRENT = 20;///< Precharge current limit (A)
         static constexpr int MIN_LVVOLTAGE = 14.4;  ///< Charge Voltage for the LV Bat (V)
         static constexpr int MAX_SOC = 100;         ///< Maximum Battery Pack SOC
