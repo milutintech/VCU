@@ -26,7 +26,7 @@
  */
 VehicleControl::VehicleControl(ADS1115& ads) 
     : ads(ads)
-    , currentDrivingMode(DriveMode::LEGACY)
+    , currentDrivingMode(DriveMode::REGEN)
     , currentGear(GearState::NEUTRAL)
     , currentGearRatio(GearRatio::NORMAL)
     , shiftAttempted(false)
