@@ -134,6 +134,13 @@ private:
      * @return Processed torque with hysteresis
      */
     int16_t applyDeadbandHysteresis(int16_t torque);
+
+    /**
+    * @brief Apply torque cutoff based on RPM, direction, and gear state.
+    * @param requestedTorque The raw calculated torque.
+    * @return Modified torque after applying directional restrictions.
+    */
+    int16_t applyTorqueCutoff(int16_t requestedTorque);
     
     // Member variables
     ADS1115& ads;                    // Reference to ADC

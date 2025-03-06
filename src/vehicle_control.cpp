@@ -104,6 +104,10 @@ int16_t VehicleControl::calculateTorque() {
     
     // Apply deadband with hysteresis.
     calculatedTorque = applyDeadbandHysteresis(calculatedTorque);
+
+    //Makes sure no reverse driving posible in drive.
+    calculatedTorque = applyTorqueCutoff(calculatedTorque);
+
     
     return calculatedTorque;
 }
@@ -298,6 +302,26 @@ int16_t VehicleControl::applyTorqueLimits(int16_t requestedTorque) {
     
     lastTorque = lastTorque + torqueDiff;
     return lastTorque;
+}
+
+/**
+ * @brief Apply torque cutoff based on RPM, direction, and gear state.
+ * @param requestedTorque The raw calculated torque.
+ * @return Modified torque after applying directional restrictions.
+ */
+int16_t VehicleControl::applyTorqueCutoff(int16_t requestedTorque) {
+    if (currentGear == GearState::DRIVE) {
+        // Prevent positive torque (forward acceleration) if at 0 RPM or in reverse direction
+        if (motorSpeed >= 0 && requestedTorque > 0) {
+            return 0;
+        }
+    } else if (currentGear == GearState::REVERSE) {
+        // Prevent negative torque (reverse acceleration) if at 0 RPM or moving forward
+        if (motorSpeed <= 0 && requestedTorque < 0) {
+            return 0;
+        }
+    }
+    return requestedTorque;
 }
 
 /**
