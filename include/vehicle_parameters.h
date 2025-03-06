@@ -22,7 +22,7 @@ namespace VehicleParams {
         static constexpr int MIN_VOLTAGE = 320;     ///< Minimum pack voltage (3.2V * 100S)
         static constexpr int NOM_VOLTAGE = 367;     ///< Nominal pack voltage (3.67V * 100S)
         static constexpr int MAX_VOLTAGE = 420;     ///< Maximum pack voltage (4.2V * 100S)
-        static constexpr int MAX_DMC_CURRENT = 100; ///< Maximum motor controller current (A)
+        static constexpr int MAX_DMC_CURRENT = 450; ///< Maximum motor controller current (A)
         static constexpr int MAX_NLG_CURRENT = 62;  ///< Maximum charging current (A)
         static constexpr int PRECHARGE_CURRENT = 20;///< Precharge current limit (A)
         static constexpr int MIN_LVVOLTAGE = 14.4;  ///< Charge Voltage for the LV Bat (V)
@@ -49,7 +49,7 @@ namespace VehicleParams {
         static constexpr int MAX_TRQ = 850;         ///< Maximum motor torque (Nm) 0-850
         static constexpr int MAX_REQ_TRQ = 800;     ///< Maximum request torque (Nm)0-850
         static constexpr int MAX_REVERSE_TRQ = 200; ///< Maximum reverse torque (Nm)0-850
-        static constexpr int MAX_RPM = 1000;         ///< Maximum motor RPM 0-6000
+        static constexpr int MAX_RPM = 4000;         ///< Maximum motor RPM 0-6000
         static constexpr float MAX_ACCEL_STEP = 8.0f;   ///< Torque ramp-up limit (Nm/cycle)
         static constexpr float MAX_DECEL_STEP = 25.0f;  ///< Torque ramp-down limit (Nm/cycle)
         static constexpr float TORQUE_DEADBAND_HIGH = 25.0f; ///< Upper deadband threshold (Nm)
