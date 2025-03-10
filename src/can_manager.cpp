@@ -92,6 +92,22 @@ void CANManager::update() {
     if (!stateManager) {
         return; // Exit if StateManager not set
     }
+    
+    // Handle error clearing if needed
+    if (needsClearError && !inErrorClearSequence) {
+        inErrorClearSequence = true;
+        errorClearStartTime = millis();
+        stateManager->setErrorLatch(true);  // Set error latch high
+    }
+    
+    // Check if we need to clear error latch after timeout
+    if (inErrorClearSequence) {
+        if (millis() - errorClearStartTime >= 100) {  // 100ms timeout
+            stateManager->setErrorLatch(false);  // Set error latch low
+            inErrorClearSequence = false;
+            needsClearError = false;
+        }
+    }
     // Process all incoming CAN messages
     checkAndProcessMessages();
 
@@ -292,7 +308,7 @@ void CANManager::sendDMC() {
     
     // DMC limits message (0x211)
     int dcVoltLimMotor = VehicleParams::Battery::MIN_VOLTAGE * 10;
-    int dcVoltLimGen = VehicleParams::Battery::MAX_VOLTAGE * 10;
+    int dcVoltLimGen = (VehicleParams::Battery::MAX_VOLTAGE +4) * 10;
     int dcCurrLimMotor = VehicleParams::Battery::MAX_DMC_CURRENT * 10;
     int dcCurrLimGen = VehicleParams::Power::DMC_DC_GEN * 10;
     

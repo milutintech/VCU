@@ -164,7 +164,7 @@ void setup() {
         Serial.println("Failed to create VehicleControl");
         while(1);
     }
-
+    vehicleControl->setCanManager(canManager);
     serialConsole = new SerialConsole(*canManager, *stateManager, *vehicleControl);
     if (!serialConsole) {
         Serial.println("Failed to create SerialConsole");

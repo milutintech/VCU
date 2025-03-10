@@ -140,6 +140,7 @@ public:
     const NLGData& getNLGData() const { return nlgData; }
     
     // Control methods
+    void setNeedsClearError(bool needs) { needsClearError = true; }
     void setTorqueDemand(float torque) { torqueDemand = torque; }
     void setSpeedDemand(int16_t speed) { speedDemand = speed; }
     void setEnableDMC(bool enable) { enableDMC = enable; }
@@ -187,7 +188,9 @@ private:
      */
     void checkAndProcessMessages();
     
-    
+    bool needsClearError = false;  // Flag to indicate error clearing needed
+    unsigned long errorClearStartTime = 0;  // Timestamp for error clearing
+    bool inErrorClearSequence = false;  // Track if we're in the middle of error clearing
 
     // Hardware interfaces
     mcp2515_can CAN;         ///< CAN controller instance

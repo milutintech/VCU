@@ -76,9 +76,13 @@ void StateManager::handleWakeup() {
     
     if (digitalRead(Pins::NLG_HW_Wakeup)) {
         Serial.println("NLG_HW_Wakeup pin is HIGH");
-        transitionToCharging();
+        if(!unlockPersist){
+            transitionToCharging();
+        }
+        transitionToStandby();
     } else if (digitalRead(Pins::IGNITION)) {
         Serial.println("IGNITION pin is HIGH");
+        unlockPersist = false;
         transitionToRun();
     } else {
         Serial.println("No wake signals, going to standby");
@@ -129,15 +133,14 @@ void StateManager::handleStandbyState() {
     hasPreCharged = false;
     enableBSC = false;
     enableDMC = false;
-    unlockConnectorRequest = false;
-    unlockPersist = false;
+    
     nlgCharged = false;
     
     armBattery(false);
     armCoolingSys(false);
     
     // Check for state transitions
-    if(digitalRead(Pins::NLG_HW_Wakeup)) {
+    if(digitalRead(Pins::NLG_HW_Wakeup)&& !unlockPersist) {
         wasNlgWakeupHigh = true;
         transitionToCharging();
         return;
@@ -147,13 +150,14 @@ void StateManager::handleStandbyState() {
         transitionToRun();
         return;
     }
-    
+    unlockConnectorRequest = false;
+    unlockPersist = false;
     // Enter deep sleep if no active inputs
-    if((!digitalRead(Pins::IGNITION)) && (!digitalRead(Pins::NLG_HW_Wakeup))) {
+    //if((!digitalRead(Pins::IGNITION)) && (!digitalRead(Pins::NLG_HW_Wakeup))) {
         Serial.println("No wake signals, entering deep sleep");
         delay(100); // Small delay to allow serial to finish
         esp_deep_sleep_start();
-    }
+    //}
 }
 
 /**
@@ -384,6 +388,7 @@ void StateManager::chargeManage() {
         // Check for high SOC
         if (canManager.getBMSData().soc >= VehicleParams::Battery::MAX_SOC) {
             Serial.println("SOC limit reached! Stopping charge.");
+            //NEED TO ADD interrupt disable for charging
             chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
             unlockConnectorRequest = true;
             unlockPersist = true;

@@ -113,7 +113,9 @@ public:
      * Called by ISR when the unlock button is pressed
      */
     void handleConnectorUnlockInterrupt() { conUlockInterrupt = true; }
-    
+    void setErrorLatch(bool state) { errorLatch = state; }
+    void resetErrorLatch();
+    void handleGearStateChange(GearState currentGear);
     void setBatteryVoltage(uint16_t voltage) { batteryVoltage = voltage; }
     void setInverterTemp(float temp) { inverterTemp = temp; }
     void setMotorTemp(float temp) { motorTemp = temp; }

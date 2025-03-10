@@ -17,6 +17,7 @@
 #include "vehicle_parameters.h"
 #include "ADS1X15.h"
 
+class CANManager;
 // Simple PID controller for OPD anti-rollback protection.
 // (This class can be moved to a separate file if desired.)
 class PIDController {
@@ -91,6 +92,7 @@ public:
     bool isDMCEnabled() const;
     
     // Configuration methods
+    void setCanManager(CANManager* canMgr) { canManager = canMgr; }
     void setOPDEnabled(bool enabled) { isOPDEnabled = enabled; }
     void setRegenEnabled(bool enabled) { isRegenEnabled = enabled; }
     void setGearRatio(GearRatio ratio) { currentGearRatio = ratio; }
@@ -157,7 +159,7 @@ private:
     
     float lastTorque;                // Last calculated torque
     float motorSpeed;                // Current motor speed
-
+    CANManager* canManager = nullptr; 
     // PID controller for OPD anti-rollback protection.
     // This member is used to hold the vehicle when speed is near zero.
     PIDController opdPid;
