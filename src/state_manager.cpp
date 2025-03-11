@@ -19,6 +19,7 @@
 #include "config.h"
 #include <esp_sleep.h>
 #include "configuration.h"  // Add this include at the top
+#include "vehicle_control.h"
 
 
 /**
@@ -27,8 +28,9 @@
  * Sets initial system state to STANDBY and ensures all
  * subsystems start in a safe, disabled state.
  */
-StateManager::StateManager(CANManager& canMgr)
+StateManager::StateManager(CANManager& canMgr, VehicleControl* vc)
     : canManager(canMgr)
+    , vehicleControl(vc) 
     , currentState(VehicleState::STANDBY)
     , batteryArmed(false)
     , hasPreCharged(false)

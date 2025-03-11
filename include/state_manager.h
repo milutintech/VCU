@@ -16,9 +16,10 @@
 #include "vehicle_parameters.h"
 
 class CANManager; // Forward declaration
+class VehicleControl;  
 class StateManager {
 public:
-    explicit StateManager(CANManager& canMgr);    
+    explicit StateManager(CANManager& canMgr, VehicleControl* vc = nullptr);
     /**
      * @brief Main state machine update function
      * Called regularly to manage state transitions and system controls
@@ -137,7 +138,6 @@ private:
     void removePinFromWakeSources(uint8_t pin);
     void addPinToWakeSources(uint8_t pin);
     VehicleControl* vehicleControl;
-
     // System references
     CANManager& canManager;
     

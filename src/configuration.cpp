@@ -7,6 +7,8 @@
  */
 
 #include "configuration.h"
+#include "vehicle_parameters.h"
+
 
 // Static members initialization
 const char* Configuration::NAMESPACE = "vcu_config";
