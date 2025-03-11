@@ -175,6 +175,12 @@ void StateManager::handleStandbyState() {
     esp_deep_sleep_start();
 }
 
+void StateManager::updateDriveMode(DriveMode mode) {
+    if (vehicleControl) {
+        vehicleControl->setDrivingMode(mode);
+    }
+}
+
 /**
  * @brief Handle system behavior in RUN state
  * 

@@ -112,6 +112,7 @@ public:
      * @brief Interrupt handler for connector unlock button
      * Called by ISR when the unlock button is pressed
      */
+    void setVehicleControl(VehicleControl* vc) { vehicleControl = vc; }
     void handleConnectorUnlockInterrupt() { conUlockInterrupt = true; }
     void setErrorLatch(bool state) { errorLatch = state; }
     void resetErrorLatch();
@@ -124,6 +125,8 @@ public:
     void setHVVoltage(uint16_t voltage) { hvVoltage = voltage; }
     uint16_t getHVVoltage() const { return hvVoltage; }
     float getHVVoltageActual() const { return hvVoltageActual; }
+    void updateDriveMode(DriveMode mode);
+
 private:
     // Private member functions
     void handleStandbyState();
@@ -131,10 +134,13 @@ private:
     void handleChargingState();
     void handleConnectorUnlock();
     void handlePersistentUnlock(unsigned long& unlockTimeout);
+    void removePinFromWakeSources(uint8_t pin);
+    void addPinToWakeSources(uint8_t pin);
+    VehicleControl* vehicleControl;
 
     // System references
     CANManager& canManager;
-
+    
     unsigned long lastNlgWakeupCheck;
     bool wasNlgWakeupHigh;
     static constexpr unsigned long NLG_WAKEUP_CHECK_INTERVAL = 500; // Check every 500ms

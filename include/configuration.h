@@ -27,6 +27,8 @@
  */
 class Configuration {
 public:
+    bool setDriveModeFromByte(uint8_t modeByte);
+
     /**
      * @brief Initialize configuration system
      * 

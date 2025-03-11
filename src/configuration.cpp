@@ -119,9 +119,9 @@ bool Configuration::load() {
  * @param mode New drive mode to use
  * @return true if the value was valid and set
  */
-bool Configuration::setDriveMode(DriveMode mode) {
-    if (mode == DriveMode::LEGACY || mode == DriveMode::REGEN || mode == DriveMode::OPD) {
-        driveMode = mode;
+bool Configuration::setDriveModeFromByte(uint8_t modeByte) {
+    if (modeByte <= static_cast<uint8_t>(DriveMode::OPD)) {
+        driveMode = static_cast<DriveMode>(modeByte);
         return true;
     }
     return false;
@@ -175,6 +175,7 @@ bool Configuration::setMaxSOC(uint8_t soc) {
     }
     return false;
 }
+
 
 /**
  * @brief Set maximum AC charging current
