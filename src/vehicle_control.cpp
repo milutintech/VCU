@@ -14,6 +14,7 @@
 #include "can_manager.h" 
 #include "config.h"
 #include "ADS1X15.h"
+#include "configuration.h"  
 
 //-------------------------------
 // VehicleControl Class Implementation
@@ -338,7 +339,7 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         
         if (canRegen) {
             // Base torque calculation
-            float baseTorque = progressiveRegen * VehicleParams::OPD::REGEN_TORQUE_CAP;
+            float baseTorque = progressiveRegen * std::min(VehicleParams::OPD::REGEN_TORQUE_CAP, static_cast<double>(config.getMaxTorque() * 0.35));
             
             // Apply adaptive tapering
             regenTorque = baseTorque * regenTaperFactor;
@@ -382,7 +383,7 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         
         // Adaptive torque calculation with rate limiting
         static float lastAccelTorque = 0.0f;
-        float targetTorque = progressiveThrottle * VehicleParams::Motor::MAX_REQ_TRQ;
+        float targetTorque = progressiveThrottle * std::min(config.getMaxTorque(), VehicleParams::Motor::MAX_REQ_TRQ);
         
         // Apply rate limiting for smooth acceleration
         float torqueChange = targetTorque - lastAccelTorque;
@@ -436,7 +437,7 @@ int16_t VehicleControl::handleOPDMode(float throttlePosition, float speed) {
     // Acceleration logic with proper throttle scaling.
     if (throttlePosition > coastUpper) {
         float normalizedPosition = (throttlePosition - coastUpper) / (100.0f - coastUpper);
-        float maxTorque = VehicleParams::Motor::MAX_TRQ;
+        float maxTorque = config.getMaxTorque();
 
         // No low-speed torque reduction
         float torque = maxTorque * pow(normalizedPosition, 1.5f);
@@ -446,7 +447,7 @@ int16_t VehicleControl::handleOPDMode(float throttlePosition, float speed) {
     
     // Regen logic remains unchanged.
     float normalizedPosition = throttlePosition / coastLower;
-    float maxRegen = VehicleParams::OPD::MAX_REGEN * (VehicleParams::Motor::MAX_TRQ / 100.0f);
+    float maxRegen = VehicleParams::OPD::MAX_REGEN * (config.getMaxTorque() / 100.0f);
     
     return (currentGear == GearState::DRIVE) ? maxRegen * (1.0f - normalizedPosition) : -maxRegen * (1.0f - normalizedPosition);
 }
@@ -489,7 +490,7 @@ int16_t VehicleControl::handleOPDMode(float throttlePosition, float speed) {
     
     // Regen logic remains unchanged.
     float normalizedPosition = throttlePosition / coastLower;
-    float maxRegen = VehicleParams::OPD::MAX_REGEN * (VehicleParams::Motor::MAX_TRQ / 100.0f);
+    float maxRegen = VehicleParams::OPD::MAX_REGEN * (config.getMaxTorque() / 100.0f);
     
     return (currentGear == GearState::DRIVE) ? maxRegen * (1.0f - normalizedPosition) : -maxRegen * (1.0f - normalizedPosition);
 }

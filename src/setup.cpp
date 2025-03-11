@@ -73,8 +73,23 @@ void SystemSetup::initializeGPIO() {
  * - Any configured button press (HIGH level)
  */
 void SystemSetup::initializeSleep() {
+    // Configure the ignition pin as a wake source (EXT0)
     esp_sleep_enable_ext0_wakeup(static_cast<gpio_num_t>(Pins::IGNITION), 1);
-    esp_sleep_enable_ext1_wakeup(Pins::BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
+    
+    // Define the bitmask for multiple wake sources (EXT1)
+    // Include NLG_HW_Wakeup (pin 7), IGNITION (pin 8), and UNLCKCON (pin 10)
+    uint64_t wakeBitmask = (1ULL << Pins::NLG_HW_Wakeup) | 
+                           (1ULL << Pins::IGNITION) | 
+                           (1ULL << Pins::UNLCKCON);
+    
+    // Enable EXT1 wake sources with the defined bitmask
+    esp_sleep_enable_ext1_wakeup(wakeBitmask, ESP_EXT1_WAKEUP_ANY_HIGH);
+    
+    Serial.println("Sleep configuration initialized with wake sources:");
+    Serial.print("- IGNITION (EXT0): Pin ");
+    Serial.println(Pins::IGNITION);
+    Serial.print("- Wake bitmask (EXT1): 0x");
+    Serial.println(wakeBitmask, HEX);
 }
 
 /**

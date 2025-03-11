@@ -48,6 +48,9 @@ namespace CANIds {
     constexpr uint16_t NLG_ACT_ERR = 0x799;
     constexpr uint16_t NLG_ACT_LIM = 0x728;
     constexpr uint16_t NLG_ACT_PLUG = 0x739;
+
+    constexpr uint16_t VCU_CONFIG = 0x011;
+
 }
 
 // Timing Constants

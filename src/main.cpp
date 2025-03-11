@@ -29,6 +29,7 @@
 #include "setup.h"
 #include "config.h"
 #include "SerialConsole.h"
+#include "configuration.h" 
 
 // Global objects and pointers
 ADS1115 ads(0x48);                // ADC for pedal position
@@ -151,7 +152,7 @@ void setup() {
         while(1);
     }
 
-    stateManager = new StateManager(*canManager);  // Now create StateManager with CAN reference
+    stateManager = new StateManager(*canManager, nullptr);  // Pass nullptr initially
     if (!stateManager) {
         Serial.println("Failed to create StateManager");
         while(1);
@@ -164,12 +165,18 @@ void setup() {
         Serial.println("Failed to create VehicleControl");
         while(1);
     }
+    if (stateManager && vehicleControl) {
+        stateManager->setVehicleControl(vehicleControl);
+    }
     vehicleControl->setCanManager(canManager);
     serialConsole = new SerialConsole(*canManager, *stateManager, *vehicleControl);
     if (!serialConsole) {
         Serial.println("Failed to create SerialConsole");
         while(1);
     }
+
+    config.begin();
+    vehicleControl->setDrivingMode(config.getDriveMode());
 
     pinMode(Pins::UNLCKCON, INPUT_PULLDOWN);
     attachInterrupt(digitalPinToInterrupt(Pins::UNLCKCON), connectorUnlockISR, RISING);

@@ -26,6 +26,8 @@
 #include "state_manager.h"
 #include "vehicle_control.h"
 #include "config.h"
+#include "configuration.h"  
+
 
 class SerialConsole {
 public:

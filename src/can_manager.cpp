@@ -16,6 +16,7 @@
 #include <esp_task_wdt.h>
 #include "config.h"
 #include <algorithm>
+#include "configuration.h"
 /**
  * @brief Constructs the CAN manager
  * @param cs_pin SPI chip select pin for CAN controller
@@ -153,7 +154,9 @@ void CANManager::checkAndProcessMessages() {
                 case 0x010:  // BMS message
                     processBMSMessage(buf);
                     break;
-                    
+                case CANIds::CONFIG_MESSAGE:
+                    processConfigMessage(buf);
+                    break;
                 case CANIds::BSC_VAL:
                     processBSCMessage(buf);
                     break;
@@ -335,8 +338,13 @@ void CANManager::sendNLG() {
         bmsData.maxCharge = 0;  // Set max charge current to 0 if timeout occurs
     }
 
-    float limitedCurrent = std::min(VehicleParams::Battery::MAX_NLG_CURRENT, static_cast<int>(bmsData.maxCharge));
+    // Use the configuration value for maximum charging current
+    uint8_t maxNlgCurrent = config.getMaxChargingCurrent();
+    
+    // Limit charging current by smaller of max charger current and BMS max charge
+    float limitedCurrent = std::min(static_cast<int>(maxNlgCurrent), static_cast<int>(bmsData.maxCharge));
     int nlgCurrentScale = static_cast<int>((limitedCurrent + 102.4) * 10);
+    
     controlBufferNLG[0] = (false << 7) | (nlgData.unlockRequest << 6) | (false << 5) | ((nlgVoltageScale >> 8) & 0x1F);
     controlBufferNLG[1] = nlgVoltageScale & 0xFF;
     controlBufferNLG[2] = (nlgData.stateDemand << 5) | ((nlgCurrentScale >> 8) & 0x07);
@@ -346,6 +354,65 @@ void CANManager::sendNLG() {
     
     CAN.sendMsgBuf(CANIds::NLG_DEM_LIM, 0, 8, controlBufferNLG);
 }
+/**
+ * @brief Process external configuration message
+ * @param buf Message data buffer
+ * 
+ * Receives and applies configuration parameters from other CAN devices.
+ * Only valid parameters within allowed ranges are applied.
+ */
+void CANManager::processConfigMessage(uint8_t* buf) {
+    if (!buf) return;
+    
+    bool configChanged = false;
+    
+    // Process drive mode
+    uint8_t driveModeByte = buf[0];
+    if (config.setDriveModeFromByte(driveModeByte)) {
+        configChanged = true;
+        Serial.print("CAN: Drive mode updated to: ");
+        Serial.println(config.getDriveModeString());
+    }
+    
+    // Process max torque
+    uint16_t maxTorque = (buf[1] << 8) | buf[2];
+    if (config.setMaxTorque(maxTorque)) {
+        configChanged = true;
+        Serial.print("CAN: Max torque set to: ");
+        Serial.print(maxTorque);
+        Serial.println(" Nm");
+    }
+    
+    // Process max SOC
+    uint8_t maxSOC = buf[3];
+    if (config.setMaxSOC(maxSOC)) {
+        configChanged = true;
+        Serial.print("CAN: Max SOC set to: ");
+        Serial.print(maxSOC);
+        Serial.println("%");
+    }
+    
+    // Process max charging current
+    uint8_t maxChargingCurrent = buf[4];
+    if (config.setMaxChargingCurrent(maxChargingCurrent)) {
+        configChanged = true;
+        Serial.print("CAN: Max charging current set to: ");
+        Serial.print(maxChargingCurrent);
+        Serial.println(" A");
+    }
+    
+    // If anything changed, save to flash
+    if (configChanged) {
+        config.save();
+        Serial.println("Configuration updated from CAN and saved to flash");
+        
+        // Apply the changes immediately
+        if (stateManager) {
+            stateManager->updateDriveMode(config.getDriveMode());
+        }
+    }
+}
+
 /**
  * @brief Reset all CAN message buffers to default state
  * 
