@@ -152,6 +152,15 @@ public:
     void setNLGUnlockRequest(bool unlock) { nlgData.unlockRequest = unlock; }
         
 private:
+
+    /**
+    * @brief Process external configuration message
+    * @param buf Message data buffer
+    * 
+    * Processes configuration settings received via CAN
+    */
+    void processConfigMessage(uint8_t* buf);
+
     /**
      * @brief Process BMS status message
      * @param buf Message data buffer

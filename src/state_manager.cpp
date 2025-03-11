@@ -18,6 +18,8 @@
 #include "can_manager.h"  // Add this include
 #include "config.h"
 #include <esp_sleep.h>
+#include "configuration.h"  // Add this include at the top
+
 
 /**
  * @brief Constructor - initializes state manager with safe defaults
@@ -385,9 +387,11 @@ void StateManager::chargeManage() {
     if (currentState == VehicleState::CHARGING) {
         chargerState = canManager.getNLGData().stateAct;
         
-        // Check for high SOC
-        if (canManager.getBMSData().soc >= VehicleParams::Battery::MAX_SOC) {
+        if (canManager.getBMSData().soc >= config.getMaxSOC()) {
             Serial.println("SOC limit reached! Stopping charge.");
+            Serial.print("Max SOC limit: ");
+            Serial.print(config.getMaxSOC());
+            Serial.println("%");
             //NEED TO ADD interrupt disable for charging
             chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
             unlockConnectorRequest = true;
