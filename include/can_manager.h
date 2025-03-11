@@ -140,7 +140,6 @@ public:
     const NLGData& getNLGData() const { return nlgData; }
     
     // Control methods
-    void setNeedsClearError(bool needs) { needsClearError = true; }
     void setTorqueDemand(float torque) { torqueDemand = torque; }
     void setSpeedDemand(int16_t speed) { speedDemand = speed; }
     void setEnableDMC(bool enable) { enableDMC = enable; }
@@ -150,6 +149,22 @@ public:
     void setNLGStateDemand(uint8_t state) { nlgData.stateDemand = state; }
     void setNLGLedDemand(uint8_t led) { nlgData.ledDemand = led; }
     void setNLGUnlockRequest(bool unlock) { nlgData.unlockRequest = unlock; }
+    void setNeedsClearError(bool needs) { 
+        needsClearError = needs; 
+        if (needs && !inErrorClearSequence) {
+            inErrorClearSequence = true;
+            errorClearStartTime = millis();
+            if (stateManager) {
+                stateManager->setErrorLatch(true);  // Set error latch high immediately
+            }
+        } else if (!needs) {
+            inErrorClearSequence = false;
+            if (stateManager) {
+                stateManager->setErrorLatch(false);  // Set error latch low immediately
+            }
+        }
+    }
+
         
 private:
 
@@ -219,7 +234,7 @@ private:
     NLGData nlgData;         ///< Charging system data
     
     StateManager* stateManager;  ///< Pointer to state manager
-    
+
     // Control parameters
     float torqueDemand;      ///< Requested motor torque
     int16_t speedDemand;     ///< Requested motor speed

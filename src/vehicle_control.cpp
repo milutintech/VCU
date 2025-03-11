@@ -606,22 +606,63 @@ bool VehicleControl::isDMCEnabled() const {
  * @brief Update the gear state based on switch inputs and speed.
  */
 void VehicleControl::updateGearState() {
+    static unsigned long errorClearStartTime = 0;
+    static bool inErrorClearSequence = false;
+    static GearState lastGear = GearState::NEUTRAL;
+    
     int32_t forwardValue = ads.readADC(2);  // Drive switch on A2.
     int32_t reverseValue = ads.readADC(3);  // Reverse switch on A3.
     
     bool isForwardHigh = forwardValue > 200;
     bool isReverseHigh = reverseValue > 200;
-        
+    
     // Handle neutral selection – always allowed.
     if (!isForwardHigh && !isReverseHigh) {
-        currentGear = GearState::NEUTRAL;
-        shiftAttempted = false;
+        // Only execute the error clearing sequence when newly transitioning to neutral
+        if (currentGear != GearState::NEUTRAL && !inErrorClearSequence) {
+            // Start non-blocking error clearing sequence
+            inErrorClearSequence = true;
+            errorClearStartTime = millis();
+            
+            // Disable DMC
+            canManager->setEnableDMC(false);
+            
+            // Set error latch high and mark for clearing
+            canManager->setNeedsClearError(true);
+            
+            // Gear will be set to NEUTRAL after the sequence completes
+        } 
+        else if (inErrorClearSequence) {
+            // Check if 100ms has passed
+            if (millis() - errorClearStartTime >= 100) {
+                // Clear the error flag
+                canManager->setNeedsClearError(false);
+                inErrorClearSequence = false;
+                
+                // Now we can officially set the gear state
+                currentGear = GearState::NEUTRAL;
+                shiftAttempted = false;
+            }
+            // Don't change gear state until sequence completes
+        } 
+        else {
+            // Already in neutral, nothing special to do
+            currentGear = GearState::NEUTRAL;
+            shiftAttempted = false;
+            canManager->setEnableDMC(false);
+        }
         
-        canManager->setEnableDMC(false);
-        canManager->setNeedsClearError(true);  // New flag to indicate error clearing needed
+        // Remember the last gear state
+        lastGear = currentGear;
         return;
     }
-    // Store previous gear to detect transitions
+    
+    // If we were in an error clear sequence but now pedals are pressed,
+    // abort the error clear sequence
+    if (inErrorClearSequence) {
+        inErrorClearSequence = false;
+        canManager->setNeedsClearError(false);
+    }
     
     // Handle transitions at low speed.
     if (abs(motorSpeed) < VehicleParams::Transmission::RPM_SHIFT_THRESHOLD) {
@@ -653,4 +694,7 @@ void VehicleControl::updateGearState() {
             shiftAttempted = false;
         }
     }
+    
+    // Remember the last gear state
+    lastGear = currentGear;
 }

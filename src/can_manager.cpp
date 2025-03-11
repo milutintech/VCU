@@ -94,17 +94,13 @@ void CANManager::update() {
         return; // Exit if StateManager not set
     }
     
-    // Handle error clearing if needed
-    if (needsClearError && !inErrorClearSequence) {
-        inErrorClearSequence = true;
-        errorClearStartTime = millis();
-        stateManager->setErrorLatch(true);  // Set error latch high
-    }
-    
-    // Check if we need to clear error latch after timeout
+    // Handle error clearing sequence timing
     if (inErrorClearSequence) {
-        if (millis() - errorClearStartTime >= 100) {  // 100ms timeout
-            stateManager->setErrorLatch(false);  // Set error latch low
+        // If 100ms has passed and we're still in sequence, auto-clear
+        if (millis() - errorClearStartTime >= 100) {
+            if (stateManager) {
+                stateManager->setErrorLatch(false);  // Set error latch low
+            }
             inErrorClearSequence = false;
             needsClearError = false;
         }
@@ -300,18 +296,48 @@ void CANManager::sendBSC() {
  * @brief Send DMC control messages
  */
 void CANManager::sendDMC() {
-    int16_t scaledTorque = static_cast<int16_t>(torqueDemand * 10);
+    int16_t scaledTorque = static_cast<int16_t>(torqueDemand * 100);  // 0.01Nm/bit according to DBC
     
     // DMC control message (0x210)
-    controlBufferDMC[0] = (enableDMC << 7) | (false << 6) | (1 << 5) | (1 << 1) | 1;
-    controlBufferDMC[2] = VehicleParams::Motor::MAX_RPM >> 8;
-    controlBufferDMC[3] = VehicleParams::Motor::MAX_RPM & 0xFF;
+    // Bits:
+    // 0: DMC_EnableRq - Enable power stage
+    // 1: DMC_ModeRq - 0=torque mode, 1=speed mode
+    // 2: DMC_OscLimEnableRq - Enable OscLim
+    // 4: DMC_ClrError - Clear error latch (0->1, Enable must be 0)
+    // 6: DMC_NegTrqSpd - Enable negative speed/torque
+    // 7: DMC_PosTrqSpd - Enable positive speed/torque
+    
+    // Default configuration for normal operation
+    if (!needsClearError) {
+        // Normal operation - Enable bit set, Error clear bit not set
+        controlBufferDMC[0] = (enableDMC << 0) |         // DMC_EnableRq at bit 0
+                              (1 << 1) |                 // DMC_ModeRq at bit 1 (1 = speed mode)
+                              (1 << 2) |                 // DMC_OscLimEnableRq at bit 2
+                              (0 << 4) |                 // DMC_ClrError at bit 4 (not clearing)
+                              (1 << 6) |                 // DMC_NegTrqSpd at bit 6
+                              (1 << 7);                  // DMC_PosTrqSpd at bit 7
+    } else {
+        // Error clearing operation - Enable bit cleared, Error clear bit set
+        controlBufferDMC[0] = (0 << 0) |                 // DMC_EnableRq at bit 0 (must be 0 to clear error)
+                              (1 << 1) |                 // DMC_ModeRq at bit 1 (1 = speed mode)
+                              (1 << 2) |                 // DMC_OscLimEnableRq at bit 2
+                              (1 << 4) |                 // DMC_ClrError at bit 4 (clearing)
+                              (1 << 6) |                 // DMC_NegTrqSpd at bit 6
+                              (1 << 7);                  // DMC_PosTrqSpd at bit 7
+    }
+    
+    // Speed limit (16-bit signed value in RPM)
+    int16_t speedLimit = VehicleParams::Motor::MAX_RPM;
+    controlBufferDMC[2] = speedLimit >> 8;
+    controlBufferDMC[3] = speedLimit & 0xFF;
+    
+    // Torque request (16-bit signed value in 0.01Nm)
     controlBufferDMC[4] = scaledTorque >> 8;
     controlBufferDMC[5] = scaledTorque & 0xFF;
     
     // DMC limits message (0x211)
     int dcVoltLimMotor = VehicleParams::Battery::MIN_VOLTAGE * 10;
-    int dcVoltLimGen = (VehicleParams::Battery::MAX_VOLTAGE +4) * 10;
+    int dcVoltLimGen = (VehicleParams::Battery::MAX_VOLTAGE + 4) * 10;
     int dcCurrLimMotor = VehicleParams::Battery::MAX_DMC_CURRENT * 10;
     int dcCurrLimGen = VehicleParams::Power::DMC_DC_GEN * 10;
     
@@ -327,7 +353,6 @@ void CANManager::sendDMC() {
     CAN.sendMsgBuf(CANIds::DMCCTRL, 0, 8, controlBufferDMC);
     CAN.sendMsgBuf(CANIds::DMCLIM, 0, 8, limitBufferDMC);
 }
-
 /**
  * @brief Send NLG control messages
  */

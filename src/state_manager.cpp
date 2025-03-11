@@ -304,6 +304,9 @@ void StateManager::handleChargingState() {
  * - Error handling
  */
 void StateManager::armBattery(bool arm) {
+    static unsigned long errorClearStartTime = 0;
+    static bool inErrorClearSequence = false;
+    
     if (arm) {
         if (!hasPreCharged) {
             // Start precharge process
@@ -331,12 +334,34 @@ void StateManager::armBattery(bool arm) {
                 if ((hvVoltageActual >= (batteryVoltage - 20)) && 
                     (hvVoltageActual <= (batteryVoltage + 20)) && 
                     (hvVoltageActual > 50)) {
-                    Serial.println("Precharge complete - Closing contactor");
-                    hasPreCharged = true;
-                    digitalWrite(Pins::CONTACTOR, HIGH);
-                    digitalWrite(Pins::LWP5, HIGH);
-                    enableBSC = false;
-                    canManager.setEnableBSC(enableBSC);  // Update when enable changes
+                    
+                    // Start non-blocking error clearing sequence if not already in progress
+                    if (!inErrorClearSequence) {
+                        Serial.println("Precharge complete - Beginning error clearing sequence");
+                        // First disable BSC before error latch sequence
+                        enableBSC = false;
+                        canManager.setEnableBSC(enableBSC);
+                        
+                        // Start error clearing sequence
+                        errorLatch = true;
+                        canManager.setNeedsClearError(true);
+                        errorClearStartTime = millis();
+                        inErrorClearSequence = true;
+                    }
+                    // Check if error clearing sequence has completed its 100ms timing
+                    else if (millis() - errorClearStartTime >= 100) {
+                        Serial.println("Error clearing sequence completed - Closing contactor");
+                        // Clear error latch
+                        errorLatch = false;
+                        canManager.setNeedsClearError(false);
+                        inErrorClearSequence = false;
+                        
+                        // Now complete the precharge sequence
+                        hasPreCharged = true;
+                        digitalWrite(Pins::CONTACTOR, HIGH);
+                        digitalWrite(Pins::LWP5, HIGH);
+                    }
+                    // While in the 100ms wait period, continue normal operation
                 }
                 else if (millis() - lastModeChangeTime > Constants::PRECHARGE_TIMEOUT_MS) {
                     Serial.println("Precharge timeout - Voltage not reached");
@@ -348,9 +373,6 @@ void StateManager::armBattery(bool arm) {
         }
         else {
             batteryArmed = true;
-            errorLatch = true;
-            delay(100);
-            errorLatch = false;
 
             if (modeBSC != BSCModes::BSC6_BUCK) {
                 Serial.println("Switching to BUCK mode for normal operation");
@@ -371,6 +393,7 @@ void StateManager::armBattery(bool arm) {
         batteryArmed = false;
         enableBSC = false;
         hasPreCharged = false;
+        inErrorClearSequence = false;  // Reset error clearing sequence state
         canManager.setEnableBSC(enableBSC);  // Update when disabling
         digitalWrite(Pins::CONTACTOR, LOW);
         digitalWrite(Pins::LWP5, LOW);
