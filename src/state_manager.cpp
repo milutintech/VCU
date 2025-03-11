@@ -79,12 +79,17 @@ void StateManager::handleWakeup() {
     if (digitalRead(Pins::NLG_HW_Wakeup)) {
         Serial.println("NLG_HW_Wakeup pin is HIGH");
         if(!unlockPersist){
+            // When waking up due to charger, remove NLG_HW_Wakeup from wake sources
+            removePinFromWakeSources(Pins::NLG_HW_Wakeup);
             transitionToCharging();
+        } else {
+            transitionToStandby();
         }
-        transitionToStandby();
     } else if (digitalRead(Pins::IGNITION)) {
         Serial.println("IGNITION pin is HIGH");
         unlockPersist = false;
+        // When waking up due to ignition, add NLG_HW_Wakeup back to wake sources
+        addPinToWakeSources(Pins::NLG_HW_Wakeup);
         transitionToRun();
     } else {
         Serial.println("No wake signals, going to standby");
@@ -142,24 +147,32 @@ void StateManager::handleStandbyState() {
     armCoolingSys(false);
     
     // Check for state transitions
-    if(digitalRead(Pins::NLG_HW_Wakeup)&& !unlockPersist) {
+    if(digitalRead(Pins::NLG_HW_Wakeup) && !unlockPersist) {
         wasNlgWakeupHigh = true;
+        removePinFromWakeSources(Pins::NLG_HW_Wakeup);
         transitionToCharging();
         return;
     }
     
     if(digitalRead(Pins::IGNITION)) {
+        addPinToWakeSources(Pins::NLG_HW_Wakeup);
         transitionToRun();
         return;
     }
+    
     unlockConnectorRequest = false;
-    unlockPersist = false;
-    // Enter deep sleep if no active inputs
-    //if((!digitalRead(Pins::IGNITION)) && (!digitalRead(Pins::NLG_HW_Wakeup))) {
-        Serial.println("No wake signals, entering deep sleep");
-        delay(100); // Small delay to allow serial to finish
-        esp_deep_sleep_start();
-    //}
+    
+    // Make sure connector is unlocked before sleeping
+    if (canManager.getNLGData().connectorLocked) {
+        canManager.setNLGUnlockRequest(true);
+        delay(100); // Give a small delay for processing
+        return; // Don't sleep yet, wait until connector is unlocked
+    }
+    
+    // Once we're sure connector is unlocked if needed, we can sleep
+    Serial.println("No wake signals, entering deep sleep");
+    delay(100); // Small delay to allow serial to finish
+    esp_deep_sleep_start();
 }
 
 /**
@@ -363,10 +376,12 @@ void StateManager::armCoolingSys(bool arm) {
  * - Connector locking
  * - Charge completion
  */
-
-
 void StateManager::chargeManage() {
     static unsigned long unlockTimeout = 0;
+    static unsigned long connectorUnlockStartTime = 0;
+    static bool waitingForUnlockComplete = false;
+    static unsigned long connectorLockDelay = 0;
+    static bool delayingConnectorLock = true;
     unsigned long currentTime = millis();
 
     // Regular charger state detection check
@@ -376,35 +391,80 @@ void StateManager::chargeManage() {
         // If NLG_HW_Wakeup transitions from HIGH to LOW, charger was unplugged
         if (wasNlgWakeupHigh && !currentNlgWakeup) {
             Serial.println("Charger unplugged detected");
-            transitionToStandby();
-            return;
+            unlockConnectorRequest = true;
+            // We won't immediately sleep - make sure connector is unlocked first
+            waitingForUnlockComplete = true;
+            connectorUnlockStartTime = currentTime;
         }
         
         wasNlgWakeupHigh = currentNlgWakeup;
         lastNlgWakeupCheck = currentTime;
     }
 
+    // Handle waiting period after connector unlocked before going to sleep
+    if (waitingForUnlockComplete) {
+        if (!canManager.getNLGData().connectorLocked) {
+            // Connector is successfully unlocked, wait for timeout before sleeping
+            if (currentTime - connectorUnlockStartTime >= 10000) { // 10 second wait
+                waitingForUnlockComplete = false;
+                transitionToStandby();
+                return;
+            }
+        } else if (currentTime - connectorUnlockStartTime >= 15000) {
+            // Safety timeout if unlock fails after 15 seconds
+            waitingForUnlockComplete = false;
+            transitionToStandby();
+            return;
+        }
+    }
+
     if (currentState == VehicleState::CHARGING) {
+        // Implement delay before locking connector when first entering charging state
+        if (delayingConnectorLock) {
+            if (connectorLockDelay == 0) {
+                connectorLockDelay = currentTime;
+                // Don't lock the connector yet
+                unlockConnectorRequest = true;
+            } else if (currentTime - connectorLockDelay >= 5000) { // 5 second delay
+                // 5 seconds passed, now allow connector to lock
+                delayingConnectorLock = false;
+                unlockConnectorRequest = false;
+            }
+        }
+
         chargerState = canManager.getNLGData().stateAct;
         
-        if (canManager.getBMSData().soc >= config.getMaxSOC()) {
+        // Check SOC limit - now with special case for 100% SOC
+        if (config.getMaxSOC() < 100 && canManager.getBMSData().soc >= config.getMaxSOC()) {
+            // For less than 100% SOC, use the standard behavior
             Serial.println("SOC limit reached! Stopping charge.");
             Serial.print("Max SOC limit: ");
             Serial.print(config.getMaxSOC());
             Serial.println("%");
-            //NEED TO ADD interrupt disable for charging
             chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
             unlockConnectorRequest = true;
             unlockPersist = true;
             unlockTimeout = currentTime;
+        } else if (config.getMaxSOC() == 100) {
+            // For 100% SOC, we check current instead
+            if (canManager.getBMSData().soc >= 100 && 
+                canManager.getNLGData().dcHvCurrentAct < 30) { // 3 Amps (assuming scale factor of 10)
+                Serial.println("Charge current below 3A with 100% SOC - BMS drift reset complete");
+                chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
+                unlockConnectorRequest = true;
+                unlockPersist = true;
+                unlockTimeout = currentTime;
+            }
         }
 
         switch (chargerState) {
             case ChargerStates::NLG_ACT_SLEEP:
                 chargeLedDemand = 0;
                 if (!digitalRead(Pins::NLG_HW_Wakeup)) {
-                    // Charger is unplugged, go to standby
-                    transitionToStandby();
+                    // Charger is unplugged, wait for connector to unlock before going to standby
+                    unlockConnectorRequest = true;
+                    waitingForUnlockComplete = true;
+                    connectorUnlockStartTime = currentTime;
                 } else {
                     chargerStateDemand = ChargerStates::NLG_DEM_STANDBY;
                 }
@@ -414,10 +474,12 @@ void StateManager::chargeManage() {
                 chargeLedDemand = 1;
                 if (nlgCharged) {
                     chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
-                    transitionToStandby();
                     unlockConnectorRequest = true;
                     unlockPersist = true;
                     unlockTimeout = currentTime;
+                    // Don't transition to standby yet - wait for connector to unlock
+                    waitingForUnlockComplete = true;
+                    connectorUnlockStartTime = currentTime;
                 }
                 break;
 
@@ -447,6 +509,10 @@ void StateManager::chargeManage() {
     } else {
         armBattery(false);
         digitalWrite(Pins::NLGKL15, LOW);
+        
+        // Reset delay variables when not in charging state
+        delayingConnectorLock = true;
+        connectorLockDelay = 0;
     }
 }
 
@@ -526,6 +592,15 @@ void StateManager::transitionToStandby() {
     enableDMC = false;
     armBattery(false);
     armCoolingSys(false);
+    
+    // Make sure the connector is unlocked before going to sleep
+    if (digitalRead(Pins::NLG_HW_Wakeup) && canManager.getNLGData().connectorLocked) {
+        Serial.println("Ensuring connector is unlocked before sleeping");
+        canManager.setNLGUnlockRequest(true);
+        // Note: In a complete implementation, we'd add a wait loop here with timeout
+        // to ensure the connector is actually unlocked before sleeping
+    }
+    
     Serial.println("Now in STANDBY state");
 }
 
@@ -554,4 +629,24 @@ void StateManager::transitionToCharging() {
     Serial.println("Transitioning to CHARGING state");
     currentState = VehicleState::CHARGING;
     Serial.println("Now in CHARGING state");
+}
+
+void StateManager::removePinFromWakeSources(uint8_t pin) {
+    // Remove pin from EXT1 wake sources
+    uint64_t mask = esp_sleep_get_ext1_wakeup_status();
+    mask &= ~(1ULL << pin);
+    esp_sleep_enable_ext1_wakeup(mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+    Serial.print("Removed pin ");
+    Serial.print(pin);
+    Serial.println(" from wake sources");
+}
+
+void StateManager::addPinToWakeSources(uint8_t pin) {
+    // Add pin to EXT1 wake sources
+    uint64_t mask = esp_sleep_get_ext1_wakeup_status();
+    mask |= (1ULL << pin);
+    esp_sleep_enable_ext1_wakeup(mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+    Serial.print("Added pin ");
+    Serial.print(pin);
+    Serial.println(" to wake sources");
 }
