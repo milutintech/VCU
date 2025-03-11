@@ -74,29 +74,80 @@ StateManager::StateManager(CANManager& canMgr, VehicleControl* vc)
  */
 void StateManager::handleWakeup() {
     Serial.println("Handling wakeup...");
-    uint8_t reason = getWakeupReason();
-    Serial.print("Wakeup reason: ");
-    Serial.println(reason);
     
-    if (digitalRead(Pins::NLG_HW_Wakeup)) {
-        Serial.println("NLG_HW_Wakeup pin is HIGH");
-        if(!unlockPersist){
-            // When waking up due to charger, remove NLG_HW_Wakeup from wake sources
-            removePinFromWakeSources(Pins::NLG_HW_Wakeup);
-            transitionToCharging();
-        } else {
-            transitionToStandby();
-        }
-    } else if (digitalRead(Pins::IGNITION)) {
-        Serial.println("IGNITION pin is HIGH");
+    // Get the actual wakeup reason from ESP32
+    esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+    uint8_t gpio_reason = getWakeupReason();
+    
+    Serial.print("ESP32 wakeup cause: ");
+    Serial.println(wakeup_reason);
+    Serial.print("GPIO wakeup reason: ");
+    Serial.println(gpio_reason);
+    
+    // First check for specific wake sources based on ESP32's wake cause
+    if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0) {
+        // EXT0 is configured for IGNITION pin
+        Serial.println("Woken up by IGNITION (EXT0)");
         unlockPersist = false;
         // When waking up due to ignition, add NLG_HW_Wakeup back to wake sources
         addPinToWakeSources(Pins::NLG_HW_Wakeup);
         transitionToRun();
-    } else {
-        Serial.println("No wake signals, going to standby");
-        transitionToStandby();
+        return;
+    } 
+    else if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT1) {
+        // For EXT1, we need to check which pin caused the wakeup
+        Serial.println("Woken up by EXT1 source");
+        
+        // Check if NLG_HW_Wakeup pin is high (charging wake)
+        if (digitalRead(Pins::NLG_HW_Wakeup) == HIGH) {
+            Serial.println("NLG_HW_Wakeup pin is HIGH");
+            if (!unlockPersist) {
+                // Remove NLG_HW_Wakeup from wake sources when entering charging
+                removePinFromWakeSources(Pins::NLG_HW_Wakeup);
+                transitionToCharging();
+                return;
+            }
+        }
+        
+        // Check if IGNITION pin is high
+        if (digitalRead(Pins::IGNITION) == HIGH) {
+            Serial.println("IGNITION pin is HIGH");
+            unlockPersist = false;
+            // When waking up due to ignition, add NLG_HW_Wakeup back to wake sources
+            addPinToWakeSources(Pins::NLG_HW_Wakeup);
+            transitionToRun();
+            return;
+        }
+        
+        // Check if UNLCKCON pin is high
+        if (digitalRead(Pins::UNLCKCON) == HIGH) {
+            Serial.println("UNLCKCON pin is HIGH");
+            // Handle unlock button specific wakeup if needed
+        }
     }
+    
+    // If we get here, no specific wake source was identified from ESP32's mechanism
+    // Fall back to direct pin reading as a secondary method
+    
+    if (digitalRead(Pins::NLG_HW_Wakeup) == HIGH) {
+        Serial.println("NLG_HW_Wakeup pin is HIGH (direct check)");
+        if (!unlockPersist) {
+            removePinFromWakeSources(Pins::NLG_HW_Wakeup);
+            transitionToCharging();
+            return;
+        }
+    } 
+    else if (digitalRead(Pins::IGNITION) == HIGH) {
+        Serial.println("IGNITION pin is HIGH (direct check)");
+        unlockPersist = false;
+        addPinToWakeSources(Pins::NLG_HW_Wakeup);
+        transitionToRun();
+        return;
+    }
+    
+    // If no wake signals detected through any method, go to standby
+    Serial.println("No wake signals detected, going to standby");
+    transitionToStandby();
 }
 
 /**
@@ -572,15 +623,21 @@ void StateManager::handleConnectorUnlock() {
     conUlockInterrupt = false;
 }
 
-
 /**
- * @brief Get system wake-up source
- * @return Wake-up pin identifier
+ * @brief Get system wake-up source GPIO number
+ * @return Wake-up pin identifier or 0 if no GPIO wakeup
  * 
- * Determines which GPIO triggered the wake-up event
+ * Determines which GPIO triggered the wake-up event from EXT1 source
  */
 uint8_t StateManager::getWakeupReason() {
     uint64_t GPIO_reason = esp_sleep_get_ext1_wakeup_status();
+    
+    // If no GPIO was triggered, return 0
+    if (GPIO_reason == 0) {
+        return 0;
+    }
+    
+    // Use logarithm method to find the highest bit set
     return (log(GPIO_reason)) / log(2);
 }
 

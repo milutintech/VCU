@@ -42,14 +42,30 @@ SerialConsole* serialConsole = nullptr; // Debug console interface
 TaskHandle_t canTaskHandle = nullptr;     // CAN task handle (Core 0)
 TaskHandle_t controlTaskHandle = nullptr; // Control task handle (Core 1)
 
-// Connector unlock ISR function
+volatile bool unlockInterruptTriggered = false;
+unsigned long lastInterruptTime = 0;
+const unsigned long debounceTime = 500; // 500ms debounce
+
 void IRAM_ATTR connectorUnlockISR() {
-    if (stateManager) {
-        Serial.println("innterrupt");
-        stateManager->handleConnectorUnlockInterrupt();
+    unsigned long currentTime = millis();
+    
+    // Only process the interrupt if enough time has passed (debounce)
+    if (currentTime - lastInterruptTime > debounceTime) {
+        unlockInterruptTriggered = true;
+        lastInterruptTime = currentTime;
+        Serial.println("Interrupt triggered");  // This can be removed in production
     }
 }
 
+void checkAndHandleInterrupt() {
+    if (unlockInterruptTriggered) {
+        if (stateManager) {
+            Serial.println("Processing connector unlock interrupt");
+            stateManager->handleConnectorUnlockInterrupt();
+        }
+        unlockInterruptTriggered = false; // Clear the flag
+    }
+}
 /**
  * @brief CAN and Fast Control Task (Core 0)
  * 
@@ -117,17 +133,14 @@ void controlTask(void* parameter) {
     for(;;) {
         esp_task_wdt_reset();
         
+        // Check for pending unlock interrupt
+        checkAndHandleInterrupt();
+        
         // Update system state and interface
         stateManager->update();
         serialConsole->update();
         
-        // Update system parameters from CAN data
-        const BMSData& bmsData = canManager->getBMSData();
-        const DMCData& dmcData = canManager->getDMCData();
-        const NLGData& nlgData = canManager->getNLGData();
-        
-        // Update BSC state based on battery status
-        //canManager->setEnableBSC(stateManager->isBatteryArmed());
+        // Rest of the function remains the same...
         
         vTaskDelay(pdMS_TO_TICKS(Constants::SLOW_CYCLE_MS));
     }

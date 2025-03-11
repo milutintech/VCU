@@ -63,27 +63,26 @@ void SystemSetup::initializeGPIO() {
  * - Wake sources configuration
  * - GPIO wake pin selection
  * - Wake level triggers
- * 
- * Wake sources:
- * - EXT0: Single GPIO wake (IGNITION pin)
- * - EXT1: Multiple GPIO wake (Button bitmask)
- * 
- * The system can be woken by either:
- * - Ignition signal (HIGH level)
- * - Any configured button press (HIGH level)
  */
 void SystemSetup::initializeSleep() {
+    // Define the wake pins
+    gpio_num_t ignitionPin = static_cast<gpio_num_t>(Pins::IGNITION);
+    
     // Configure the ignition pin as a wake source (EXT0)
-    esp_sleep_enable_ext0_wakeup(static_cast<gpio_num_t>(Pins::IGNITION), 1);
+    esp_sleep_enable_ext0_wakeup(ignitionPin, 1);  // Wake on HIGH level
     
     // Define the bitmask for multiple wake sources (EXT1)
-    // Include NLG_HW_Wakeup (pin 7), IGNITION (pin 8), and UNLCKCON (pin 10)
     uint64_t wakeBitmask = (1ULL << Pins::NLG_HW_Wakeup) | 
-                           (1ULL << Pins::IGNITION) | 
-                           (1ULL << Pins::UNLCKCON);
+                          (1ULL << Pins::IGNITION) | 
+                          (1ULL << Pins::UNLCKCON);
     
     // Enable EXT1 wake sources with the defined bitmask
     esp_sleep_enable_ext1_wakeup(wakeBitmask, ESP_EXT1_WAKEUP_ANY_HIGH);
+    
+    // Configure GPIO pulldowns using standard Arduino functions
+    pinMode(Pins::IGNITION, INPUT_PULLDOWN);
+    pinMode(Pins::NLG_HW_Wakeup, INPUT_PULLDOWN);
+    pinMode(Pins::UNLCKCON, INPUT_PULLDOWN);
     
     Serial.println("Sleep configuration initialized with wake sources:");
     Serial.print("- IGNITION (EXT0): Pin ");
