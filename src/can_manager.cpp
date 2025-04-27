@@ -96,11 +96,10 @@ void CANManager::update() {
     
     // Handle error clearing sequence timing
     if (inErrorClearSequence) {
+        needsClearError = true;
         // If 100ms has passed and we're still in sequence, auto-clear
         if (millis() - errorClearStartTime >= 100) {
-            if (stateManager) {
-                stateManager->setErrorLatch(false);  // Set error latch low
-            }
+            Serial.println("cleard");
             inErrorClearSequence = false;
             needsClearError = false;
         }
@@ -296,7 +295,7 @@ void CANManager::sendBSC() {
  * @brief Send DMC control messages
  */
 void CANManager::sendDMC() {
-    int16_t scaledTorque = static_cast<int16_t>(torqueDemand * 100);  // 0.01Nm/bit according to DBC
+    int16_t scaledTorque = static_cast<int16_t>(torqueDemand * 10);  // 0.01Nm/bit according to DBC
     
     // DMC control message (0x210)
     // Bits:
@@ -310,20 +309,17 @@ void CANManager::sendDMC() {
     // Default configuration for normal operation
     if (!needsClearError) {
         // Normal operation - Enable bit set, Error clear bit not set
-        controlBufferDMC[0] = (enableDMC << 0) |         // DMC_EnableRq at bit 0
-                              (1 << 1) |                 // DMC_ModeRq at bit 1 (1 = speed mode)
-                              (1 << 2) |                 // DMC_OscLimEnableRq at bit 2
-                              (0 << 4) |                 // DMC_ClrError at bit 4 (not clearing)
-                              (1 << 6) |                 // DMC_NegTrqSpd at bit 6
-                              (1 << 7);                  // DMC_PosTrqSpd at bit 7
+        controlBufferDMC[0] =(enableDMC << 7) | (false << 6) | (1 << 5) | (1 << 1) | 1;
     } else {
         // Error clearing operation - Enable bit cleared, Error clear bit set
-        controlBufferDMC[0] = (0 << 0) |                 // DMC_EnableRq at bit 0 (must be 0 to clear error)
-                              (1 << 1) |                 // DMC_ModeRq at bit 1 (1 = speed mode)
-                              (1 << 2) |                 // DMC_OscLimEnableRq at bit 2
-                              (1 << 4) |                 // DMC_ClrError at bit 4 (clearing)
-                              (1 << 6) |                 // DMC_NegTrqSpd at bit 6
-                              (1 << 7);                  // DMC_PosTrqSpd at bit 7
+        controlBufferDMC[0] = (0 << 7) |                 // DMC_EnableRq at bit 0 (must be 0 to clear error)
+                              (0 << 6) |                 // DMC_ModeRq at bit 1 (1 = speed mode)
+                              (0 << 5) |                 // DMC_OscLimEnableRq at bit 2
+                              (0 << 4) |  
+                              (1 << 3) |                 // DMC_ClrError at bit 4 (clearing)
+                              (0 << 2) |  
+                              (1 << 1) |                 // DMC_NegTrqSpd at bit 6
+                              (1 << 0);                  // DMC_PosTrqSpd at bit 7
     }
     
     // Speed limit (16-bit signed value in RPM)
@@ -364,18 +360,19 @@ void CANManager::sendNLG() {
     }
 
     // Use the configuration value for maximum charging current
-    uint8_t maxNlgCurrent = config.getMaxChargingCurrent();
+    uint8_t maxNlgCurrentAC = config.getMaxChargingCurrent();
     
     // Limit charging current by smaller of max charger current and BMS max charge
-    float limitedCurrent = std::min(static_cast<int>(maxNlgCurrent), static_cast<int>(bmsData.maxCharge));
-    int nlgCurrentScale = static_cast<int>((limitedCurrent + 102.4) * 10);
+    float limitedCurrentDC = std::min(static_cast<int>(VehicleParams::Battery::MAX_NLG_CURRENT), static_cast<int>(bmsData.maxCharge));
+    int nlgCurrentScaleDC = static_cast<int>((limitedCurrentDC + 102.4) * 10);
+    int nlgCurrentScaleAC = static_cast<int>((maxNlgCurrentAC  + 102.4) * 10);
     
     controlBufferNLG[0] = (false << 7) | (nlgData.unlockRequest << 6) | (false << 5) | ((nlgVoltageScale >> 8) & 0x1F);
     controlBufferNLG[1] = nlgVoltageScale & 0xFF;
-    controlBufferNLG[2] = (nlgData.stateDemand << 5) | ((nlgCurrentScale >> 8) & 0x07);
-    controlBufferNLG[3] = nlgCurrentScale & 0xFF;
-    controlBufferNLG[4] = (nlgData.ledDemand << 4) | ((nlgCurrentScale >> 8) & 0x07);
-    controlBufferNLG[5] = nlgCurrentScale & 0xFF;
+    controlBufferNLG[2] = (nlgData.stateDemand << 5) | ((nlgCurrentScaleDC >> 8) & 0x07);
+    controlBufferNLG[3] = nlgCurrentScaleDC & 0xFF;
+    controlBufferNLG[4] = (nlgData.ledDemand << 4) | ((nlgCurrentScaleAC >> 8) & 0x07);
+    controlBufferNLG[5] = nlgCurrentScaleAC & 0xFF;
     
     CAN.sendMsgBuf(CANIds::NLG_DEM_LIM, 0, 8, controlBufferNLG);
 }

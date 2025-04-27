@@ -216,11 +216,11 @@ void StateManager::handleStandbyState() {
     unlockConnectorRequest = false;
     
     // Make sure connector is unlocked before sleeping
-    if (canManager.getNLGData().connectorLocked) {
+    /*if (canManager.getNLGData().connectorLocked) {
         canManager.setNLGUnlockRequest(true);
         delay(100); // Give a small delay for processing
         return; // Don't sleep yet, wait until connector is unlocked
-    }
+    }*/
     
     // Once we're sure connector is unlocked if needed, we can sleep
     Serial.println("No wake signals, entering deep sleep");
