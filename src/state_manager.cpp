@@ -291,11 +291,12 @@ void StateManager::armBattery(bool arm) {
  */
 void StateManager::armCoolingSys(bool arm) {
     if (batteryArmed) {
-        if (arm && ((inverterTemp > VehicleParams::Temperature::INV_HIGH) || 
-                   (motorTemp > VehicleParams::Temperature::MOT_HIGH) || 
-                   (coolingRequest > 50))) {
-            digitalWrite(Pins::LWP6, HIGH);
-            digitalWrite(Pins::LWP7, HIGH);
+        if (arm && ((inverterTemp > VehicleParams::Temperature::INV_HIGH) || (motorTemp > VehicleParams::Temperature::MOT_HIGH) || (coolingRequest > 50) )) {
+                    if(((inverterTemp > VehicleParams::Temperature::INV_HIGH + 10) || (motorTemp > VehicleParams::Temperature::MOT_HIGH + 10) || (coolingRequest > 55) )){
+                    digitalWrite(Pins::LWP6, HIGH);//FAN
+                   }
+            
+            digitalWrite(Pins::LWP7, HIGH);//Pump
         } else if ((inverterTemp < VehicleParams::Temperature::INV_LOW) && 
                   (motorTemp < VehicleParams::Temperature::MOT_LOW) && 
                   (coolingRequest < 0)) {
