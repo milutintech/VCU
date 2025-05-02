@@ -188,6 +188,7 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
     static uint8_t oscillationCount = 0;
     static const uint8_t MAX_OSCILLATIONS = 5;
     static const unsigned long OSCILLATION_LOCKOUT_MS = 2000; // 2 second lockout after oscillation
+    static int lastZone = -1; // -1=initial, 0=regen, 1=coast, 2=accel
     
     // Early exit if in neutral
     if (currentGear == GearState::NEUTRAL) {
@@ -234,6 +235,19 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
     // Define pedal zones with consistent parameters
     const float REGEN_END_POINT = VehicleParams::Regen::END_POINT;
     const float COAST_END_POINT = VehicleParams::Regen::COAST_END;
+    
+    // Determine current zone
+    int currentZone;
+    if (throttlePosition <= REGEN_END_POINT) {
+        currentZone = 0; // Regen zone
+    } else if (throttlePosition <= COAST_END_POINT) {
+        currentZone = 1; // Coast zone
+    } else {
+        currentZone = 2; // Acceleration zone
+    }
+    
+    // Detect zone transitions
+    bool zoneTransition = (lastZone != currentZone) && (lastZone != -1);
     
     // Adaptive RPM thresholds based on oscillation history
     float MIN_REGEN_RPM_ENTER = 180.0f + (oscillationCount * 20.0f); // Increases with oscillations
@@ -319,15 +333,6 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         }
     }
     
-    // For debugging
-    // Serial.print("fRPM:"); Serial.print(filteredRPM);
-    // Serial.print(" Rate:"); Serial.print(rpmChangeRate);
-    // Serial.print(" Act:"); Serial.print(regenActive ? 1 : 0);
-    // Serial.print(" Can:"); Serial.print(canRegen ? 1 : 0);
-    // Serial.print(" Lock:"); Serial.print(inLockoutPeriod ? 1 : 0);
-    // Serial.print(" Osc:"); Serial.print(oscillationCount);
-    // Serial.print(" Tpr:"); Serial.println(regenTaperFactor, 3);
-    
     // Handle regen zone (pedal position 0-REGEN_END_POINT)
     if (throttlePosition <= REGEN_END_POINT) {
         // Progressive pedal mapping
@@ -348,8 +353,8 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
             static float lastRegenTorque = 0.0f;
             float torqueChange = regenTorque - lastRegenTorque;
             
-            // Adaptive rate limit - tighter at low RPM
-            float maxChange = 5.0f + (filteredRPM * 0.05f); // 5-25 Nm/cycle based on RPM
+            // Apply stronger rate limiting after zone transitions from accel to regen
+            float maxChange = (zoneTransition && lastZone == 2) ? 3.0f : 5.0f + (filteredRPM * 0.05f);
             torqueChange = constrain(torqueChange, -maxChange, maxChange);
             regenTorque = lastRegenTorque + torqueChange;
             lastRegenTorque = regenTorque;
@@ -358,6 +363,9 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         // Store torque in history buffer for oscillation detection
         regenTorqueHistory[historyIndex] = regenTorque * ((motorSpeed < 0) ? 1.0f : -1.0f); // Store with direction
         historyIndex = (historyIndex + 1) % 5;
+        
+        // Update zone tracker
+        lastZone = currentZone;
         
         // Apply proper direction based on motor speed
         return (motorSpeed < 0) ? regenTorque : -regenTorque;
@@ -368,6 +376,10 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         for (int i = 0; i < 5; i++) {
             regenTorqueHistory[i] = 0.0f;
         }
+        
+        // Update zone tracker
+        lastZone = currentZone;
+        
         return 0; // Coast (zero torque)
     }
     // Handle acceleration zone
@@ -385,12 +397,17 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         static float lastAccelTorque = 0.0f;
         float targetTorque = progressiveThrottle * std::min(config.getMaxTorque(), VehicleParams::Motor::MAX_REQ_TRQ);
         
-        // Apply rate limiting for smooth acceleration
+        // Apply rate limiting with stricter limits during zone transitions
         float torqueChange = targetTorque - lastAccelTorque;
-        float maxChange = 10.0f; // 10 Nm/cycle
+        
+        // Use much stricter limit after zone transition from regen to accel
+        float maxChange = (zoneTransition && lastZone == 0) ? 2.0f : 10.0f;
         torqueChange = constrain(torqueChange, -maxChange, maxChange);
         float accelTorque = lastAccelTorque + torqueChange;
         lastAccelTorque = accelTorque;
+        
+        // Update zone tracker
+        lastZone = currentZone;
         
         // Apply proper direction based on gear
         return (currentGear == GearState::DRIVE) ? -accelTorque : accelTorque;

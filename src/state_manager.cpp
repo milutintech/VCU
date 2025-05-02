@@ -680,6 +680,10 @@ void StateManager::handleConnectorUnlock() {
         nlgCharged = true;
         // Force charger to standby state
         chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
+        
+        // Add these lines to enable proper transition to standby
+        waitingForUnlockComplete = true;
+        connectorUnlockStartTime = millis();
     } else {
         Serial.println("Connector already unlocked - transitioning to standby");
         transitionToStandby();

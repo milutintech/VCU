@@ -484,7 +484,7 @@
       "plot": "../../../../../../Downloads/vcu2/",
       "pos_files": "../../../../../../Downloads/vcu2/",
       "specctra_dsn": "",
-      "step": "",
+      "step": "VCU2.0.step",
       "svg": "",
       "vrml": ""
     },
