@@ -176,4 +176,10 @@ private:
     // Timing management
     unsigned long lastModeChangeTime;      // Last state change timestamp
     unsigned long lastPrechargeAttempt;    // Last precharge attempt timestamp
+    
+    unsigned long pumpStartTime = 0;
+    unsigned long fanStartTime = 0;
+    const unsigned long MIN_RUN_TIME = 300000; // 5 minutes in milliseconds
+    bool pumpRunningTimer = false;
+    bool fanRunningTimer = false;
 };

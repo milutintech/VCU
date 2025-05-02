@@ -409,46 +409,88 @@ void StateManager::armBattery(bool arm) {
  * - Battery system state
  */
 void StateManager::armCoolingSys(bool arm) {
+    unsigned long currentTime = millis();
+    
     if (batteryArmed) {
         if (arm) {
             // Separate cooling logic based on vehicle state
             if (currentState == VehicleState::CHARGING) {
-                // When charging, only consider cooling request
+                // Pump control when charging
                 if (coolingRequest > 50) {
-                    digitalWrite(Pins::LWP6, HIGH);
-                    digitalWrite(Pins::LWP7, HIGH);
-                } else if(coolingRequest < 2){
-                    digitalWrite(Pins::LWP6, LOW);
-                    digitalWrite(Pins::LWP7, LOW);
+                    digitalWrite(Pins::LWP7, HIGH); // Turn on pump
+                    if (!pumpRunningTimer) {
+                        pumpStartTime = currentTime;
+                        pumpRunningTimer = true;
+                    }
+                } else if(coolingRequest < 2) {
+                    // Only turn off if minimum run time has elapsed
+                    if (!pumpRunningTimer || (currentTime - pumpStartTime >= MIN_RUN_TIME)) {
+                        digitalWrite(Pins::LWP7, LOW); // Turn off pump
+                        pumpRunningTimer = false;
+                    }
+                }
+                
+                // Fan control when charging
+                if (coolingRequest >= 53) {
+                    digitalWrite(Pins::LWP6, HIGH); // Turn on fan
+                    if (!fanRunningTimer) {
+                        fanStartTime = currentTime;
+                        fanRunningTimer = true;
+                    }
+                } else if(coolingRequest == 0) {
+                    // Only turn off if minimum run time has elapsed
+                    if (!fanRunningTimer || (currentTime - fanStartTime >= MIN_RUN_TIME)) {
+                        digitalWrite(Pins::LWP6, LOW); // Turn off fan
+                        fanRunningTimer = false;
+                    }
                 }
             } else if (currentState == VehicleState::RUN) {
-                // When driving, only consider motor and inverter temps
+                // Reset timers when not charging
+                pumpRunningTimer = false;
+                fanRunningTimer = false;
+                
+                // Pump control when driving
                 if ((inverterTemp > VehicleParams::Temperature::INV_HIGH) || 
                     (motorTemp > VehicleParams::Temperature::MOT_HIGH)) {
-                    digitalWrite(Pins::LWP6, HIGH);
-                    digitalWrite(Pins::LWP7, HIGH);
+                    digitalWrite(Pins::LWP7, HIGH); // Turn on pump
                 } else if ((inverterTemp < VehicleParams::Temperature::INV_LOW) && 
                           (motorTemp < VehicleParams::Temperature::MOT_LOW)) {
-                    digitalWrite(Pins::LWP6, LOW);
-                    digitalWrite(Pins::LWP7, LOW);
+                    digitalWrite(Pins::LWP7, LOW); // Turn off pump
+                }
+                
+                // Fan control when driving
+                if ((inverterTemp > (VehicleParams::Temperature::INV_HIGH + 10)) || 
+                    (motorTemp > (VehicleParams::Temperature::MOT_HIGH + 10))) {
+                    digitalWrite(Pins::LWP6, HIGH); // Turn on fan
+                } else if ((inverterTemp < VehicleParams::Temperature::INV_LOW) && 
+                          (motorTemp < VehicleParams::Temperature::MOT_LOW)) {
+                    digitalWrite(Pins::LWP6, LOW); // Turn off fan
                 }
             } else {
                 // In standby, cooling should be off
-                digitalWrite(Pins::LWP6, LOW);
-                digitalWrite(Pins::LWP7, LOW);
+                digitalWrite(Pins::LWP6, LOW); // Fan off
+                digitalWrite(Pins::LWP7, LOW); // Pump off
+                // Reset timers
+                pumpRunningTimer = false;
+                fanRunningTimer = false;
             }
         } else {
             // If not armed, turn cooling off
-            digitalWrite(Pins::LWP6, LOW);
-            digitalWrite(Pins::LWP7, LOW);
+            digitalWrite(Pins::LWP6, LOW); // Fan off
+            digitalWrite(Pins::LWP7, LOW); // Pump off
+            // Reset timers
+            pumpRunningTimer = false;
+            fanRunningTimer = false;
         }
     } else {
         // If battery not armed, turn cooling off
-        digitalWrite(Pins::LWP6, LOW);
-        digitalWrite(Pins::LWP7, LOW);
+        digitalWrite(Pins::LWP6, LOW); // Fan off
+        digitalWrite(Pins::LWP7, LOW); // Pump off
+        // Reset timers
+        pumpRunningTimer = false;
+        fanRunningTimer = false;
     } 
 }
-
 /**
  * @brief Manage charging process state machine
  * 

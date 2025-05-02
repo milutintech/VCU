@@ -35,7 +35,7 @@ namespace VehicleParams {
      */
     struct Temperature {
         static constexpr float INV_HIGH = 65.0f;   ///< Inverter high temp limit (°C)
-        static constexpr float MOT_HIGH = 80.0f;   ///< Motor high temp limit (°C)
+        static constexpr float MOT_HIGH = 65.0f;   ///< Motor high temp limit (°C)
         static constexpr float INV_LOW = 40.0f;    ///< Inverter low temp threshold (°C)
         static constexpr float MOT_LOW = 50.0f;    ///< Motor low temp threshold (°C)
         static constexpr float NLG_MAX = 80.0f;    ///< Maximum charger temperature (°C)
