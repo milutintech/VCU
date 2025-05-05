@@ -50,7 +50,21 @@ namespace CANIds {
     constexpr uint16_t NLG_ACT_PLUG = 0x739;
 
     constexpr uint16_t CONFIG_MESSAGE = 0x011; 
+}
 
+// ESP-NOW Configuration
+namespace ESPNOW {
+    // Receiver MAC address - update with your display's MAC
+    // Format is in hex: {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
+    constexpr uint8_t RECEIVER_MAC[6] = {0xCC, 0x8D, 0xA2, 0xE9, 0x4E, 0xA8};
+    
+    // Message types
+    constexpr uint8_t MSG_TYPE_BMS = 0x01;
+    constexpr uint8_t MSG_TYPE_DMC_TEMP = 0x02;
+    
+    // Timing constants
+    constexpr unsigned long BMS_SEND_INTERVAL = 100;   // 1 second for BMS data
+    constexpr unsigned long DMC_SEND_INTERVAL = 100;   // 2 seconds for DMC data
 }
 
 // Timing Constants
@@ -84,7 +98,6 @@ namespace ChargerStates {
     constexpr uint8_t NLG_DEM_CHARGE = 1;
     constexpr uint8_t NLG_DEM_SLEEP = 6;
 }
-// Add to config.h, replacing previous enums
 
 // ADC Configuration
 namespace ADC {

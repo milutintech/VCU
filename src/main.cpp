@@ -7,6 +7,7 @@
  * - Hardware initialization
  * - Real-time scheduling
  * - System monitoring
+ * - ESP-NOW wireless communication
  * 
  * Uses dual-core ESP32:
  * Core 0: CAN communication and fast control loops
@@ -22,6 +23,8 @@
 #include <esp32-hal-adc.h>
 #include "ADS1X15.h"
 #include "AD5593R.h"
+#include <WiFi.h>
+#include <esp_now.h>
 
 #include "state_manager.h"
 #include "can_manager.h"
@@ -66,6 +69,7 @@ void checkAndHandleInterrupt() {
         unlockInterruptTriggered = false; // Clear the flag
     }
 }
+
 /**
  * @brief CAN and Fast Control Task (Core 0)
  * 
@@ -74,6 +78,7 @@ void checkAndHandleInterrupt() {
  * - Motor control updates
  * - Fast sensor readings
  * - Real-time control loops
+ * - ESP-NOW communication
  * 
  * @param parameter Task parameters (unused)
  */
@@ -90,6 +95,17 @@ void canTask(void* parameter) {
     canManager->begin();
     esp_task_wdt_init(5, true);  // 5 second watchdog timeout
     
+    // Initialize ESP-NOW with configured MAC address
+    canManager->beginESPNOW((uint8_t*)ESPNOW::RECEIVER_MAC);
+    
+    // Print ESP-NOW status
+    Serial.println("ESP-NOW initialized with target MAC:");
+    char macStr[18];
+    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+             ESPNOW::RECEIVER_MAC[0], ESPNOW::RECEIVER_MAC[1], ESPNOW::RECEIVER_MAC[2], 
+             ESPNOW::RECEIVER_MAC[3], ESPNOW::RECEIVER_MAC[4], ESPNOW::RECEIVER_MAC[5]);
+    Serial.println(macStr);
+    
     for(;;) {
         esp_task_wdt_reset();
         canManager->update();
@@ -100,7 +116,7 @@ void canTask(void* parameter) {
         
         // Calculate and apply torque demand in RUN state
         if (stateManager->getCurrentState() == VehicleState::RUN) {
-            vehicleControl->updateGearState();  // Add this line
+            vehicleControl->updateGearState();
             int16_t torque = vehicleControl->calculateTorque();
             canManager->setTorqueDemand(torque);
             canManager->setEnableDMC(vehicleControl->isDMCEnabled());
@@ -140,8 +156,6 @@ void controlTask(void* parameter) {
         stateManager->update();
         serialConsole->update();
         
-        // Rest of the function remains the same...
-        
         vTaskDelay(pdMS_TO_TICKS(Constants::SLOW_CYCLE_MS));
     }
 }
@@ -154,9 +168,16 @@ void controlTask(void* parameter) {
  * - GPIO configuration
  * - Sleep mode setup
  * - Task creation and scheduling
+ * - ESP-NOW initialization
  */
 void setup() {
     Serial.begin(115200);
+    delay(500);  // Allow serial to initialize
+    
+    Serial.println("\n\n==================================");
+    Serial.println("   Vehicle Control Unit Startup   ");
+    Serial.println("==================================");
+    Serial.println("ESP32 VCU with ESP-NOW Display Support");
     
     // Initialize system components in correct order
     canManager = new CANManager(Pins::SPI_CS_PIN); // First create CAN manager
@@ -198,15 +219,20 @@ void setup() {
     SystemSetup::initializeGPIO();
     SystemSetup::initializeSleep();
     
+    // Print WiFi MAC address for reference
+    WiFi.mode(WIFI_STA);
+    Serial.print("This device MAC Address: ");
+    Serial.println(WiFi.macAddress());
+    
     // Create tasks with error checking
     BaseType_t canTaskCreated = xTaskCreatePinnedToCore(
         canTask,         // Task function
         "CAN_Task",      // Task name
         10000,           // Stack size (words)
         NULL,            // Parameters
-        1,              // Priority
+        1,               // Priority
         &canTaskHandle,  // Task handle
-        0               // Core ID
+        0                // Core ID
     );
     
     if (canTaskCreated != pdPASS) {
@@ -217,17 +243,20 @@ void setup() {
     BaseType_t controlTaskCreated = xTaskCreatePinnedToCore(
         controlTask,         // Task function
         "Control_Task",      // Task name
-        20000,              // Stack size (words)
-        NULL,               // Parameters
-        1,                  // Priority
-        &controlTaskHandle, // Task handle
-        1                  // Core ID
+        20000,               // Stack size (words)
+        NULL,                // Parameters
+        1,                   // Priority
+        &controlTaskHandle,  // Task handle
+        1                    // Core ID
     );
     
     if (controlTaskCreated != pdPASS) {
         Serial.println("Failed to create Control task");
         while(1);
     }
+    
+    Serial.println("System initialization complete");
+    Serial.println("==================================");
 }
 
 /**

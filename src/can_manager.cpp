@@ -88,6 +88,7 @@ void CANManager::begin() {
  * Processes incoming messages and handles periodic transmission:
  * - Fast cycle (10ms): DMC messages in RUN state
  * - Slow cycle (50ms): BSC and NLG messages
+ * Also handles ESP-NOW messaging with specified intervals
  */
 void CANManager::update() {
     if (!stateManager) {
@@ -119,14 +120,14 @@ void CANManager::update() {
     // Handle periodic message transmission
     unsigned long currentTime = millis();
     
-    // Fast cycle for motor control (10ms)
+    // Fast cycle for motor control
     if ((currentTime - lastFastCycle >= Constants::FAST_CYCLE_MS) && 
         (stateManager->getCurrentState() == VehicleState::RUN)) {
         lastFastCycle = currentTime;
         sendDMC();
     }
     
-    // Slow cycle for charging and DC-DC control (100ms)
+    // Slow cycle for charging and DC-DC control
     if (currentTime - lastSlowCycle >= Constants::SLOW_CYCLE_MS) {
         lastSlowCycle = currentTime;
         if (stateManager->getCurrentState() == VehicleState::CHARGING) {
@@ -134,6 +135,21 @@ void CANManager::update() {
         } 
         sendBSC();
     }
+    
+    // ESP-NOW transmission for BMS data
+    if (espNowInitialized && currentTime - lastBMSSendTime >= ESPNOW::BMS_SEND_INTERVAL) {
+        lastBMSSendTime = currentTime;
+        sendBMSDataESPNOW();
+    }
+    
+    // ESP-NOW transmission for DMC temperature data
+    if (espNowInitialized && currentTime - lastDMCSendTime >= ESPNOW::DMC_SEND_INTERVAL) {
+        lastDMCSendTime = currentTime;
+        sendDMCTempESPNOW();
+    }
+    
+    // Print ESP-NOW stats periodically
+
 }
 
 /**
@@ -459,4 +475,173 @@ void CANManager::resetMessageBuffers() {
     memset(limitBufferBSC, 0, 8);
     memset(limitBufferDMC, 0, 8);
     memset(controlBufferNLG, 0, 8);
+}
+// Define static member variables first
+uint32_t CANManager::messagesSent = 0;
+uint32_t CANManager::messagesFailed = 0;
+
+/**
+ * @brief Initialize ESP-NOW communication
+ * Sets up ESP-NOW for peer-to-peer data transmission
+ * @param macAddress Target receiver MAC address
+ */
+void CANManager::beginESPNOW(uint8_t* macAddress) {
+    if (espNowInitialized) {
+        return; // Already initialized
+    }
+    
+    // Store the MAC address
+    memcpy(receiverMacAddress, macAddress, 6);
+    
+    // Initialize WiFi in STA mode
+    WiFi.mode(WIFI_STA);
+    
+    // Print MAC Address for debugging
+    Serial.print("Sender MAC Address: ");
+    Serial.println(WiFi.macAddress());
+    
+    // Initialize ESP-NOW
+    if (esp_now_init() != ESP_OK) {
+        Serial.println("Error initializing ESP-NOW");
+        return;
+    }
+    
+    // Register callback
+    esp_now_register_send_cb(OnDataSent);
+    
+    // Register peer
+    esp_now_peer_info_t peerInfo = {};
+    memcpy(peerInfo.peer_addr, receiverMacAddress, 6);
+    peerInfo.channel = 0;
+    peerInfo.encrypt = false;
+    
+    // Add peer
+    if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+        Serial.println("Failed to add peer");
+        return;
+    }
+    
+    // Print target device
+    char macStr[18];
+    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+             receiverMacAddress[0], receiverMacAddress[1], receiverMacAddress[2], 
+             receiverMacAddress[3], receiverMacAddress[4], receiverMacAddress[5]);
+    Serial.printf("ESP-NOW Target receiver: %s\n", macStr);
+    
+    espNowInitialized = true;
+    lastBMSSendTime = 0;
+    lastDMCSendTime = 0;
+    
+    Serial.println("ESP-NOW initialized successfully");
+}
+
+/**
+ * @brief Callback function for ESP-NOW send status
+ * Static function to handle ESP-NOW send status
+ */
+void CANManager::OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+    char macStr[18];
+    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+    
+    if (status == ESP_NOW_SEND_SUCCESS) {
+        messagesSent++;
+    } else {
+        messagesFailed++;
+    }
+    
+    Serial.printf("ESP-NOW sent to: %s, Status: %s, Success/Fail: %u/%u\n", 
+                  macStr, 
+                  status == ESP_NOW_SEND_SUCCESS ? "Success" : "Failed",
+                  messagesSent,
+                  messagesFailed);
+}
+
+/**
+ * @brief Send BMS data via ESP-NOW
+ * Transmits battery management system data to receiver
+ */
+void CANManager::sendBMSDataESPNOW() {
+    if (!espNowInitialized) {
+        return; // Not initialized
+    }
+    
+    // Create a message buffer for BMS data
+    uint8_t buffer[6]; // Buffer size: 1 (msgType) + 2 (voltage) + 2 (current) + 1 (SOC)
+    
+    // Prepare the message buffer
+    buffer[0] = MSG_TYPE_BMS;  // Message type
+    
+    // Convert voltage to integer (multiply by 10 to preserve 1 decimal place)
+    uint16_t voltageInt = (uint16_t)(bmsData.voltage * 10.0);
+    buffer[1] = (voltageInt >> 8) & 0xFF;  // high byte
+    buffer[2] = voltageInt & 0xFF;         // low byte
+    
+    // Current as int16_t 
+    buffer[3] = (bmsData.current >> 8) & 0xFF;  // high byte
+    buffer[4] = bmsData.current & 0xFF;         // low byte
+    
+    // SOC as direct byte
+    buffer[5] = bmsData.soc;
+    
+    // Debug print
+    Serial.printf("Sending BMS data: SOC=%d%%, Voltage=%.1fV, Current=%dA\n", 
+                  bmsData.soc, (float)bmsData.voltage, bmsData.current);
+    
+    // Debug raw data
+    Serial.print("Raw data: ");
+    for (int i = 0; i < 6; i++) {
+        Serial.printf("%02X ", buffer[i]);
+    }
+    Serial.println();
+    
+    // Send the message
+    esp_err_t result = esp_now_send(receiverMacAddress, buffer, 6);
+    
+    if (result != ESP_OK) {
+        Serial.println("Error sending BMS message via ESP-NOW");
+    }
+}
+
+/**
+ * @brief Send DMC temperature data via ESP-NOW
+ * Transmits motor temperature data to receiver
+ */
+void CANManager::sendDMCTempESPNOW() {
+    if (!espNowInitialized) {
+        return; // Not initialized
+    }
+    
+    // Create a message buffer for DMC temperature data
+    uint8_t buffer[5]; // Buffer size: 1 (msgType) + 2 (invTemp) + 2 (motorTemp)
+    
+    // Prepare the message buffer
+    buffer[0] = MSG_TYPE_DMC_TEMP;  // Message type
+    
+    // Convert temperatures to integers (multiply by 10 to preserve 1 decimal place)
+    uint16_t invTempInt = (uint16_t)(dmcData.tempInverter * 10.0);
+    buffer[1] = (invTempInt >> 8) & 0xFF;  // high byte
+    buffer[2] = invTempInt & 0xFF;         // low byte
+    
+    uint16_t motorTempInt = (uint16_t)(dmcData.tempMotor * 10.0);
+    buffer[3] = (motorTempInt >> 8) & 0xFF;  // high byte
+    buffer[4] = motorTempInt & 0xFF;         // low byte
+    /*
+    // Debug print
+    Serial.printf("Sending DMC temp data: Inverter=%.1f°C, Motor=%.1f°C\n", 
+                  dmcData.tempInverter, dmcData.tempMotor);
+    
+    // Debug raw data
+    Serial.print("Raw data: ");
+    for (int i = 0; i < 5; i++) {
+        Serial.printf("%02X ", buffer[i]);
+    }
+    Serial.println();
+    */
+    // Send the message
+    esp_err_t result = esp_now_send(receiverMacAddress, buffer, 5);
+    
+    if (result != ESP_OK) {
+        Serial.println("Error sending DMC temp message via ESP-NOW");
+    }
 }
