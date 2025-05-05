@@ -184,6 +184,8 @@ void StateManager::update() {
  */
 void StateManager::handleStandbyState() {
     // Disable all systems in standby
+    Serial.println("In STANDBY state handler");
+
     digitalWrite(Pins::DMCKL15, LOW);
     digitalWrite(Pins::BSCKL15, LOW);
     digitalWrite(Pins::NLGKL15, LOW);
@@ -516,6 +518,14 @@ void StateManager::chargeManage() {
         if (wasNlgWakeupHigh && !currentNlgWakeup) {
             Serial.println("Charger unplugged detected");
             unlockConnectorRequest = true;
+            addPinToWakeSources(Pins::IGNITION); // Ensure ignition is re-enabled
+    
+            // Force transition to standby instead of waiting
+            Serial.println("Forcing transition to standby");
+            // Wait briefly to ensure messages are sent
+             delay(500);
+            transitionToStandby();
+            return; // Exit the function immediately
             // We won't immediately sleep - make sure connector is unlocked first
             waitingForUnlockComplete = true;
             connectorUnlockStartTime = currentTime;

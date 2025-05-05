@@ -100,7 +100,7 @@ namespace VehicleParams {
     struct Regen {
         static constexpr float FADE_START = 400.0f;    ///< Speed for regen fade start (kph)
         static constexpr float ZERO_SPEED = 0.5f;      ///< Zero speed threshold (kph)
-        static constexpr float MIN_SPEED = 100.0f;     ///< Minimum regen speed (kph)
+        static constexpr float MIN_SPEED = 15.0f;     ///< Minimum regen speed (kph)
         static constexpr float END_POINT = 35.0f;      ///< Regen end pedal position (%)
         static constexpr float COAST_END = 40.0f;      ///< Coast end pedal position (%)
     };
