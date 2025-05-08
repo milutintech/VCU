@@ -175,92 +175,11 @@ int16_t VehicleControl::handleLegacyMode(float throttlePosition) {
  * - Direction-aware torque calculation
  * - Oscillation detection and automatic adaptation
  */
-int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
-    // Simple RPM filtering with single-stage approach
-    static float filteredRPM = 0.0f;
-    
-    // Calculate filtered RPM with moderate filtering
-    float currentRawRPM = fabsf(motorSpeed);
-    const float RPM_FILTER = 0.7f; // 70% previous, 30% new (moderate filtering)
-    filteredRPM = (RPM_FILTER * filteredRPM) + ((1.0f - RPM_FILTER) * currentRawRPM);
-    
-    // Early exit if in neutral
-    if (currentGear == GearState::NEUTRAL) {
-        return 0;
-    }
-    
-    // Define pedal zones
-    const float REGEN_END_POINT = VehicleParams::Regen::END_POINT;
-    const float COAST_END_POINT = VehicleParams::Regen::COAST_END;
-    
-    // Allow regen all the way to zero RPM with a gentle ramp
-    // Use a very short ramp at low speeds to ensure smoothness
-    float regenFactor = 1.0f;
-    
-    // If RPM is very low, slightly reduce regen power for smoothness
-    if (filteredRPM < 50.0f) {
-        // Apply a gentle curve for the last bit of deceleration
-        regenFactor = filteredRPM / 50.0f;
-        regenFactor = pow(regenFactor, 0.7f); // Make the curve gentler at low speeds
-        regenFactor = max(0.2f, regenFactor); // Keep minimum of 20% regen capability
-    }
-    
-    // Handle regen zone (pedal position 0-REGEN_END_POINT)
-    if (throttlePosition <= REGEN_END_POINT) {
-        // Progressive pedal mapping with smoother curve
-        float normalizedRegen = 1.0f - (throttlePosition / REGEN_END_POINT);
-        
-        // Smoother curve at the transition point
-        float progressiveRegen = pow(normalizedRegen, 1.2f); // Less aggressive curve
-        
-        // Calculate regen torque with smooth ramp
-        float maxRegenTorque = std::min(VehicleParams::OPD::REGEN_TORQUE_CAP, 
-                                       static_cast<double>(config.getMaxTorque() * 0.4));
-        float regenTorque = progressiveRegen * maxRegenTorque * regenFactor;
-        
-        // Apply rate limiting for extra smoothness
-        static float lastRegenTorque = 0.0f;
-        float maxTorqueChange = 6.0f; // Allow slightly faster changes
-        float torqueChange = regenTorque - lastRegenTorque;
-        torqueChange = constrain(torqueChange, -maxTorqueChange, maxTorqueChange);
-        regenTorque = lastRegenTorque + torqueChange;
-        lastRegenTorque = regenTorque;
-        
-        // Apply proper direction based on motor speed
-        return (motorSpeed < 0) ? regenTorque : -regenTorque;
-    }
-    // Handle coast zone (natural deceleration)
-    else if (throttlePosition <= COAST_END_POINT) {
-        return 0; // Coast (zero torque)
-    }
-    // Handle acceleration zone
-    else {
-        // Smoother transition from coast to acceleration
-        float normalizedThrottle = (throttlePosition - COAST_END_POINT) / (100.0f - COAST_END_POINT);
-        
-        // Gentler curve at beginning of acceleration zone
-        float progressiveThrottle = pow(normalizedThrottle, 1.3f); // Less aggressive curve
-        
-        // Calculate drive torque with basic rate limiting
-        float driveTorque = progressiveThrottle * std::min(config.getMaxTorque(), VehicleParams::Motor::MAX_REQ_TRQ);
-        
-        static float lastDriveTorque = 0.0f;
-        float maxDriveChange = 10.0f; // Allow faster changes for acceleration
-        float driveChange = driveTorque - lastDriveTorque;
-        driveChange = constrain(driveChange, -maxDriveChange, maxDriveChange);
-        driveTorque = lastDriveTorque + driveChange;
-        lastDriveTorque = driveTorque;
-        
-        // Apply proper direction based on gear
-        return (currentGear == GearState::DRIVE) ? -driveTorque : driveTorque;
-    }
-}
- /* OLD
-int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
+iint16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
     // Static variables for RPM filtering and state tracking
-    static float filteredRPM = 0.0f;
-    static float prevFilteredRPM = 0.0f;
-    static float rpmChangeRate = 0.0f;
+    static float filteredSpeed = 0.0f;
+    static float prevFilteredSpeed = 0.0f;
+    static float speedChangeRate = 0.0f;
     static bool regenActive = false;
     static unsigned long lastOscillationTime = 0;
     static unsigned long lastUpdateTime = 0;
@@ -270,10 +189,12 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
     static const uint8_t MAX_OSCILLATIONS = 5;
     static const unsigned long OSCILLATION_LOCKOUT_MS = 2000; // 2 second lockout after oscillation
     static int lastZone = -1; // -1=initial, 0=regen, 1=coast, 2=accel
+    static float lastTorque = 0.0f; // Track last output torque for transitions
     
     // Early exit if in neutral
     if (currentGear == GearState::NEUTRAL) {
         regenActive = false;
+        lastTorque = 0.0f;
         return 0;
     }
     
@@ -285,33 +206,33 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
     // Prevent division by zero in rate calculations
     if (deltaTime == 0) deltaTime = 1;
     
-    // Enhanced multi-stage RPM filtering for ultimate stability
-    float currentRawRPM = fabsf(motorSpeed);
+    // Speed-based filtering with reduced strength to prevent lag
+    float absSpeed = fabsf(speed);
     
-    // Stage 1: Heavy low-pass filter for noise reduction
-    const float PRIMARY_FILTER = 0.55f; // Very strong filtering (85% previous, 15% new)
-    filteredRPM = (PRIMARY_FILTER * filteredRPM) + ((1.0f - PRIMARY_FILTER) * currentRawRPM);
+    // Less aggressive filtering to reduce lag in torque response
+    const float PRIMARY_FILTER = 0.7f; // Reduced from 0.85 to 0.7 (70% previous, 30% new)
+    filteredSpeed = (PRIMARY_FILTER * filteredSpeed) + ((1.0f - PRIMARY_FILTER) * absSpeed);
     
-    // Stage 2: Calculate rate of change and apply predictive filtering
+    // Calculate speed change rate with reduced filtering weight
     if (deltaTime > 0) {
-        // Calculate RPM change rate (RPM per second)
-        float instantRpmRate = (filteredRPM - prevFilteredRPM) * (1000.0f / deltaTime);
+        // Calculate speed change rate (speed per second)
+        float instantSpeedRate = (filteredSpeed - prevFilteredSpeed) * (1000.0f / deltaTime);
         
-        // Filter the rate itself for stability
-        const float RATE_FILTER = 0.9f;
-        rpmChangeRate = (RATE_FILTER * rpmChangeRate) + ((1.0f - RATE_FILTER) * instantRpmRate);
+        // Reduced filter weight for faster response
+        const float RATE_FILTER = 0.8f; // Reduced from 0.9 to 0.8
+        speedChangeRate = (RATE_FILTER * speedChangeRate) + ((1.0f - RATE_FILTER) * instantSpeedRate);
         
-        // Apply predictive component (helps anticipate RPM changes)
-        const float PREDICTION_FACTOR = 0.1f;
-        float predictedRPM = filteredRPM + (rpmChangeRate * PREDICTION_FACTOR);
+        // Reduced predictive component to minimize overshoot
+        const float PREDICTION_FACTOR = 0.05f; // Reduced from 0.1 to 0.05
+        float predictedSpeed = filteredSpeed + (speedChangeRate * PREDICTION_FACTOR);
         
-        // Blend prediction with filtered value (improves responsiveness while maintaining stability)
-        const float PREDICTION_BLEND = 0.2f;
-        filteredRPM = (filteredRPM * (1.0f - PREDICTION_BLEND)) + (predictedRPM * PREDICTION_BLEND);
+        // Reduced prediction blend to minimize lag
+        const float PREDICTION_BLEND = 0.1f; // Reduced from 0.2 to 0.1
+        filteredSpeed = (filteredSpeed * (1.0f - PREDICTION_BLEND)) + (predictedSpeed * PREDICTION_BLEND);
     }
     
-    // Save current filtered RPM for next iteration
-    prevFilteredRPM = filteredRPM;
+    // Save current filtered speed for next iteration
+    prevFilteredSpeed = filteredSpeed;
     
     // Define pedal zones with consistent parameters
     const float REGEN_END_POINT = VehicleParams::Regen::END_POINT;
@@ -329,18 +250,20 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
     
     // Detect zone transitions
     bool zoneTransition = (lastZone != currentZone) && (lastZone != -1);
+    bool accelFromRegen = zoneTransition && (lastZone == 0) && (currentZone == 2);
     
-    // Adaptive RPM thresholds based on oscillation history
-    float MIN_REGEN_RPM_ENTER = 180.0f + (oscillationCount * 20.0f); // Increases with oscillations
-    float MIN_REGEN_RPM_EXIT = 100.0f + (oscillationCount * 10.0f);  // Increases with oscillations
-    const float REGEN_RAMP_RPM = 400.0f;  // Longer ramp for smoother transition
+    // ===== MODIFIED LOW-SPEED HANDLING =====
+    // Lower thresholds for regen to work at lower speeds
+    float MIN_REGEN_SPEED_ENTER = 5.0f + (oscillationCount * 0.5f); // Much lower threshold (kph)
+    float MIN_REGEN_SPEED_EXIT = 3.0f + (oscillationCount * 0.3f);  // Much lower exit threshold
+    const float REGEN_RAMP_SPEED = 15.0f;  // Full regen by 15 kph
     
-    // Oscillation detection - more sophisticated approach
+    // Oscillation detection (simplified for clarity)
     bool inLockoutPeriod = (currentTime - lastOscillationTime) < OSCILLATION_LOCKOUT_MS;
     
     // Enhance oscillation detection with torque stability analysis
     bool torqueOscillating = false;
-    if (regenActive) {
+    if (regenActive && filteredSpeed < 10.0f) { // Only check for oscillations at low speeds
         // Check for alternating torque direction in history (sign changes)
         int signChanges = 0;
         float prevTorque = regenTorqueHistory[0];
@@ -354,11 +277,11 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         torqueOscillating = (signChanges >= 2); // Multiple sign changes indicate oscillation
         
         // Near threshold oscillation detection
-        bool nearThreshold = (filteredRPM < MIN_REGEN_RPM_EXIT + 30.0f) && 
-                             (filteredRPM > MIN_REGEN_RPM_EXIT - 30.0f);
+        bool nearThreshold = (filteredSpeed < MIN_REGEN_SPEED_EXIT + 1.0f) && 
+                            (filteredSpeed > MIN_REGEN_SPEED_EXIT - 1.0f);
         
         if ((torqueOscillating && nearThreshold) || 
-            (nearThreshold && fabsf(rpmChangeRate) > 50.0f)) { // Rapid RPM changes near threshold
+            (nearThreshold && fabsf(speedChangeRate) > 1.5f)) { // Rapid speed changes near threshold
             // Oscillation detected - increase thresholds and disable regen temporarily
             regenActive = false;
             lastOscillationTime = currentTime;
@@ -370,43 +293,43 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         }
     }
     
-    // Apply hysteresis to RPM threshold with intelligent lockout
+    // Apply hysteresis to speed threshold with intelligent lockout
     bool canRegen = false;
     if (!inLockoutPeriod) {
         if (regenActive) {
-            // Once regen is active, keep it active until RPM drops below exit threshold
-            // Add momentum factor - if RPM is falling rapidly, deactivate early to prevent overshoot
-            float momentumFactor = constrain(rpmChangeRate * -0.2f, 0.0f, 50.0f);
-            canRegen = (filteredRPM >= (MIN_REGEN_RPM_EXIT + momentumFactor));
+            // Once regen is active, keep it active until speed drops below exit threshold
+            // Add momentum factor - if speed is falling rapidly, deactivate early to prevent overshoot
+            float momentumFactor = constrain(speedChangeRate * -0.1f, 0.0f, 1.0f);
+            canRegen = (filteredSpeed >= (MIN_REGEN_SPEED_EXIT + momentumFactor));
             if (!canRegen) {
                 regenActive = false;
             }
         } else {
-            // To activate, need stable RPM above threshold
-            canRegen = (filteredRPM >= MIN_REGEN_RPM_ENTER) && (fabsf(rpmChangeRate) < 100.0f);
+            // To activate, need stable speed above threshold
+            canRegen = (filteredSpeed >= MIN_REGEN_SPEED_ENTER) && (fabsf(speedChangeRate) < 3.0f);
             if (canRegen) {
                 regenActive = true;
             }
         }
     }
     
-    // Ultra-smooth tapering with adaptive curve
+    // Ultra-smooth tapering with less aggressive curve
     float regenTaperFactor = 0.0f;
-    if (canRegen && filteredRPM > MIN_REGEN_RPM_EXIT) {
-        if (filteredRPM >= REGEN_RAMP_RPM) {
+    if (canRegen && filteredSpeed > MIN_REGEN_SPEED_EXIT) {
+        if (filteredSpeed >= REGEN_RAMP_SPEED) {
             regenTaperFactor = 1.0f; // Full regen available
         } else {
-            // Adaptive curve based on oscillation history
-            float rampProgress = (filteredRPM - MIN_REGEN_RPM_EXIT) / (REGEN_RAMP_RPM - MIN_REGEN_RPM_EXIT);
+            // Less adaptive curve for faster response
+            float rampProgress = (filteredSpeed - MIN_REGEN_SPEED_EXIT) / (REGEN_RAMP_SPEED - MIN_REGEN_SPEED_EXIT);
             rampProgress = constrain(rampProgress, 0.0f, 1.0f);
             
-            // Use higher power curve when oscillations detected for even gentler onset
-            float curvePower = 3.0f + (oscillationCount * 0.5f); // 3.0 to 5.5 based on oscillations
+            // Use gentler power curve for faster response
+            float curvePower = 2.0f + (oscillationCount * 0.3f); // Lower base power (2.0 vs 3.0)
             regenTaperFactor = pow(rampProgress, curvePower);
             
-            // Additional rate limiting on taper factor itself
+            // Less aggressive rate limiting on taper factor
             static float lastTaperFactor = 0.0f;
-            const float MAX_TAPER_CHANGE = 0.05f; // Maximum change per update
+            const float MAX_TAPER_CHANGE = 0.1f; // Increased from 0.05 to 0.1
             float taperChange = regenTaperFactor - lastTaperFactor;
             taperChange = constrain(taperChange, -MAX_TAPER_CHANGE, MAX_TAPER_CHANGE);
             regenTaperFactor = lastTaperFactor + taperChange;
@@ -414,18 +337,30 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         }
     }
     
+    // ===== IMPROVED PEDAL HANDLING =====
+    
     // Handle regen zone (pedal position 0-REGEN_END_POINT)
     if (throttlePosition <= REGEN_END_POINT) {
-        // Progressive pedal mapping
+        // Progressive pedal mapping for regen - segmented for better control
         float normalizedRegen = 1.0f - (throttlePosition / REGEN_END_POINT);
-        float progressiveRegen = pow(normalizedRegen, 1.5f);
+        
+        // Two-segment curve for more natural feel
+        float progressiveRegen;
+        if (normalizedRegen < 0.4f) {
+            // Light regen (first 40% of pedal travel): gentle response
+            progressiveRegen = pow(normalizedRegen / 0.4f, 1.2f) * 0.25f;
+        } else {
+            // Strong regen (40-100% of pedal travel): stronger response
+            progressiveRegen = 0.25f + pow((normalizedRegen - 0.4f) / 0.6f, 0.9f) * 0.75f;
+        }
         
         // Calculate regen torque with adaptive taper factor
         float regenTorque = 0.0f;
         
         if (canRegen) {
             // Base torque calculation
-            float baseTorque = progressiveRegen * std::min(VehicleParams::OPD::REGEN_TORQUE_CAP, static_cast<double>(config.getMaxTorque() * 0.35));
+            float baseTorque = progressiveRegen * std::min(VehicleParams::OPD::REGEN_TORQUE_CAP, 
+                                                          static_cast<double>(config.getMaxTorque() * 0.35));
             
             // Apply adaptive tapering
             regenTorque = baseTorque * regenTaperFactor;
@@ -434,68 +369,142 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
             static float lastRegenTorque = 0.0f;
             float torqueChange = regenTorque - lastRegenTorque;
             
-            // Apply stronger rate limiting after zone transitions from accel to regen
-            float maxChange = (zoneTransition && lastZone == 2) ? 3.0f : 5.0f + (filteredRPM * 0.05f);
+            // Apply smoother rate limiting 
+            float maxChange = (zoneTransition && lastZone == 2) ? 4.0f : 7.0f; // Increased limits
             torqueChange = constrain(torqueChange, -maxChange, maxChange);
             regenTorque = lastRegenTorque + torqueChange;
             lastRegenTorque = regenTorque;
         }
         
         // Store torque in history buffer for oscillation detection
-        regenTorqueHistory[historyIndex] = regenTorque * ((motorSpeed < 0) ? 1.0f : -1.0f); // Store with direction
+        regenTorqueHistory[historyIndex] = regenTorque * ((speed < 0) ? 1.0f : -1.0f); // Store with direction
         historyIndex = (historyIndex + 1) % 5;
         
-        // Update zone tracker
+        // Update zone tracker and last torque
         lastZone = currentZone;
+        lastTorque = regenTorque;
         
-        // Apply proper direction based on motor speed
-        return (motorSpeed < 0) ? regenTorque : -regenTorque;
+        // Apply proper direction based on speed
+        return (speed < 0) ? regenTorque : -regenTorque;
     }
-    // Handle coast zone
+    // Handle coast zone with improved transitions
     else if (throttlePosition <= COAST_END_POINT) {
+        // Apply smooth fade-out when coming from regen
+        if (lastZone == 0) {
+            // Calculate fade rate based on position in coast zone
+            float coastPosition = (throttlePosition - REGEN_END_POINT) / (COAST_END_POINT - REGEN_END_POINT);
+            float fadeFactor = 1.0f - pow(coastPosition, 0.7f);
+            
+            // Apply gentle fade from last torque
+            float fadeTorque = lastTorque * fadeFactor * 0.7f; // Only 70% of previous torque max
+            
+            // Rate limit the fade
+            static float lastFadeTorque = 0.0f;
+            float torqueChange = fadeTorque - lastFadeTorque;
+            float maxChange = 5.0f; // Moderate limit for smoother transition
+            torqueChange = constrain(torqueChange, -maxChange, maxChange);
+            fadeTorque = lastFadeTorque + torqueChange;
+            lastFadeTorque = fadeTorque;
+            
+            // Reset torque history gradually
+            for (int i = 0; i < 5; i++) {
+                regenTorqueHistory[i] *= 0.8f; // Fade history instead of instant reset
+            }
+            
+            // Update zone tracker and last torque
+            lastZone = currentZone;
+            lastTorque = fadeTorque;
+            
+            // Apply proper direction
+            return (speed < 0) ? fadeTorque : -fadeTorque;
+        }
+        
         // Reset torque history in coast mode
         for (int i = 0; i < 5; i++) {
             regenTorqueHistory[i] = 0.0f;
         }
         
-        // Update zone tracker
+        // Update zone tracker and last torque
         lastZone = currentZone;
+        lastTorque = 0.0f;
         
-        return 0; // Coast (zero torque)
+        return 0; // Coast (zero torque) for other transitions
     }
-    // Handle acceleration zone
+    // Handle acceleration zone with improved transitions
     else {
-        // Reset torque history in acceleration mode
-        for (int i = 0; i < 5; i++) {
-            regenTorqueHistory[i] = 0.0f;
-        }
-        
         // Progressive throttle mapping
         float normalizedThrottle = (throttlePosition - COAST_END_POINT) / (100.0f - COAST_END_POINT);
-        float progressiveThrottle = pow(normalizedThrottle, 1.7f);
         
-        // Adaptive torque calculation with rate limiting
-        static float lastAccelTorque = 0.0f;
+        // Two-segment curve for more natural feel
+        float progressiveThrottle;
+        if (normalizedThrottle < 0.3f) {
+            // Light acceleration (first 30%): gentle response
+            progressiveThrottle = pow(normalizedThrottle / 0.3f, 1.4f) * 0.2f;
+        } else {
+            // Strong acceleration (30-100%): stronger response
+            progressiveThrottle = 0.2f + pow((normalizedThrottle - 0.3f) / 0.7f, 1.2f) * 0.8f;
+        }
+        
+        // ===== IMPROVED REGEN-TO-ACCEL TRANSITION =====
+        // Special handling for transition from regen to acceleration
+        if (accelFromRegen) {
+            // To prevent sudden torque application, use a time-based ramp
+            static unsigned long regenExitTime = 0;
+            
+            // Reset timer on zone transition
+            if (zoneTransition) {
+                regenExitTime = currentTime;
+            }
+            
+            // Calculate time-based ramp factor (0 to 1 over 300ms)
+            float rampTime = min(300.0f, (float)(currentTime - regenExitTime));
+            float rampFactor = rampTime / 300.0f;
+            
+            // Apply smooth S-curve
+            rampFactor = 0.5f - 0.5f * cos(rampFactor * 3.14159f);
+            
+            // Scale throttle response during transition period
+            progressiveThrottle *= rampFactor;
+        }
+        
+        // Reset torque history in acceleration mode (more gradually)
+        for (int i = 0; i < 5; i++) {
+            regenTorqueHistory[i] *= 0.5f; // Fade history instead of instant reset
+        }
+        
+        // Calculate target torque
         float targetTorque = progressiveThrottle * std::min(config.getMaxTorque(), VehicleParams::Motor::MAX_REQ_TRQ);
         
-        // Apply rate limiting with stricter limits during zone transitions
+        // Apply rate limiting with adaptive limits
+        static float lastAccelTorque = 0.0f;
         float torqueChange = targetTorque - lastAccelTorque;
         
-        // Use much stricter limit after zone transition from regen to accel
-        float maxChange = (zoneTransition && lastZone == 0) ? 2.0f : 10.0f;
+        // Adaptive rate limiting based on transition type
+        float maxChange;
+        if (accelFromRegen) {
+            // Very gentle ramp when coming from regen
+            maxChange = 3.0f; // Fixed gentle limit during initial regen-to-accel transition
+        } else if (zoneTransition) {
+            // Moderate ramp for other transitions
+            maxChange = 5.0f;
+        } else {
+            // More responsive during normal operation
+            maxChange = 10.0f + (progressiveThrottle * 5.0f); // 10-15 based on throttle
+        }
+        
         torqueChange = constrain(torqueChange, -maxChange, maxChange);
         float accelTorque = lastAccelTorque + torqueChange;
         lastAccelTorque = accelTorque;
         
-        // Update zone tracker
+        // Update zone tracker and last torque
         lastZone = currentZone;
+        lastTorque = accelTorque;
         
         // Apply proper direction based on gear
         return (currentGear == GearState::DRIVE) ? -accelTorque : accelTorque;
     }
 }
 
-/*
 /**
  * @brief Handle One Pedal Drive (OPD) mode with PID anti-rollback and torque capping.
  * @param throttlePosition Processed pedal position (0-100%).
