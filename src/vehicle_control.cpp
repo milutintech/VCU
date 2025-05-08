@@ -176,6 +176,87 @@ int16_t VehicleControl::handleLegacyMode(float throttlePosition) {
  * - Oscillation detection and automatic adaptation
  */
 int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
+    // Simple RPM filtering with single-stage approach
+    static float filteredRPM = 0.0f;
+    
+    // Calculate filtered RPM with moderate filtering
+    float currentRawRPM = fabsf(motorSpeed);
+    const float RPM_FILTER = 0.7f; // 70% previous, 30% new (moderate filtering)
+    filteredRPM = (RPM_FILTER * filteredRPM) + ((1.0f - RPM_FILTER) * currentRawRPM);
+    
+    // Early exit if in neutral
+    if (currentGear == GearState::NEUTRAL) {
+        return 0;
+    }
+    
+    // Define pedal zones
+    const float REGEN_END_POINT = VehicleParams::Regen::END_POINT;
+    const float COAST_END_POINT = VehicleParams::Regen::COAST_END;
+    
+    // Allow regen all the way to zero RPM with a gentle ramp
+    // Use a very short ramp at low speeds to ensure smoothness
+    float regenFactor = 1.0f;
+    
+    // If RPM is very low, slightly reduce regen power for smoothness
+    if (filteredRPM < 50.0f) {
+        // Apply a gentle curve for the last bit of deceleration
+        regenFactor = filteredRPM / 50.0f;
+        regenFactor = pow(regenFactor, 0.7f); // Make the curve gentler at low speeds
+        regenFactor = max(0.2f, regenFactor); // Keep minimum of 20% regen capability
+    }
+    
+    // Handle regen zone (pedal position 0-REGEN_END_POINT)
+    if (throttlePosition <= REGEN_END_POINT) {
+        // Progressive pedal mapping with smoother curve
+        float normalizedRegen = 1.0f - (throttlePosition / REGEN_END_POINT);
+        
+        // Smoother curve at the transition point
+        float progressiveRegen = pow(normalizedRegen, 1.2f); // Less aggressive curve
+        
+        // Calculate regen torque with smooth ramp
+        float maxRegenTorque = std::min(VehicleParams::OPD::REGEN_TORQUE_CAP, 
+                                       static_cast<double>(config.getMaxTorque() * 0.4));
+        float regenTorque = progressiveRegen * maxRegenTorque * regenFactor;
+        
+        // Apply rate limiting for extra smoothness
+        static float lastRegenTorque = 0.0f;
+        float maxTorqueChange = 6.0f; // Allow slightly faster changes
+        float torqueChange = regenTorque - lastRegenTorque;
+        torqueChange = constrain(torqueChange, -maxTorqueChange, maxTorqueChange);
+        regenTorque = lastRegenTorque + torqueChange;
+        lastRegenTorque = regenTorque;
+        
+        // Apply proper direction based on motor speed
+        return (motorSpeed < 0) ? regenTorque : -regenTorque;
+    }
+    // Handle coast zone (natural deceleration)
+    else if (throttlePosition <= COAST_END_POINT) {
+        return 0; // Coast (zero torque)
+    }
+    // Handle acceleration zone
+    else {
+        // Smoother transition from coast to acceleration
+        float normalizedThrottle = (throttlePosition - COAST_END_POINT) / (100.0f - COAST_END_POINT);
+        
+        // Gentler curve at beginning of acceleration zone
+        float progressiveThrottle = pow(normalizedThrottle, 1.3f); // Less aggressive curve
+        
+        // Calculate drive torque with basic rate limiting
+        float driveTorque = progressiveThrottle * std::min(config.getMaxTorque(), VehicleParams::Motor::MAX_REQ_TRQ);
+        
+        static float lastDriveTorque = 0.0f;
+        float maxDriveChange = 10.0f; // Allow faster changes for acceleration
+        float driveChange = driveTorque - lastDriveTorque;
+        driveChange = constrain(driveChange, -maxDriveChange, maxDriveChange);
+        driveTorque = lastDriveTorque + driveChange;
+        lastDriveTorque = driveTorque;
+        
+        // Apply proper direction based on gear
+        return (currentGear == GearState::DRIVE) ? -driveTorque : driveTorque;
+    }
+}
+ /* OLD
+int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
     // Static variables for RPM filtering and state tracking
     static float filteredRPM = 0.0f;
     static float prevFilteredRPM = 0.0f;
@@ -413,6 +494,8 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         return (currentGear == GearState::DRIVE) ? -accelTorque : accelTorque;
     }
 }
+
+/*
 /**
  * @brief Handle One Pedal Drive (OPD) mode with PID anti-rollback and torque capping.
  * @param throttlePosition Processed pedal position (0-100%).

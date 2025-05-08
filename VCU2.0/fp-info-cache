@@ -1,4 +1,4 @@
-24243202621417444
+24257367364575492
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -57819,6 +57819,34 @@ Fuse Fuseholder TR5 Littelfuse/Wickmann No. 460 No560
 0
 2
 2
+Green
+CONN-TH_S4B-PH-KL-LF-SN
+CONN-TH_S4B-PH-KL-LF-SN footprint
+CONN-TH_S4B-PH-KL-LF-SN footprint C160235
+0
+4
+4
+Green
+SOD-123_L2.7-W1.6-LS3.7-RD-1
+SOD-123_L2.7-W1.6-LS3.7-RD-1 footprint
+SOD-123_L2.7-W1.6-LS3.7-RD-1 footprint C83528
+0
+2
+2
+Green
+SOIC-8_L4.9-W3.9-P1.27-LS6.0-BL
+SOIC-8_L4.9-W3.9-P1.27-LS6.0-BL footprint
+SOIC-8_L4.9-W3.9-P1.27-LS6.0-BL footprint C7593
+0
+8
+8
+Green
+VSSOP-8_L3.0-W3.0-P0.65-LS5.0-BL
+VSSOP-8_L3.0-W3.0-P0.65-LS5.0-BL footprint
+VSSOP-8_L3.0-W3.0-P0.65-LS5.0-BL footprint C105242
+0
+8
+8
 Heatsink
 Heatsink_35x26mm_1xFixation3mm_Fischer-SK486-35
 Heatsink, 35mm x 26mm, 1x Fixation 3mm, Fischer SK486-35
@@ -96670,6 +96698,13 @@ ignition coil autotransformer
 3
 3
 Transformer_THT
+TrafoLWS12200
+
+
+0
+4
+4
+Transformer_THT
 Transformer_37x44
 transformer 37x44mm²
 transformer 37x44mm²
@@ -98014,6 +98049,13 @@ CRYSTAL-SMD_4P-L3.2-W2.5-BL footprint C368736
 4
 4
 footprint
+DB9-TH_D-SUB-DR-9PCM-CB
+DB9-TH_D-SUB-DR-9PCM-CB footprint
+DB9-TH_D-SUB-DR-9PCM-CB footprint C19077337
+0
+11
+11
+footprint
 DB25-TH_D-SUB-DR-25PCM-BB
 DB25-TH_D-SUB-DR-25PCM-BB footprint
 DB25-TH_D-SUB-DR-25PCM-BB footprint C19077339
@@ -98042,6 +98084,20 @@ IND-SMD_L7.3-W6.6 footprint C351116
 2
 2
 footprint
+KEY-SMD_TS35CA
+KEY-SMD_TS35CA footprint
+KEY-SMD_TS35CA footprint C412366
+0
+7
+4
+footprint
+PDFN-8_L5.9-W5.2-P1.27-LS6.2-BL-1
+PDFN-8_L5.9-W5.2-P1.27-LS6.2-BL-1 footprint
+PDFN-8_L5.9-W5.2-P1.27-LS6.2-BL-1 footprint C7541192
+0
+10
+8
+footprint
 QFN-28_L5.0-W5.0-P0.50-TL-EP3.3
 QFN-28_L5.0-W5.0-P0.50-TL-EP3.3 footprint
 QFN-28_L5.0-W5.0-P0.50-TL-EP3.3 footprint C964632
@@ -98058,7 +98114,7 @@ R0603 footprint C328377
 footprint
 SOIC-8_L4.9-W3.9-P1.27-LS6.0-BL
 SOIC-8_L4.9-W3.9-P1.27-LS6.0-BL footprint
-SOIC-8_L4.9-W3.9-P1.27-LS6.0-BL footprint C7376
+SOIC-8_L4.9-W3.9-P1.27-LS6.0-BL footprint C636901
 0
 8
 8
