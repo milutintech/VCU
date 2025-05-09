@@ -105,10 +105,10 @@ int16_t VehicleControl::calculateTorque() {
     calculatedTorque = applyTorqueLimits(calculatedTorque);
     
     // Apply deadband with hysteresis.
-    //calculatedTorque = applyDeadbandHysteresis(calculatedTorque);
+    calculatedTorque = applyDeadbandHysteresis(calculatedTorque);
 
     //Makes sure no reverse driving posible in drive.
-    //calculatedTorque = applyTorqueCutoff(calculatedTorque);
+    calculatedTorque = applyTorqueCutoff(calculatedTorque);
 
     
     return calculatedTorque;
@@ -182,6 +182,9 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
     static float rpmChangeRate = 0.0f;
     static int lastZone = -1; // -1=initial, 0=regen, 1=coast, 2=accel
     static unsigned long lastUpdateTime = 0; // For time tracking
+    static float lastRegenTorque = 0.0f; // For tracking previous regen torque
+    static float lastTransitionTorque = 0.0f; // For transitions
+    static float lastAccelTorque = 0.0f; // For tracking accel torque
     
     // Early exit if in neutral
     if (currentGear == GearState::NEUTRAL) {
@@ -248,16 +251,15 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         // Full regen allowed at higher speeds
         regenTaperFactor = 1.0f;
     } else if (filteredRPM <= 10.0f) {
-        // At very low speed (near zero), still allow moderate regen
-        // This allows regen braking all the way to 0
-        regenTaperFactor = 0.3f;
+        // CRITICAL CHANGE: At very low speed (near zero), disable regen
+        regenTaperFactor = 0.0f; // Changed from 0.3f to 0.0f to prevent oscillation
     } else {
-        // Progressive taper between 10 and 300 RPM
+        // Progressive taper between 10 and 300 RPM - now starting from zero
         float rampProgress = (filteredRPM - 10.0f) / 290.0f;
         rampProgress = constrain(rampProgress, 0.0f, 1.0f);
         
-        // Use gentler power curve for easier transitions
-        regenTaperFactor = 0.3f + 0.7f * pow(rampProgress, 1.5f);
+        // Modified curve starting from zero for smoother low-speed behavior
+        regenTaperFactor = pow(rampProgress, 1.2f);
     }
     
     // Rate limiting on taper factor for smooth transitions
@@ -283,7 +285,7 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
             progressiveRegen = 0.25f + pow((normalizedRegen - 0.4f) / 0.6f, 0.9f) * 0.75f;
         }
         
-        // Calculate regen torque with adaptive taper factor
+        // Calculate regen torque with enhanced taper factor
         // Base torque calculation
         float baseTorque = progressiveRegen * std::min(VehicleParams::OPD::REGEN_TORQUE_CAP, 
                                                       static_cast<double>(config.getMaxTorque() * 0.35));
@@ -291,11 +293,7 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         // Apply adaptive tapering
         float regenTorque = baseTorque * regenTaperFactor;
         
-        // REMOVED: Special holding torque at zero speed
-        // Now we're letting the regular regen code handle all speeds including zero
-        
         // Apply rate limiting for smooth transitions
-        static float lastRegenTorque = 0.0f;
         float torqueChange = regenTorque - lastRegenTorque;
         
         // Adaptive rate limiting based on situation
@@ -319,11 +317,9 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
             float fadeRatio = 1.0f - pow(coastPosition, 0.7f); // non-linear fade
             
             // Get last regen torque for smooth transition
-            static float lastRegenTorque = 0.0f;
             float transitionTorque = lastRegenTorque * fadeRatio * 0.7f; // 70% max carry-over
             
             // Apply rate limiting for smoothness
-            static float lastTransitionTorque = 0.0f;
             float torqueChange = transitionTorque - lastTransitionTorque;
             float maxChange = 5.0f; // moderate limit
             torqueChange = constrain(torqueChange, -maxChange, maxChange);
@@ -348,18 +344,6 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
     }
     // Handle acceleration zone
     else {
-        // MODIFICATION: Progressive regen cutoff for smoother starts from standstill
-        // If at very low speed, adjust the regen behavior based on throttle position
-        if (filteredRPM < 50.0f && fabsf(speed) < 2.0f) {
-            // Calculate a dynamic regen threshold based on throttle position
-            // As throttle increases, the threshold increases
-            float normalizedThrottle = (throttlePosition - COAST_END_POINT) / (100.0f - COAST_END_POINT);
-            float dynamicThreshold = 50.0f * normalizedThrottle;
-            
-            // If current RPM is below the dynamic threshold, we won't do anything
-            // The inverter will handle the 0 speed behavior
-        }
-        
         // Progressive throttle mapping for acceleration
         float normalizedThrottle = (throttlePosition - COAST_END_POINT) / (100.0f - COAST_END_POINT);
         float progressiveThrottle;
@@ -396,7 +380,6 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         float targetTorque = progressiveThrottle * std::min(config.getMaxTorque(), VehicleParams::Motor::MAX_REQ_TRQ);
         
         // Rate limiting for smooth acceleration
-        static float lastAccelTorque = 0.0f;
         float torqueChange = targetTorque - lastAccelTorque;
         
         // Adaptive rate limiting based on situation
