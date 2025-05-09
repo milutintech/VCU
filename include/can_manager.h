@@ -94,7 +94,7 @@ public:
      * @param sm Pointer to the state manager instance
      */
     void setStateManager(StateManager* sm) { stateManager = sm; }
-    
+
     /**
      * @brief Initialize CAN hardware and communication
      * Sets up MCP2515 controller and message filters
@@ -152,6 +152,7 @@ public:
     const NLGData& getNLGData() const { return nlgData; }
     
     // Control methods
+    void setCurrentGear(GearState gear) { currentGear = gear; }
     void setTorqueDemand(float torque) { torqueDemand = torque; }
     void setSpeedDemand(int16_t speed) { speedDemand = speed; }
     void setEnableDMC(bool enable) { enableDMC = enable; }
@@ -234,6 +235,7 @@ private:
     unsigned long errorClearStartTime = 0;  // Timestamp for error clearing
     bool inErrorClearSequence = false;  // Track if we're in the middle of error clearing
 
+
     // Hardware interfaces
     mcp2515_can CAN;         ///< CAN controller instance
     SPIClass* customSPI;     ///< Custom SPI interface
@@ -252,6 +254,7 @@ private:
     NLGData nlgData;         ///< Charging system data
     
     StateManager* stateManager;  ///< Pointer to state manager
+    GearState currentGear = GearState::NEUTRAL;
 
     // Control parameters
     float torqueDemand;      ///< Requested motor torque

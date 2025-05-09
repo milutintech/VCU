@@ -175,7 +175,6 @@ int16_t VehicleControl::handleLegacyMode(float throttlePosition) {
  * - Direction-aware torque calculation
  * - Oscillation detection and automatic adaptation
  */
-
 int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
     // Static variables for filtering and state tracking
     static float filteredRPM = 0.0f;
@@ -250,9 +249,9 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
     // Detect zone transitions
     bool zoneTransition = (lastZone != currentZone) && (lastZone != -1);
     
-    // Lower minimum RPM thresholds for regen to work at lower speeds
-    float MIN_REGEN_RPM_ENTER = 50.0f + (oscillationCount * 20.0f); // Lower threshold
-    float MIN_REGEN_RPM_EXIT = 20.0f + (oscillationCount * 10.0f);  // Lower exit threshold
+    // MODIFICATION: Remove minimum RPM thresholds to allow regen all the way to 0
+    // Instead of using MIN_REGEN_RPM_ENTER and MIN_REGEN_RPM_EXIT, we'll use a very low value
+    const float MIN_REGEN_RPM = 5.0f + (oscillationCount * 5.0f); // Lower threshold
     const float REGEN_RAMP_RPM = 300.0f;  // Shorter ramp for quicker full power
     
     // Oscillation detection with simplified approach
@@ -274,8 +273,8 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         torqueOscillating = (signChanges >= 2); // Multiple sign changes indicate oscillation
         
         // Near threshold oscillation detection
-        bool nearThreshold = (filteredRPM < MIN_REGEN_RPM_EXIT + 30.0f) && 
-                             (filteredRPM > MIN_REGEN_RPM_EXIT - 30.0f);
+        bool nearThreshold = (filteredRPM < MIN_REGEN_RPM + 10.0f) && 
+                            (filteredRPM > MIN_REGEN_RPM - 10.0f);
         
         if ((torqueOscillating && nearThreshold) || 
             (nearThreshold && fabsf(rpmChangeRate) > 50.0f)) { // Rapid RPM changes near threshold
@@ -290,39 +289,32 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         }
     }
     
-    // Apply hysteresis to RPM threshold with intelligent lockout
-    bool canRegen = false;
-    if (!inLockoutPeriod) {
-        if (regenActive) {
-            // Once regen is active, keep it active until RPM drops below exit threshold
-            // Add momentum factor - if RPM is falling rapidly, deactivate early to prevent overshoot
-            float momentumFactor = constrain(rpmChangeRate * -0.2f, 0.0f, 50.0f);
-            canRegen = (filteredRPM >= (MIN_REGEN_RPM_EXIT + momentumFactor));
-            if (!canRegen) {
-                regenActive = false;
-            }
-        } else {
-            // To activate, need stable RPM above threshold
-            canRegen = (filteredRPM >= MIN_REGEN_RPM_ENTER) && (fabsf(rpmChangeRate) < 100.0f);
-            if (canRegen) {
-                regenActive = true;
-            }
-        }
+    // MODIFICATION: Always allow regen, no matter the RPM
+    // We'll just make sure regen is properly scaled at very low speeds
+    bool canRegen = !inLockoutPeriod;
+    
+    // If we weren't already in regen mode, activate it
+    if (canRegen && !regenActive) {
+        regenActive = true;
     }
     
     // Smoother tapering with gentler curve
     float regenTaperFactor = 0.0f;
-    if (canRegen && filteredRPM > MIN_REGEN_RPM_EXIT) {
+    if (canRegen) {
         if (filteredRPM >= REGEN_RAMP_RPM) {
             regenTaperFactor = 1.0f; // Full regen available
+        } else if (filteredRPM <= MIN_REGEN_RPM) {
+            // MODIFICATION: At very low RPM/speed, use a small taper factor 
+            // to allow minimal regen but prevent jerky behavior
+            regenTaperFactor = 0.1f;
         } else {
             // Less steep curve based on oscillation history
-            float rampProgress = (filteredRPM - MIN_REGEN_RPM_EXIT) / (REGEN_RAMP_RPM - MIN_REGEN_RPM_EXIT);
+            float rampProgress = (filteredRPM - MIN_REGEN_RPM) / (REGEN_RAMP_RPM - MIN_REGEN_RPM);
             rampProgress = constrain(rampProgress, 0.0f, 1.0f);
             
             // Use gentler power curve for easier transitions
             float curvePower = 2.0f + (oscillationCount * 0.3f); // 2.0-3.5 based on oscillations (gentler)
-            regenTaperFactor = pow(rampProgress, curvePower);
+            regenTaperFactor = 0.1f + 0.9f * pow(rampProgress, curvePower);
             
             // Rate limiting on taper factor itself
             static float lastTaperFactor = 0.0f;
@@ -360,6 +352,14 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
             // Apply adaptive tapering
             regenTorque = baseTorque * regenTaperFactor;
             
+            // MODIFICATION: Add holding torque at zero speed
+            // If we're at a standstill, apply a small holding torque
+            if (filteredRPM < 10.0f && fabsf(speed) < 0.5f) {
+                // Add a small holding torque (5 Nm) at zero speed to prevent rolling
+                const float HOLDING_TORQUE = 5.0f; 
+                regenTorque = std::max(regenTorque, HOLDING_TORQUE);
+            }
+            
             // Apply rate limiting for smooth transitions
             static float lastRegenTorque = 0.0f;
             float torqueChange = regenTorque - lastRegenTorque;
@@ -383,6 +383,7 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
     }
     // Handle coast zone
     else if (throttlePosition <= COAST_END_POINT) {
+        // [Existing coast zone code unchanged...]
         // Smooth transition when coming from regen zone
         if (lastZone == 0) {
             // Calculate fade-out ratio based on position in coast zone
@@ -428,6 +429,22 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
     }
     // Handle acceleration zone
     else {
+        // MODIFICATION: Progressive regen cutoff for smoother starts from standstill
+        // If at very low speed, adjust the regen behavior based on throttle position
+        if (filteredRPM < 50.0f && fabsf(speed) < 2.0f) {
+            // Calculate regen threshold based on throttle position
+            // As throttle increases, the regen threshold increases
+            float normalizedThrottle = (throttlePosition - COAST_END_POINT) / (100.0f - COAST_END_POINT);
+            float progressiveRegenThreshold = MIN_REGEN_RPM * normalizedThrottle;
+            
+            // If current RPM is below the dynamic threshold, temporarily disable regen
+            // This creates a progressive feel when starting from a stop
+            if (filteredRPM < progressiveRegenThreshold) {
+                regenActive = false;
+            }
+        }
+        
+        // [Rest of acceleration zone code unchanged...]
         // Progressive throttle mapping for acceleration
         float normalizedThrottle = (throttlePosition - COAST_END_POINT) / (100.0f - COAST_END_POINT);
         float progressiveThrottle;
@@ -496,7 +513,6 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
         return (currentGear == GearState::DRIVE) ? -accelTorque : accelTorque;
     }
 }
-
 /**
  * @brief Handle One Pedal Drive (OPD) mode with PID anti-rollback and torque capping.
  * @param throttlePosition Processed pedal position (0-100%).
@@ -752,7 +768,9 @@ void VehicleControl::updateGearState() {
             shiftAttempted = false;
             canManager->setEnableDMC(false);
         }
-        
+        if (lastGear != currentGear && canManager) {
+            canManager->setCurrentGear(currentGear);
+        }
         // Remember the last gear state
         lastGear = currentGear;
         return;
