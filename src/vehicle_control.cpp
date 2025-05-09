@@ -175,6 +175,7 @@ int16_t VehicleControl::handleLegacyMode(float throttlePosition) {
  * - Direction-aware torque calculation
  * - Oscillation detection and automatic adaptation
  */
+
 int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
     // Static variables for filtering and state tracking
     static float filteredRPM = 0.0f;
