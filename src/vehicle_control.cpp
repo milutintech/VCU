@@ -250,8 +250,8 @@ int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
     bool zoneTransition = (lastZone != currentZone) && (lastZone != -1);
     
     // Lower minimum RPM thresholds for regen to work at lower speeds
-    float MIN_REGEN_RPM_ENTER = 100.0f + (oscillationCount * 20.0f); // Lower threshold
-    float MIN_REGEN_RPM_EXIT = 50.0f + (oscillationCount * 10.0f);  // Lower exit threshold
+    float MIN_REGEN_RPM_ENTER = 50.0f + (oscillationCount * 20.0f); // Lower threshold
+    float MIN_REGEN_RPM_EXIT = 20.0f + (oscillationCount * 10.0f);  // Lower exit threshold
     const float REGEN_RAMP_RPM = 300.0f;  // Shorter ramp for quicker full power
     
     // Oscillation detection with simplified approach
