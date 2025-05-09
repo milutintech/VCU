@@ -339,35 +339,20 @@ void CANManager::sendDMC() {
             break;
     }
 
-    if (!needsClearError) {
+   if (!needsClearError) {
         // Normal operation - Enable bit set, Error clear bit not set
-        // Bits:
-        // 0: DMC_EnableRq - Enable power stage
-        // 1: DMC_ModeRq - 0=torque mode, 1=speed mode
-        // 2: DMC_OscLimEnableRq - Enable OscLim
-        // 4: DMC_ClrError - Clear error latch (0->1, Enable must be 0)
-        // 6: DMC_NegTrqSpd - Enable negative speed/torque
-        // 7: DMC_PosTrqSpd - Enable positive speed/torque
-        
-        // Default configuration for normal operation
-        controlBufferDMC[0] = (enableDMC << 0) |      // DMC_EnableRq at bit 0
-                             (false << 1) |           // DMC_ModeRq at bit 1 (0 = torque mode)
-                             (1 << 2) |               // DMC_OscLimEnableRq at bit 2
-                             (0 << 4) |               // DMC_ClrError at bit 4 (not clearing)
-                             (enableNegSpeed << 6) |  // DMC_NegTrqSpd at bit 6
-                             (enablePosSpeed << 7);   // DMC_PosTrqSpd at bit 7
+        controlBufferDMC[0] = (enableDMC << 7) | (false << 6) | (1 << 5) | (1 << 1) | 1;
     } else {
         // Error clearing operation - Enable bit cleared, Error clear bit set
-        controlBufferDMC[0] = (0 << 0) |              // DMC_EnableRq at bit 0 (must be 0 to clear error)
-                             (0 << 1) |               // DMC_ModeRq at bit 1
-                             (0 << 2) |               // DMC_OscLimEnableRq at bit 2
-                             (0 << 3) |  
-                             (1 << 4) |               // DMC_ClrError at bit 4 (clearing)
-                             (0 << 5) |  
-                             (0 << 6) |               // DMC_NegTrqSpd - Disabled during error clear
-                             (0 << 7);                // DMC_PosTrqSpd - Disabled during error clear
+        controlBufferDMC[0] = (0 << 7) |                 // DMC_EnableRq at bit 0 (must be 0 to clear error)
+                            (0 << 6) |                 // DMC_ModeRq at bit 1 (1 = speed mode)
+                            (0 << 5) |                 // DMC_OscLimEnableRq at bit 2
+                            (0 << 4) |  
+                            (1 << 3) |                 // DMC_ClrError at bit 4 (clearing)
+                            (0 << 2) |  
+                            (1 << 1) |                 // DMC_NegTrqSpd at bit 6
+                            (1 << 0);                  // DMC_PosTrqSpd at bit 7
     }
-    
     // Speed limit (16-bit signed value in RPM)
     int16_t speedLimit = VehicleParams::Motor::MAX_RPM;
     controlBufferDMC[2] = speedLimit >> 8;
