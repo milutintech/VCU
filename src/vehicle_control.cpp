@@ -125,6 +125,7 @@ int32_t VehicleControl::samplePedalPosition() {
     for (int i = 0; i < 4; i++) {
         total += ads.readADC(ADC::GASPEDAL1);
     }
+    //Serial.println(total/4);
     return total / 4;
 }
 
