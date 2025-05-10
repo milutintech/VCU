@@ -341,7 +341,7 @@ void CANManager::sendDMC() {
 
    if (!needsClearError) {
         // Normal operation - Enable bit set, Error clear bit not set
-        controlBufferDMC[0] = (enableDMC << 7) | (false << 6) | (1 << 5) | (1 << 1) | 1;
+        controlBufferDMC[0] = (enableDMC << 7) | (false << 6) | (1 << 5) | (enableNegSpeed << 1) | enablePosSpeed;
     } else {
         // Error clearing operation - Enable bit cleared, Error clear bit set
         controlBufferDMC[0] = (0 << 7) |                 // DMC_EnableRq at bit 0 (must be 0 to clear error)
