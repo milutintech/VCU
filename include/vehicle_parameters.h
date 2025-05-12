@@ -77,7 +77,7 @@ namespace VehicleParams {
         static constexpr float REDUCED_RATIO = 2.1f;    ///< Reduced gear ratio
         static constexpr float DIFF_RATIO = 3.9f;       ///< Differential ratio
         static constexpr float WHEEL_CIRC = 2.08f;      ///< Wheel circumference (m)
-        static constexpr float RPM_SHIFT_THRESHOLD = 100.0f; ///< Shift RPM threshold
+        static constexpr float RPM_SHIFT_THRESHOLD = 150.0f; ///< Shift RPM threshold
     };
 
     /**
@@ -101,8 +101,8 @@ namespace VehicleParams {
         static constexpr float FADE_START = 400.0f;    ///< Speed for regen fade start (kph)
         static constexpr float ZERO_SPEED = 0.5f;      ///< Zero speed threshold (kph)
         static constexpr float MIN_SPEED = 15.0f;     ///< Minimum regen speed (kph)
-        static constexpr float END_POINT = 20.0f;      ///< Regen end pedal position (%)
-        static constexpr float COAST_END = 23.0f;      ///< Coast end pedal position (%)
+        static constexpr float END_POINT = 25.0f;      ///< Regen end pedal position (%)
+        static constexpr float COAST_END = 28.0f;      ///< Coast end pedal position (%)
     };
 
     /**
