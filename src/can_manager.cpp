@@ -139,16 +139,15 @@ void CANManager::update() {
     // ESP-NOW transmission for BMS data
     if (espNowInitialized && currentTime - lastBMSSendTime >= ESPNOW::BMS_SEND_INTERVAL) {
         lastBMSSendTime = currentTime;
-        sendBMSDataESPNOW();
+       // sendBMSDataESPNOW();
     }
     
     // ESP-NOW transmission for DMC temperature data
     if (espNowInitialized && currentTime - lastDMCSendTime >= ESPNOW::DMC_SEND_INTERVAL) {
         lastDMCSendTime = currentTime;
-        sendDMCTempESPNOW();
+       // sendDMCTempESPNOW();
     }
     
-    // Print ESP-NOW stats periodically
 
 }
 
@@ -307,10 +306,47 @@ void CANManager::sendBSC() {
     CAN.sendMsgBuf(CANIds::BSC_LIM, 0, 6, limitBufferBSC);
 }
 
+
 /**
  * @brief Send DMC control messages
+ * Transmits motor control parameters and limits based on current state
  */
 void CANManager::sendDMC() {
+   /* // If torque demand is zero and we're in neutral, or transitioning, send safe message
+    if (currentGear == GearState::NEUTRAL || abs(torqueDemand) < 1.0f) {
+        // Send a "safe" DMC message with zero torque and disabled state
+        memset(controlBufferDMC, 0, 8);
+        controlBufferDMC[0] = 0; // All enables off, no error clear
+        
+        // Speed limit (16-bit signed value in RPM) - still send reasonable limits
+        int16_t speedLimit = VehicleParams::Motor::MAX_RPM;
+        controlBufferDMC[2] = speedLimit >> 8;
+        controlBufferDMC[3] = speedLimit & 0xFF;
+        
+        // Torque request - explicitly zero
+        controlBufferDMC[4] = 0;
+        controlBufferDMC[5] = 0;
+        
+        // Still send limits message
+        int dcVoltLimMotor = VehicleParams::Battery::MIN_VOLTAGE * 10;
+        int dcVoltLimGen = (VehicleParams::Battery::MAX_VOLTAGE + 4) * 10;
+        int dcCurrLimMotor = VehicleParams::Battery::MAX_DMC_CURRENT * 10;
+        int dcCurrLimGen = VehicleParams::Power::DMC_DC_GEN * 10;
+        
+        limitBufferDMC[0] = dcVoltLimMotor >> 8;
+        limitBufferDMC[1] = dcVoltLimMotor & 0xFF;
+        limitBufferDMC[2] = dcVoltLimGen >> 8;
+        limitBufferDMC[3] = dcVoltLimGen & 0xFF;
+        limitBufferDMC[4] = dcCurrLimMotor >> 8;
+        limitBufferDMC[5] = dcCurrLimMotor & 0xFF;
+        limitBufferDMC[6] = dcCurrLimGen >> 8;
+        limitBufferDMC[7] = dcCurrLimGen & 0xFF;
+        
+        CAN.sendMsgBuf(CANIds::DMCCTRL, 0, 8, controlBufferDMC);
+        CAN.sendMsgBuf(CANIds::DMCLIM, 0, 8, limitBufferDMC);
+        return;
+    }
+    */
     int16_t scaledTorque = static_cast<int16_t>(torqueDemand * 10);  // 0.01Nm/bit according to DBC
     
     // Set direction control bits based on current gear
@@ -336,10 +372,12 @@ void CANManager::sendDMC() {
             // In NEUTRAL, disable both directions for safety
             enablePosSpeed = false;
             enableNegSpeed = false;
+            // This should be caught above, but safety first
+            scaledTorque = 0;
             break;
     }
 
-   if (!needsClearError) {
+    if (!needsClearError) {
         // Normal operation - Enable bit set, Error clear bit not set
         controlBufferDMC[0] = (enableDMC << 7) | (false << 6) | (1 << 5) | (enableNegSpeed << 1) | enablePosSpeed;
     } else {
@@ -352,7 +390,13 @@ void CANManager::sendDMC() {
                             (0 << 2) |  
                             (1 << 1) |                 // DMC_NegTrqSpd at bit 6
                             (1 << 0);                  // DMC_PosTrqSpd at bit 7
+        // Force torque to zero during error clearing
+        scaledTorque = 0;
     }
+    
+    // Clear unused byte
+    controlBufferDMC[1] = 0;
+    
     // Speed limit (16-bit signed value in RPM)
     int16_t speedLimit = VehicleParams::Motor::MAX_RPM;
     controlBufferDMC[2] = speedLimit >> 8;
@@ -361,6 +405,10 @@ void CANManager::sendDMC() {
     // Torque request (16-bit signed value in 0.01Nm)
     controlBufferDMC[4] = scaledTorque >> 8;
     controlBufferDMC[5] = scaledTorque & 0xFF;
+    
+    // Clear unused bytes
+    controlBufferDMC[6] = 0;
+    controlBufferDMC[7] = 0;
     
     // DMC limits message (0x211)
     int dcVoltLimMotor = VehicleParams::Battery::MIN_VOLTAGE * 10;
@@ -379,6 +427,49 @@ void CANManager::sendDMC() {
     
     CAN.sendMsgBuf(CANIds::DMCCTRL, 0, 8, controlBufferDMC);
     CAN.sendMsgBuf(CANIds::DMCLIM, 0, 8, limitBufferDMC);
+}
+
+/**
+ * @brief Calculate the current limit with SOC-based tapering
+ * @return Current limit in Amperes
+ * 
+ * Implements current tapering between 20-25% SOC:
+ * - Above 25% SOC: Uses maximum DMC current (450A)
+ * - Below 20% SOC: Uses BMS-reported current limit
+ * - Between 20-25% SOC: Linearly tapers between max DMC current and BMS current
+ */
+int CANManager::calculateTaperedDMCCurrent() {
+    // Get current SOC from BMS
+    uint8_t currentSOC = bmsData.soc;
+    
+    // Get maximum current allowed by BMS
+    int bmsCurrent = bmsData.maxDischarge;
+    
+    // Maximum DMC current from parameters
+    int maxDMCCurrent = VehicleParams::Battery::MAX_DMC_CURRENT;
+    
+    // Debug output
+    Serial.printf("SOC: %d%%, BMS Current: %dA, Max DMC: %dA\n", 
+                 currentSOC, bmsCurrent, maxDMCCurrent);
+    
+    // If SOC is above 25%, use maximum DMC current
+    if (currentSOC >= 25) {
+        return maxDMCCurrent;
+    }
+    // If SOC is below 20%, use BMS current
+    else if (currentSOC <= 20) {
+        return bmsCurrent;
+    }
+    // Between 20-25%, taper linearly from max DMC current to BMS current
+    else {
+        float taperFactor = (currentSOC - 20.0f) / 5.0f; // 0.0 at 20%, 1.0 at 25%
+        int taperedCurrent = bmsCurrent + taperFactor * (maxDMCCurrent - bmsCurrent);
+        
+        Serial.printf("Taper factor: %.2f, Tapered current: %dA\n", 
+                     taperFactor, taperedCurrent);
+        
+        return taperedCurrent;
+    }
 }
 /**
  * @brief Send NLG control messages

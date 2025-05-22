@@ -7,6 +7,7 @@
  * - Driving modes (Legacy, Regenerative, OPD)
  * - Motor control and gear management
  * - Vehicle speed and acceleration control
+ * - Smooth gear transitions without jerking
  */
 
 #pragma once
@@ -18,6 +19,7 @@
 #include "ADS1X15.h"
 
 class CANManager;
+
 // Simple PID controller for OPD anti-rollback protection.
 // (This class can be moved to a separate file if desired.)
 class PIDController {
@@ -63,7 +65,7 @@ public:
 
     /**
      * @brief Updates gear state based on switch inputs and speed
-     * Handles gear selection with safety checks
+     * Handles gear selection with safety checks and smooth transitions
      */
     void updateGearState();
 
@@ -90,6 +92,23 @@ public:
      * @return true if DMC is enabled
      */
     bool isDMCEnabled() const;
+    
+    /**
+     * @brief Check if currently in a gear transition
+     * @return true if gear change is in progress
+     */
+    bool isGearTransitionInProgress() const { return isInGearTransition; }
+    
+    /**
+     * @brief Force clear all torque and reset control state
+     * Useful for emergency stops or when aborting operations
+     */
+    void clearTorqueState() {
+        lastTorque = 0;
+        enableDMC = false;
+        wasInDeadband = false;
+        isInGearTransition = false;
+    }
     
     // Configuration methods
     void setCanManager(CANManager* canMgr) { canManager = canMgr; }
@@ -157,9 +176,14 @@ private:
     bool wasInDeadband;              // Deadband hysteresis state
     bool wasEnabled;                 // Previous enable state
     
+    // Gear transition state management
+    bool isInGearTransition;         // Flag indicating gear change in progress
+    unsigned long gearTransitionStartTime; // Timestamp for gear transition timing
+    
     float lastTorque;                // Last calculated torque
     float motorSpeed;                // Current motor speed
     CANManager* canManager = nullptr; 
+    
     // PID controller for OPD anti-rollback protection.
     // This member is used to hold the vehicle when speed is near zero.
     PIDController opdPid;
