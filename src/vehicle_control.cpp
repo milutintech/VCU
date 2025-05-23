@@ -74,10 +74,12 @@ int16_t VehicleControl::calculateTorque() {
     
     // Update reverse light based on gear state.
     digitalWrite(Pins::BCKLIGHT, currentGear == GearState::REVERSE ? HIGH : LOW);
+    digitalWrite(19, currentGear == GearState::REVERSE ? HIGH : LOW);
 
     // Handle neutral gear.
     if (currentGear == GearState::NEUTRAL) {
         lastTorque = 0;
+        digitalWrite(19, LOW);  
         digitalWrite(Pins::BCKLIGHT, LOW);  // Ensure reverse light is off in neutral.
         return 0;
     }

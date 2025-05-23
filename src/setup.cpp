@@ -51,8 +51,8 @@ void SystemSetup::initializeGPIO() {
     pinMode(Pins::LWP5, OUTPUT);
     pinMode(Pins::LWP6, OUTPUT);
     pinMode(Pins::LWP7, OUTPUT);         // Pump
-    pinMode(Pins::REVERSE_SIGNAL, OUTPUT); // ADD THIS LINE - Pin 19
     pinMode(Pins::UNLCKCON, INPUT);
+    pinMode(19, OUTPUT);
     
     setDefaultPinStates();
 }
@@ -121,5 +121,5 @@ void SystemSetup::setDefaultPinStates() {
     digitalWrite(Pins::LWP5, LOW);
     digitalWrite(Pins::LWP6, LOW);
     digitalWrite(Pins::LWP7, LOW);       // Pump off
-    digitalWrite(Pins::REVERSE_SIGNAL, LOW); // ADD THIS LINE - Additional reverse signal off
+    digitalWrite(19, LOW);
 }
