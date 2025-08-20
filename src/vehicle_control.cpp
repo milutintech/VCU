@@ -61,6 +61,7 @@ int16_t VehicleControl::calculateTorque() {
     // Map raw pedal value to 0-100%.
     float rawThrottle = map(sampledPotiValue, ADC::MinValPot, ADC::MaxValPot, 0, 100);
     rawThrottle = constrain(rawThrottle, 0.0f, 100.0f);
+    Serial.println(rawThrottle);
     
     // Quick exit for legacy mode with a released pedal.
     if (!isOPDEnabled && !isRegenEnabled && rawThrottle < 1.0f) {
