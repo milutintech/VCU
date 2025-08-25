@@ -486,6 +486,10 @@ void CANManager::sendNLG() {
     
     // Limit charging current by smaller of max charger current and BMS max charge
     float limitedCurrentDC = std::min(static_cast<int>(VehicleParams::Battery::MAX_NLG_CURRENT), static_cast<int>(bmsData.maxCharge));
+    if (bmsData.voltage < VehicleParams::Battery::MIN_VOLTAGE && bmsData.maxCharge == 0) {
+        Serial.println("Recovery mode active, charging at 35A");
+        limitedCurrentDC = 35;  // Force 10A in recovery mode
+    }
     int nlgCurrentScaleDC = static_cast<int>((limitedCurrentDC + 102.4) * 10);
     int nlgCurrentScaleAC = static_cast<int>((maxNlgCurrentAC  + 102.4) * 10);
     
