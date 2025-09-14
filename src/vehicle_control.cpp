@@ -94,7 +94,7 @@ float VehicleControl::calculateTorquePercentage() {
     // Define key points for the curve
     const float REGEN_END = 15.0f;      // End of regen zone
     const float COAST_END = 17.0f;      // End of coast zone (narrow 2% zone)
-    const float MAX_REGEN = -35.0f;     // Maximum regen at 0% pedal
+    const float MAX_REGEN = -25.0f;     // Maximum regen at 0% pedal
     const float MAX_ACCEL = 100.0f;     // Maximum acceleration at 100% pedal
     
     if (throttlePosition <= REGEN_END) {
