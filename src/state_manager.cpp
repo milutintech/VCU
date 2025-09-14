@@ -539,7 +539,7 @@ void StateManager::chargeManage() {
     if (waitingForUnlockComplete) {
         if (!canManager.getNLGData().connectorLocked) {
             // Connector is successfully unlocked, wait for timeout before sleeping
-            if (currentTime - connectorUnlockStartTime >= 10000) { // 10 second wait
+            if (currentTime - connectorUnlockStartTime >= 4000) { // 4 second wait
                 waitingForUnlockComplete = false;
                 transitionToStandby();
                 return;

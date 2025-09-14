@@ -234,7 +234,7 @@ private:
     bool needsClearError = false;  // Flag to indicate error clearing needed
     unsigned long errorClearStartTime = 0;  // Timestamp for error clearing
     bool inErrorClearSequence = false;  // Track if we're in the middle of error clearing
-
+    int calculateTaperedDMCCurrent();
 
     // Hardware interfaces
     mcp2515_can CAN;         ///< CAN controller instance

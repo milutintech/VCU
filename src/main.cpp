@@ -96,8 +96,8 @@ void canTask(void* parameter) {
     esp_task_wdt_init(5, true);  // 5 second watchdog timeout
     
     // Initialize ESP-NOW with configured MAC address
-    canManager->beginESPNOW((uint8_t*)ESPNOW::RECEIVER_MAC);
-    
+    //canManager->beginESPNOW((uint8_t*)ESPNOW::RECEIVER_MAC);
+    /*
     // Print ESP-NOW status
     Serial.println("ESP-NOW initialized with target MAC:");
     char macStr[18];
@@ -105,7 +105,7 @@ void canTask(void* parameter) {
              ESPNOW::RECEIVER_MAC[0], ESPNOW::RECEIVER_MAC[1], ESPNOW::RECEIVER_MAC[2], 
              ESPNOW::RECEIVER_MAC[3], ESPNOW::RECEIVER_MAC[4], ESPNOW::RECEIVER_MAC[5]);
     Serial.println(macStr);
-    
+    */
     for(;;) {
         esp_task_wdt_reset();
         canManager->update();

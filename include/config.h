@@ -104,8 +104,8 @@ namespace ADC {
     constexpr uint8_t GASPEDAL1 = 0;
     constexpr uint8_t GASPEDAL2 = 1;
     constexpr uint8_t REVERSE = 0;
-    constexpr int MinValPot = 15568;
-    constexpr int MaxValPot = 11200;
+    constexpr int MinValPot = 512;
+    constexpr int MaxValPot = 21000;
 }
 
 // Vehicle States
