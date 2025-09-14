@@ -139,15 +139,6 @@ namespace VehicleParams {
         static constexpr float CONTROL_DT = 0.01f;                ///< PID control loop time step (seconds)
     };
     
-    /**
-     * @brief ADC Configuration Parameters
-     * Defines ADC scaling and calibration values
-     */
-    struct ADC {
-        static constexpr int MIN_POT_VALUE = 15568;   ///< Minimum pedal ADC value
-        static constexpr int MAX_POT_VALUE = 11200;   ///< Maximum pedal ADC value
-        static constexpr float POT_DEADBAND = 0.02f;  ///< Pedal deadband (2%)
-    };
 
     /**
      * @brief Vehicle Speed and Performance Limits

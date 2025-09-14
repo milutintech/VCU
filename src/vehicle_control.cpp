@@ -56,16 +56,26 @@ VehicleControl::VehicleControl(ADS1115& ads)
  * 5. Apply gear transition protection
  * 6. Update DMC enable logic
  */
+// CORRECTED PEDAL MAPPING: Replace calculateTorquePercentage() in vehicle_control.cpp
+
 float VehicleControl::calculateTorquePercentage() {
     // Sample pedal position
     int32_t sampledPotiValue = samplePedalPosition();
     
-    // Map raw pedal value to 0-100% with gamma correction
+    // Map using CORRECT ADC values from config.h
+    // ADC::MinValPot = 512 (pedal released = 0%)
+    // ADC::MaxValPot = 21000 (pedal pressed = 100%)
     float rawThrottle = map(sampledPotiValue, ADC::MinValPot, ADC::MaxValPot, 0, 100);
     rawThrottle = constrain(rawThrottle, 0.0f, 100.0f);
+    Serial.println(rawThrottle);
+    // Debug: Print raw values to verify pedal is working
+    Serial.printf("ADC: %d (range %d-%d) -> Raw: %.1f%%", 
+                  sampledPotiValue, ADC::MinValPot, ADC::MaxValPot, rawThrottle);
     
     // Apply gamma correction for more natural pedal feel
     float throttlePosition = pow(rawThrottle / 100.0f, VehicleParams::Pedal::GAMMA) * 100.0f;
+    
+    Serial.printf(" -> Corrected: %.1f%%\n", throttlePosition);
     
     // Update reverse light based on gear state
     digitalWrite(Pins::BCKLIGHT, currentGear == GearState::REVERSE ? HIGH : LOW);
@@ -78,32 +88,50 @@ float VehicleControl::calculateTorquePercentage() {
         enableDMC = false;
         digitalWrite(19, LOW);  
         digitalWrite(Pins::BCKLIGHT, LOW);
+        Serial.println("NEUTRAL: Torque = 0%");
         return 0.0f;
     }
     
-    // Calculate vehicle speed (in kph)
-    float speed = calculateVehicleSpeed();
+    // CORRECTED PEDAL ZONES - Released pedal = COAST, not REGEN!
+    float calculatedTorquePercent = 0.0f;
     
-    // Apply speed adaptation to pedal position
-    float adaptedThrottlePosition = applySpeedAdaptation(throttlePosition, speed);
+    if (throttlePosition <= 5.0f) {
+        // 0-5% pedal = COAST ZONE (no torque) 
+        // This is where the RELEASED pedal should be!
+        calculatedTorquePercent = 0.0f;
+        Serial.printf("COAST: %.1f%% pedal -> 0%% torque\n", throttlePosition);
+    }
+    else if (throttlePosition <= 30.0f) {
+        // 5-30% pedal = Light acceleration
+        float normalizedPosition = (throttlePosition - 5.0f) / 25.0f; // 0.0 to 1.0
+        calculatedTorquePercent = normalizedPosition * 30.0f; // 0% to 30% torque
+        Serial.printf("LIGHT ACCEL: %.1f%% pedal -> %.1f%% torque\n", throttlePosition, calculatedTorquePercent);
+    }
+    else {
+        // 30-100% pedal = Full acceleration  
+        float normalizedPosition = (throttlePosition - 30.0f) / 70.0f; // 0.0 to 1.0
+        calculatedTorquePercent = 30.0f + (normalizedPosition * 70.0f); // 30% to 100% torque
+        Serial.printf("FULL ACCEL: %.1f%% pedal -> %.1f%% torque\n", throttlePosition, calculatedTorquePercent);
+    }
     
-    // Calculate torque percentage based on smooth driving zones
-    float calculatedTorquePercent = handleSmoothDriving(adaptedThrottlePosition, speed);
-    
-    // Apply advanced filtering to prevent spikes without lag
-    calculatedTorquePercent = applyAdvancedFiltering(calculatedTorquePercent);
-    
-    // Apply gear transition protection to prevent jerking
-    calculatedTorquePercent = applyGearTransitionProtection(calculatedTorquePercent);
-    
-    // Apply deadband hysteresis around zero
-    calculatedTorquePercent = applyDeadbandHysteresis(calculatedTorquePercent);
+    // Apply proper direction based on gear state
+    // DRIVE: Negative torque = forward acceleration (motor spins negative)
+    // REVERSE: Positive torque = reverse acceleration (motor spins positive)
+    if (currentGear == GearState::DRIVE) {
+        calculatedTorquePercent = -calculatedTorquePercent; // Negative for forward
+    } 
+    // For REVERSE, keep positive (no change needed)
     
     // Update DMC enable logic: Enable only if torque is not zero
     enableDMC = (abs(calculatedTorquePercent) > 0.1f);
     
-    // Store for next iteration
+    // Store for next iteration  
     lastTorquePercent = calculatedTorquePercent;
+    filteredTorquePercent = calculatedTorquePercent; // No filtering for testing
+    
+    // Final debug output
+    Serial.printf("FINAL: Gear=%d, Torque=%.1f%%, DMC=%s\n", 
+                  static_cast<int>(currentGear), calculatedTorquePercent, enableDMC ? "ON" : "OFF");
     
     return calculatedTorquePercent;
 }

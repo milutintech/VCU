@@ -755,3 +755,37 @@ void CANManager::sendDMCTempESPNOW() {
         Serial.println("Error sending DMC temp message via ESP-NOW");
     }
 }
+
+/**
+ * @brief Set torque demand as percentage and convert to Nm
+ * @param torquePercent Torque percentage (-100% to +100%)
+ * 
+ * Conversion logic:
+ * - Percentage is converted to Nm based on configured maximum torque
+ * - Sign convention maintained: 
+ *   - DRIVE: Negative % = forward accel, Positive % = regen
+ *   - REVERSE: Positive % = reverse accel, Negative % = regen
+ */
+void CANManager::setTorquePercentage(float torquePercent) {
+    // Store percentage for reference
+    torquePercentage = torquePercent;
+    
+    // Convert percentage to Nm
+    float maxTorqueNm = config.getMaxTorque(); // User-configurable max torque
+    float torqueNm = (torquePercent / 100.0f) * maxTorqueNm;
+    
+    // Limit to motor capabilities
+    torqueNm = constrain(torqueNm, -VehicleParams::Motor::MAX_TRQ, VehicleParams::Motor::MAX_TRQ);
+    
+    // For reverse, limit to reverse torque capability
+    if (currentGear == GearState::REVERSE) {
+        torqueNm = constrain(torqueNm, -VehicleParams::Motor::MAX_REVERSE_TRQ, VehicleParams::Motor::MAX_REVERSE_TRQ);
+    }
+    
+    // Set the converted torque demand
+    torqueDemand = torqueNm;
+    
+    // Debug output
+    Serial.printf("Torque: %.1f%% -> %.1f Nm (Gear: %d)\n", 
+                  torquePercent, torqueNm, static_cast<int>(currentGear));
+}
