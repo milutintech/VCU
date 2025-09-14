@@ -1,13 +1,13 @@
 /**
  * @file vehicle_control.h
- * @brief Vehicle Control System for Electric Vehicle
+ * @brief Vehicle Control System for Electric Vehicle - Updated with Percentage-Based Torque
  * 
  * This class manages the core vehicle control logic including:
- * - Pedal interpretation and torque calculation
- * - Driving modes (Legacy, Regenerative, OPD)
- * - Motor control and gear management
- * - Vehicle speed and acceleration control
- * - Smooth gear transitions without jerking
+ * - Smooth one-foot driving pedal system
+ * - Percentage-based torque control (-100% to +100%)
+ * - Advanced filtering without lag
+ * - Anti-jerk gear transitions
+ * - Speed-adaptive pedal response
  */
 
 #pragma once
@@ -20,35 +20,6 @@
 
 class CANManager;
 
-// Simple PID controller for OPD anti-rollback protection.
-// (This class can be moved to a separate file if desired.)
-class PIDController {
-public:
-    PIDController(float kp, float ki, float kd)
-        : kp_(kp), ki_(ki), kd_(kd), integral_(0.0f), prevError_(0.0f), setpoint_(0.0f) {}
-
-    /**
-     * @brief Update the PID controller.
-     * @param measurement Current measurement (e.g. vehicle speed in kph).
-     * @param dt Time step in seconds.
-     * @return PID output used as a torque command.
-     */
-    float update(float measurement, float dt) {
-        float error = setpoint_ - measurement;
-        integral_ += error * dt;
-        float derivative = (error - prevError_) / dt;
-        prevError_ = error;
-        return kp_ * error + ki_ * integral_ + kd_ * derivative;
-    }
-    
-    void setSetpoint(float sp) { setpoint_ = sp; }
-    
-private:
-    float kp_, ki_, kd_;
-    float integral_, prevError_;
-    float setpoint_;
-};
-
 class VehicleControl {
 public:
     /**
@@ -58,14 +29,14 @@ public:
     explicit VehicleControl(ADS1115& ads);
     
     /**
-     * @brief Calculates motor torque based on current driving mode and conditions
-     * @return Calculated torque demand in Nm (-850 to 850)
+     * @brief Calculates motor torque percentage based on smooth one-foot driving
+     * @return Calculated torque percentage (-100% to +100%)
      */
-    int16_t calculateTorque();
+    float calculateTorquePercentage();
 
     /**
      * @brief Updates gear state based on switch inputs and speed
-     * Handles gear selection with safety checks and smooth transitions
+     * Handles gear selection with anti-jerk protection
      */
     void updateGearState();
 
@@ -88,8 +59,8 @@ public:
     void setDrivingMode(DriveMode mode);
 
     /**
-     * @brief Checks if DMC (motor controller) is enabled
-     * @return true if DMC is enabled
+     * @brief Checks if DMC (motor controller) should be enabled
+     * @return true if DMC should be enabled (torque != 0)
      */
     bool isDMCEnabled() const;
     
@@ -104,7 +75,8 @@ public:
      * Useful for emergency stops or when aborting operations
      */
     void clearTorqueState() {
-        lastTorque = 0;
+        lastTorquePercent = 0.0f;
+        filteredTorquePercent = 0.0f;
         enableDMC = false;
         wasInDeadband = false;
         isInGearTransition = false;
@@ -112,8 +84,6 @@ public:
     
     // Configuration methods
     void setCanManager(CANManager* canMgr) { canManager = canMgr; }
-    void setOPDEnabled(bool enabled) { isOPDEnabled = enabled; }
-    void setRegenEnabled(bool enabled) { isRegenEnabled = enabled; }
     void setGearRatio(GearRatio ratio) { currentGearRatio = ratio; }
     
     static constexpr float MAX_VEHICLE_SPEED = 120.0f;  // kph
@@ -131,37 +101,42 @@ private:
      */
     float calculateVehicleSpeed();
     
-    // Driving mode handlers
-    int16_t handleLegacyMode(float throttlePosition);
-    int16_t handleRegenMode(float throttlePosition, float speed);
-    int16_t handleOPDMode(float throttlePosition, float speed);
-    
-    // (Optional) Additional functions for OPD calculations.
-    float calculateCoastUpperBound(float speed);
-    float calculateCoastLowerBound(float speed);
-    float calculateMaxRegenerativeTorque(float speed);
-    float calculateMaxDriveTorque(float speed);
+    /**
+     * @brief NEW: Handle smooth one-foot driving with percentage-based torque
+     * @param throttlePosition Processed pedal position (0-100%)
+     * @param speed Current vehicle speed in kph
+     * @return Calculated torque percentage (-100% to +100%)
+     */
+    float handleSmoothDriving(float throttlePosition, float speed);
     
     /**
-     * @brief Applies rate limiting and maximum torque constraints
-     * @param requestedTorque Raw calculated torque
-     * @return Limited torque value
+     * @brief NEW: Apply advanced filtering to prevent spikes without lag
+     * @param requestedTorquePercent Raw calculated torque percentage
+     * @return Filtered torque percentage
      */
-    int16_t applyTorqueLimits(int16_t requestedTorque);
+    float applyAdvancedFiltering(float requestedTorquePercent);
 
     /**
-     * @brief Applies deadband hysteresis to prevent torque oscillation
-     * @param torque Input torque value
-     * @return Processed torque with hysteresis
+     * @brief NEW: Apply gear transition protection to prevent jerking
+     * @param torquePercent Input torque percentage
+     * @return Modified torque with gear transition protection
      */
-    int16_t applyDeadbandHysteresis(int16_t torque);
+    float applyGearTransitionProtection(float torquePercent);
 
     /**
-    * @brief Apply torque cutoff based on RPM, direction, and gear state.
-    * @param requestedTorque The raw calculated torque.
-    * @return Modified torque after applying directional restrictions.
-    */
-    int16_t applyTorqueCutoff(int16_t requestedTorque);
+     * @brief NEW: Apply speed-adaptive pedal response
+     * @param throttlePosition Raw pedal position (0-100%)
+     * @param speed Current vehicle speed (kph)
+     * @return Modified pedal position for speed-dependent behavior
+     */
+    float applySpeedAdaptation(float throttlePosition, float speed);
+
+    /**
+     * @brief Apply deadband hysteresis around zero
+     * @param torquePercent Input torque percentage
+     * @return Processed torque with deadband
+     */
+    float applyDeadbandHysteresis(float torquePercent);
     
     // Member variables
     ADS1115& ads;                    // Reference to ADC
@@ -170,21 +145,28 @@ private:
     GearRatio currentGearRatio;      // Current gear ratio
     bool shiftAttempted;             // Track shift attempts at high speed
     
-    bool isOPDEnabled;               // OPD mode flag
-    bool isRegenEnabled;             // Regeneration enabled flag
     bool enableDMC;                  // DMC enable flag
     bool wasInDeadband;              // Deadband hysteresis state
     bool wasEnabled;                 // Previous enable state
     
-    // Gear transition state management
+    // NEW: Gear transition state management
     bool isInGearTransition;         // Flag indicating gear change in progress
     unsigned long gearTransitionStartTime; // Timestamp for gear transition timing
+    GearState previousGear;          // Track previous gear for transition detection
     
-    float lastTorque;                // Last calculated torque
+    // NEW: Percentage-based torque tracking
+    float lastTorquePercent;         // Last calculated torque percentage
+    float filteredTorquePercent;     // Filtered torque percentage
     float motorSpeed;                // Current motor speed
     CANManager* canManager = nullptr; 
     
-    // PID controller for OPD anti-rollback protection.
-    // This member is used to hold the vehicle when speed is near zero.
-    PIDController opdPid;
+    // NEW: Advanced filtering state variables
+    float previousFilteredTorque;    // Previous filtered value for spike detection
+    bool spikeDetected;              // Spike detection flag
+    unsigned long lastFilterTime;    // For timing calculations
+    
+    // NEW: Pedal zone tracking for smooth transitions
+    int currentPedalZone;            // Track which pedal zone we're in (0=regen, 1=coast, 2=accel)
+    int previousPedalZone;           // Previous pedal zone for transition detection
+    float zoneTransitionFactor;      // Smoothing factor for zone transitions
 };

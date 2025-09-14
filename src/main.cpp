@@ -95,17 +95,6 @@ void canTask(void* parameter) {
     canManager->begin();
     esp_task_wdt_init(5, true);  // 5 second watchdog timeout
     
-    // Initialize ESP-NOW with configured MAC address
-    //canManager->beginESPNOW((uint8_t*)ESPNOW::RECEIVER_MAC);
-    /*
-    // Print ESP-NOW status
-    Serial.println("ESP-NOW initialized with target MAC:");
-    char macStr[18];
-    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
-             ESPNOW::RECEIVER_MAC[0], ESPNOW::RECEIVER_MAC[1], ESPNOW::RECEIVER_MAC[2], 
-             ESPNOW::RECEIVER_MAC[3], ESPNOW::RECEIVER_MAC[4], ESPNOW::RECEIVER_MAC[5]);
-    Serial.println(macStr);
-    */
     for(;;) {
         esp_task_wdt_reset();
         canManager->update();
@@ -114,12 +103,23 @@ void canTask(void* parameter) {
         const DMCData& dmcData = canManager->getDMCData();
         vehicleControl->setMotorSpeed(dmcData.speedActual);
         
-        // Calculate and apply torque demand in RUN state
+        // Calculate and apply torque demand in RUN state using NEW percentage system
         if (stateManager->getCurrentState() == VehicleState::RUN) {
             vehicleControl->updateGearState();
-            int16_t torque = vehicleControl->calculateTorque();
-            canManager->setTorqueDemand(torque);
+            
+            // NEW: Use percentage-based torque calculation
+            float torquePercentage = vehicleControl->calculateTorquePercentage();
+            
+            // NEW: Set torque as percentage (CAN manager handles conversion to Nm)
+            canManager->setTorquePercentage(torquePercentage);
+            
+            // DMC enable is now handled by the percentage system
             canManager->setEnableDMC(vehicleControl->isDMCEnabled());
+        }
+        else {
+            // In non-RUN states, ensure zero torque and disabled DMC
+            canManager->setTorquePercentage(0.0f);
+            canManager->setEnableDMC(false);
         }
         
         vTaskDelay(1);
