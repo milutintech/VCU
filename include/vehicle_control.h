@@ -1,13 +1,12 @@
 /**
- * @file vehicle_control.h
- * @brief Vehicle Control System with Curtis-Style Neutral Braking and Power Limiting
+ * @file vehicle_control.h - SIMPLIFIED Control System
+ * @brief Vehicle Control System with Simple Pedal Zones and Delta-Based Power Limiting
  * 
- * This class manages the core vehicle control logic including:
- * - Curtis-style neutral braking (immediate throttle response)
- * - Speed-based power limiting with configurable curves
- * - Smooth torque baseline tracking
+ * This class manages the simplified vehicle control logic including:
+ * - Three-zone pedal system (regen/coast/accel)
+ * - Progressive curves for natural feel
+ * - Delta-based power limiting with configurable curves
  * - Advanced gear transition protection
- * - Configurable driving characteristics
  */
 
 #pragma once
@@ -23,20 +22,20 @@ class CANManager;
 class VehicleControl {
 public:
     /**
-     * @brief Constructs the vehicle control system with Curtis-style control
+     * @brief Constructs the vehicle control system with simplified pedal zones
      * @param ads Reference to ADS1115 ADC for pedal position reading
      */
     explicit VehicleControl(ADS1115& ads);
     
     /**
-     * @brief NEW: Calculate motor torque percentage using Curtis-style neutral braking
+     * @brief Calculate motor torque percentage using simplified pedal zones
      * @return Calculated torque percentage (-100% to +100%)
      * 
      * Features:
-     * - Immediate throttle response (no zones)
-     * - Speed-based power limiting
-     * - Torque baseline tracking for neutral braking
-     * - Configurable power curves
+     * - Three-zone pedal system (regen/coast/accel)
+     * - Progressive curves for natural pedal feel
+     * - Delta-based power limiting by motor speed
+     * - Configurable zone boundaries and progression factors
      */
     float calculateTorquePercentage();
 
@@ -83,7 +82,6 @@ public:
     void clearTorqueState() {
         lastTorquePercent = 0.0f;
         filteredTorquePercent = 0.0f;
-        torqueBaseline = 0.0f;  // NEW: Reset baseline
         enableDMC = false;
         wasInDeadband = false;
         isInGearTransition = false;
@@ -109,7 +107,7 @@ private:
     float calculateVehicleSpeed();
     
     /**
-     * @brief NEW: Calculate power limit based on current motor speed using Curtis curves
+     * @brief Calculate power limit based on current motor speed using delta curves
      * @param motorSpeed Current motor speed in RPM
      * @param isDriving true for drive power limits, false for regen limits
      * @return Power limit percentage (0-120%)
@@ -117,7 +115,7 @@ private:
     float calculatePowerLimit(float motorSpeed, bool isDriving = true);
     
     /**
-     * @brief NEW: Interpolate power limit between Curtis speed zones
+     * @brief Interpolate power limit between speed zones
      * @param motorSpeed Current motor speed in RPM
      * @param powerLimits Array of power limits for the 5 zones
      * @return Interpolated power limit percentage
@@ -125,28 +123,19 @@ private:
     float interpolatePowerLimit(float motorSpeed, const float* powerLimits);
     
     /**
-     * @brief NEW: Get Curtis speed zone boundaries based on configuration
-     * @param zone Zone index (0-4)
-     * @return Speed boundary for the zone in RPM
-     */
-    float getCurtisSpeedBoundary(int zone);
-    
-    /**
-     * @brief NEW: Update torque baseline for neutral braking
-     * @param currentTorque Current actual torque demand
-     * 
-     * Tracks recent torque history to create the "neutral point" that makes
-     * any throttle reduction feel like immediate braking.
-     */
-    void updateTorqueBaseline(float currentTorque);
-    
-    /**
-     * @brief NEW: Apply Curtis-style neutral braking logic
+     * @brief NEW: Apply simplified three-zone pedal mapping
      * @param throttlePercent Raw throttle position (0-100%)
-     * @param powerLimit Current power limit based on speed
-     * @return Calculated torque percentage with neutral braking applied
+     * @return Torque percentage with zone mapping applied
      */
-    float applyCurtisNeutralBraking(float throttlePercent, float powerLimit);
+    float applyPedalZones(float throttlePercent);
+    
+    /**
+     * @brief Apply progressive curve to zone value
+     * @param zonePosition Position within zone (0-1)
+     * @param progression Progression factor (1.0=linear, >1.0=progressive)
+     * @return Curved output value (0-1)
+     */
+    float applyProgressiveCurve(float zonePosition, float progression);
 
     /**
      * @brief Apply gear transition protection to prevent jerking
@@ -183,15 +172,4 @@ private:
     float filteredTorquePercent;     // Filtered torque percentage
     float motorSpeed;                // Current motor speed
     CANManager* canManager = nullptr; 
-    
-    // NEW: Curtis Neutral Braking State Variables
-    float torqueBaseline;            // Current torque baseline for neutral braking
-    unsigned long lastBaselineUpdate; // Timestamp for baseline updates
-    float previousThrottlePercent;   // Previous throttle position for delta calculation
-    bool neutralBrakingActive;       // Flag indicating neutral braking is engaged
-    
-    // NEW: Curtis Power Limiting State
-    float currentPowerLimit;         // Current power limit percentage
-    float previousPowerLimit;        // Previous power limit for smoothing
-    unsigned long lastPowerUpdate;   // Timestamp for power limit updates
 };

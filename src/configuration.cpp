@@ -1,5 +1,5 @@
 /**
- * @file configuration.cpp - FIXED VERSION
+ * @file configuration.cpp - UPDATED with Simplified Pedal System
  * @brief Implementation of enhanced configuration management
  */
 
@@ -19,9 +19,12 @@ const char* Configuration::KEY_DELTA_SPEED = "curtis_delta_speed";
 const char* Configuration::KEY_NOMINAL_POWER = "curtis_nom_power";
 const char* Configuration::KEY_DRIVE_LIMITS = "curtis_drive_limits";
 const char* Configuration::KEY_REGEN_LIMITS = "curtis_regen_limits";
-const char* Configuration::KEY_BASELINE_UPDATE_RATE = "neutral_update_rate";
-const char* Configuration::KEY_BASELINE_DECAY_RATE = "neutral_decay_rate";
-const char* Configuration::KEY_REGEN_MULTIPLIER = "regen_multiplier";
+
+// NEW: Pedal zone keys
+const char* Configuration::KEY_REGEN_ZONE_END = "pedal_regen_end";
+const char* Configuration::KEY_COAST_ZONE_END = "pedal_coast_end";
+const char* Configuration::KEY_REGEN_PROGRESSION = "pedal_regen_prog";
+const char* Configuration::KEY_ACCEL_PROGRESSION = "pedal_accel_prog";
 
 // Global configuration instance
 Configuration config;
@@ -47,8 +50,11 @@ void Configuration::resetToDefaults() {
     maxSOC = 100;
     maxChargingCurrent = VehicleParams::Power::NLG_MAX_AC;
     
-    // Curtis defaults
+    // Curtis defaults (keep for power limiting)
     resetCurtisDefaults();
+    
+    // NEW: Pedal zone defaults
+    resetPedalDefaults();
 }
 
 /**
@@ -72,11 +78,16 @@ void Configuration::resetCurtisDefaults() {
     regenPowerLimits[2] = 90.0f;
     regenPowerLimits[3] = 60.0f;
     regenPowerLimits[4] = 25.0f;
-    
-    // Neutral braking defaults
-    baselineUpdateRate = 0.08f;
-    baselineDecayRate = 0.995f;
-    regenMultiplier = 1.3f;
+}
+
+/**
+ * @brief NEW: Reset pedal zone settings to defaults
+ */
+void Configuration::resetPedalDefaults() {
+    regenZoneEnd = VehicleParams::Pedal::DEFAULT_REGEN_ZONE_END;
+    coastZoneEnd = VehicleParams::Pedal::DEFAULT_COAST_ZONE_END;
+    regenProgression = VehicleParams::Pedal::DEFAULT_REGEN_PROGRESSION;
+    accelProgression = VehicleParams::Pedal::DEFAULT_ACCEL_PROGRESSION;
 }
 
 /**
@@ -99,9 +110,12 @@ bool Configuration::save() {
     success &= preferences.putFloat(KEY_NOMINAL_POWER, nominalPower);
     success &= preferences.putBytes(KEY_DRIVE_LIMITS, drivePowerLimits, sizeof(drivePowerLimits));
     success &= preferences.putBytes(KEY_REGEN_LIMITS, regenPowerLimits, sizeof(regenPowerLimits));
-    success &= preferences.putFloat(KEY_BASELINE_UPDATE_RATE, baselineUpdateRate);
-    success &= preferences.putFloat(KEY_BASELINE_DECAY_RATE, baselineDecayRate);
-    success &= preferences.putFloat(KEY_REGEN_MULTIPLIER, regenMultiplier);
+    
+    // NEW: Save pedal zone parameters
+    success &= preferences.putFloat(KEY_REGEN_ZONE_END, regenZoneEnd);
+    success &= preferences.putFloat(KEY_COAST_ZONE_END, coastZoneEnd);
+    success &= preferences.putFloat(KEY_REGEN_PROGRESSION, regenProgression);
+    success &= preferences.putFloat(KEY_ACCEL_PROGRESSION, accelProgression);
     
     preferences.end();
     return success;
@@ -181,25 +195,37 @@ bool Configuration::load() {
         }
     }
     
-    // Load neutral braking parameters
-    if (preferences.isKey(KEY_BASELINE_UPDATE_RATE)) {
-        float rate = preferences.getFloat(KEY_BASELINE_UPDATE_RATE, baselineUpdateRate);
-        if (rate >= MIN_BASELINE_UPDATE_RATE && rate <= MAX_BASELINE_UPDATE_RATE) {
-            baselineUpdateRate = rate;
+    // NEW: Load pedal zone parameters
+    if (preferences.isKey(KEY_REGEN_ZONE_END)) {
+        float value = preferences.getFloat(KEY_REGEN_ZONE_END, regenZoneEnd);
+        if (value >= VehicleParams::Pedal::MIN_REGEN_ZONE_END && 
+            value <= VehicleParams::Pedal::MAX_REGEN_ZONE_END) {
+            regenZoneEnd = value;
         }
     }
     
-    if (preferences.isKey(KEY_BASELINE_DECAY_RATE)) {
-        float rate = preferences.getFloat(KEY_BASELINE_DECAY_RATE, baselineDecayRate);
-        if (rate >= MIN_BASELINE_DECAY_RATE && rate <= MAX_BASELINE_DECAY_RATE) {
-            baselineDecayRate = rate;
+    if (preferences.isKey(KEY_COAST_ZONE_END)) {
+        float value = preferences.getFloat(KEY_COAST_ZONE_END, coastZoneEnd);
+        if (value >= VehicleParams::Pedal::MIN_COAST_ZONE_END && 
+            value <= VehicleParams::Pedal::MAX_COAST_ZONE_END &&
+            value > regenZoneEnd) {  // Must be greater than regen zone end
+            coastZoneEnd = value;
         }
     }
     
-    if (preferences.isKey(KEY_REGEN_MULTIPLIER)) {
-        float multiplier = preferences.getFloat(KEY_REGEN_MULTIPLIER, regenMultiplier);
-        if (multiplier >= MIN_REGEN_MULTIPLIER && multiplier <= MAX_REGEN_MULTIPLIER) {
-            regenMultiplier = multiplier;
+    if (preferences.isKey(KEY_REGEN_PROGRESSION)) {
+        float value = preferences.getFloat(KEY_REGEN_PROGRESSION, regenProgression);
+        if (value >= VehicleParams::Pedal::MIN_PROGRESSION && 
+            value <= VehicleParams::Pedal::MAX_PROGRESSION) {
+            regenProgression = value;
+        }
+    }
+    
+    if (preferences.isKey(KEY_ACCEL_PROGRESSION)) {
+        float value = preferences.getFloat(KEY_ACCEL_PROGRESSION, accelProgression);
+        if (value >= VehicleParams::Pedal::MIN_PROGRESSION && 
+            value <= VehicleParams::Pedal::MAX_PROGRESSION) {
+            accelProgression = value;
         }
     }
     
@@ -207,7 +233,46 @@ bool Configuration::load() {
     return success;
 }
 
-// === BASIC SETTERS ===
+// === PEDAL ZONE SETTERS ===
+bool Configuration::setRegenZoneEnd(float value) {
+    if (value >= VehicleParams::Pedal::MIN_REGEN_ZONE_END && 
+        value <= VehicleParams::Pedal::MAX_REGEN_ZONE_END &&
+        value < coastZoneEnd) {  // Must be less than coast zone end
+        regenZoneEnd = value;
+        return true;
+    }
+    return false;
+}
+
+bool Configuration::setCoastZoneEnd(float value) {
+    if (value >= VehicleParams::Pedal::MIN_COAST_ZONE_END && 
+        value <= VehicleParams::Pedal::MAX_COAST_ZONE_END &&
+        value > regenZoneEnd) {  // Must be greater than regen zone end
+        coastZoneEnd = value;
+        return true;
+    }
+    return false;
+}
+
+bool Configuration::setRegenProgression(float value) {
+    if (value >= VehicleParams::Pedal::MIN_PROGRESSION && 
+        value <= VehicleParams::Pedal::MAX_PROGRESSION) {
+        regenProgression = value;
+        return true;
+    }
+    return false;
+}
+
+bool Configuration::setAccelProgression(float value) {
+    if (value >= VehicleParams::Pedal::MIN_PROGRESSION && 
+        value <= VehicleParams::Pedal::MAX_PROGRESSION) {
+        accelProgression = value;
+        return true;
+    }
+    return false;
+}
+
+// === EXISTING SETTERS (unchanged) ===
 bool Configuration::setDriveModeFromByte(uint8_t modeByte) {
     if (modeByte <= static_cast<uint8_t>(DriveMode::OPD)) {
         driveMode = static_cast<DriveMode>(modeByte);
@@ -276,7 +341,7 @@ String Configuration::getDriveModeString() const {
     }
 }
 
-// === CURTIS SETTERS ===
+// === CURTIS SETTERS (unchanged) ===
 bool Configuration::setBaseSpeed(float speed) {
     if (speed >= MIN_BASE_SPEED && speed <= MAX_BASE_SPEED) {
         baseSpeed = speed;
@@ -317,30 +382,6 @@ bool Configuration::setRegenPowerLimit(int zone, float power) {
     return false;
 }
 
-bool Configuration::setBaselineUpdateRate(float rate) {
-    if (rate >= MIN_BASELINE_UPDATE_RATE && rate <= MAX_BASELINE_UPDATE_RATE) {
-        baselineUpdateRate = rate;
-        return true;
-    }
-    return false;
-}
-
-bool Configuration::setBaselineDecayRate(float rate) {
-    if (rate >= MIN_BASELINE_DECAY_RATE && rate <= MAX_BASELINE_DECAY_RATE) {
-        baselineDecayRate = rate;
-        return true;
-    }
-    return false;
-}
-
-bool Configuration::setRegenMultiplier(float multiplier) {
-    if (multiplier >= MIN_REGEN_MULTIPLIER && multiplier <= MAX_REGEN_MULTIPLIER) {
-        regenMultiplier = multiplier;
-        return true;
-    }
-    return false;
-}
-
 // === JSON INTERFACE ===
 String Configuration::toJSON() {
     JsonDocument doc;
@@ -359,9 +400,6 @@ String Configuration::toJSON() {
     curtis["baseSpeed"] = baseSpeed;
     curtis["deltaSpeed"] = deltaSpeed;
     curtis["nominalPower"] = nominalPower;
-    curtis["baselineUpdateRate"] = baselineUpdateRate;
-    curtis["baselineDecayRate"] = baselineDecayRate;
-    curtis["regenMultiplier"] = regenMultiplier;
     
     JsonArray driveArray = curtis["drivePowerLimits"].to<JsonArray>();
     JsonArray regenArray = curtis["regenPowerLimits"].to<JsonArray>();
@@ -369,6 +407,13 @@ String Configuration::toJSON() {
         driveArray.add(drivePowerLimits[i]);
         regenArray.add(regenPowerLimits[i]);
     }
+    
+    // NEW: Pedal config
+    JsonObject pedal = doc["pedal"].to<JsonObject>();
+    pedal["regenZoneEnd"] = regenZoneEnd;
+    pedal["coastZoneEnd"] = coastZoneEnd;
+    pedal["regenProgression"] = regenProgression;
+    pedal["accelProgression"] = accelProgression;
     
     String result;
     serializeJson(doc, result);
@@ -392,6 +437,11 @@ bool Configuration::fromJSON(const String& json) {
         parseCurtisJSON(doc["curtis"]);
     }
     
+    // NEW: Parse pedal configuration
+    if (doc["pedal"].is<JsonObject>()) {
+        parsePedalJSON(doc["pedal"]);
+    }
+    
     return true;
 }
 
@@ -403,6 +453,11 @@ String Configuration::getCategoryJSON(const String& category) {
         return result;
     } else if (category == "curtis") {
         JsonDocument doc = createCurtisJSON();
+        String result;
+        serializeJson(doc, result);
+        return result;
+    } else if (category == "pedal") {  // NEW
+        JsonDocument doc = createPedalJSON();
         String result;
         serializeJson(doc, result);
         return result;
@@ -423,6 +478,8 @@ bool Configuration::setCategoryJSON(const String& category, const String& json) 
         return parseDrivingJSON(doc.as<JsonObject>());
     } else if (category == "curtis") {
         return parseCurtisJSON(doc.as<JsonObject>());
+    } else if (category == "pedal") {  // NEW
+        return parsePedalJSON(doc.as<JsonObject>());
     }
     
     return false;
@@ -441,9 +498,6 @@ JsonDocument Configuration::createCurtisJSON() {
     doc["baseSpeed"] = baseSpeed;
     doc["deltaSpeed"] = deltaSpeed;
     doc["nominalPower"] = nominalPower;
-    doc["baselineUpdateRate"] = baselineUpdateRate;
-    doc["baselineDecayRate"] = baselineDecayRate;
-    doc["regenMultiplier"] = regenMultiplier;
     
     JsonArray driveArray = doc["drivePowerLimits"].to<JsonArray>();
     JsonArray regenArray = doc["regenPowerLimits"].to<JsonArray>();
@@ -452,6 +506,16 @@ JsonDocument Configuration::createCurtisJSON() {
         regenArray.add(regenPowerLimits[i]);
     }
     
+    return doc;
+}
+
+// NEW: Pedal JSON helper
+JsonDocument Configuration::createPedalJSON() {
+    JsonDocument doc;
+    doc["regenZoneEnd"] = regenZoneEnd;
+    doc["coastZoneEnd"] = coastZoneEnd;
+    doc["regenProgression"] = regenProgression;
+    doc["accelProgression"] = accelProgression;
     return doc;
 }
 
@@ -480,18 +544,6 @@ bool Configuration::parseCurtisJSON(const JsonObject& obj) {
         setNominalPower(obj["nominalPower"]);
     }
     
-    if (obj["baselineUpdateRate"].is<float>()) {
-        setBaselineUpdateRate(obj["baselineUpdateRate"]);
-    }
-    
-    if (obj["baselineDecayRate"].is<float>()) {
-        setBaselineDecayRate(obj["baselineDecayRate"]);
-    }
-    
-    if (obj["regenMultiplier"].is<float>()) {
-        setRegenMultiplier(obj["regenMultiplier"]);
-    }
-    
     if (obj["drivePowerLimits"].is<JsonArray>()) {
         JsonArray arr = obj["drivePowerLimits"];
         for (int i = 0; i < 5 && i < arr.size(); i++) {
@@ -508,6 +560,27 @@ bool Configuration::parseCurtisJSON(const JsonObject& obj) {
                 setRegenPowerLimit(i, arr[i]);
             }
         }
+    }
+    
+    return true;
+}
+
+// NEW: Parse pedal JSON
+bool Configuration::parsePedalJSON(const JsonObject& obj) {
+    if (obj["regenZoneEnd"].is<float>()) {
+        setRegenZoneEnd(obj["regenZoneEnd"]);
+    }
+    
+    if (obj["coastZoneEnd"].is<float>()) {
+        setCoastZoneEnd(obj["coastZoneEnd"]);
+    }
+    
+    if (obj["regenProgression"].is<float>()) {
+        setRegenProgression(obj["regenProgression"]);
+    }
+    
+    if (obj["accelProgression"].is<float>()) {
+        setAccelProgression(obj["accelProgression"]);
     }
     
     return true;

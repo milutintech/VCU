@@ -1,14 +1,11 @@
 /**
  * @file vehicle_parameters.h
- * @brief Vehicle Configuration Parameters and Operating Limits
+ * @brief Vehicle Configuration Parameters and Operating Limits - SIMPLIFIED PEDAL SYSTEM
  * 
- * Defines all critical vehicle parameters including:
- * - Battery system limits and thresholds
- * - Motor and inverter operational parameters
- * - Temperature management thresholds
- * - Power system limits
- * - Vehicle dynamics parameters
- * - New percentage-based pedal control system
+ * Simplified to focus on essential parameters with configurable pedal zones:
+ * - Regen zone (progressive): 0% to regenZoneEnd%
+ * - Coast zone (dead): regenZoneEnd% to coastZoneEnd% 
+ * - Accel zone (progressive): coastZoneEnd% to 100%
  */
 
 #pragma once
@@ -16,7 +13,6 @@
 namespace VehicleParams {
     /**
      * @brief Battery System Parameters
-     * Defines voltage limits and current thresholds for the high-voltage battery
      */
     struct Battery {
         static constexpr int MIN_VOLTAGE = 320;     ///< Minimum pack voltage (3.2V * 100S)
@@ -31,7 +27,6 @@ namespace VehicleParams {
 
     /**
      * @brief Temperature Management Parameters
-     * Defines temperature limits for various systems
      */
     struct Temperature {
         static constexpr float INV_HIGH = 65.0f;   ///< Inverter high temp limit (°C)
@@ -42,22 +37,18 @@ namespace VehicleParams {
     };
 
     /**
-     * @brief Motor Control Parameters - Updated for Percentage System
-     * Defines torque limits and control characteristics
+     * @brief Motor Control Parameters
      */
     struct Motor {
-        static constexpr int MAX_TRQ = 850;         ///< Maximum motor torque (Nm) - for conversion only
-        static constexpr int MAX_REQ_TRQ = 850;     ///< Maximum request torque (Nm) - for conversion only
-        static constexpr int MAX_REVERSE_TRQ = 200; ///< Maximum reverse torque (Nm) - for conversion only
-        static constexpr int MAX_RPM = 6000;        ///< Maximum motor RPM 0-6000
-        static constexpr float MAX_ACCEL_STEP = 8.0f;   ///< Percentage ramp-up limit (%/cycle)
-        static constexpr float MAX_DECEL_STEP = 15.0f;  ///< Percentage ramp-down limit (%/cycle)
+        static constexpr int MAX_TRQ = 850;         ///< Maximum motor torque (Nm)
+        static constexpr int MAX_REQ_TRQ = 850;     ///< Maximum request torque (Nm)
+        static constexpr int MAX_REVERSE_TRQ = 200; ///< Maximum reverse torque (Nm)
+        static constexpr int MAX_RPM = 6000;        ///< Maximum motor RPM
         static constexpr float DEADZONE_THRESHOLD = 0.5f; ///< Dead zone around zero (%)
     };
 
     /**
      * @brief Power Management Parameters
-     * Defines power limits for various systems
      */
     struct Power {
         static constexpr int DMC_DC_MOT = 450;     ///< Motor power limit (A)
@@ -69,7 +60,6 @@ namespace VehicleParams {
 
     /**
      * @brief Transmission Parameters
-     * Defines gear ratios and mechanical parameters
      */
     struct Transmission {
         static constexpr float NORMAL_RATIO = 1.2f;     ///< Normal gear ratio
@@ -80,46 +70,33 @@ namespace VehicleParams {
     };
 
     /**
-     * @brief NEW: Smooth One-Foot Driving Pedal System
-     * Progressive zones for natural brake-to-accelerate feel
+     * @brief SIMPLIFIED: Three-Zone Pedal System with Progressive Curves
+     * 
+     * Zone Layout:
+     * - 0% to regenZoneEnd%: Progressive regen (0% to -100% torque)
+     * - regenZoneEnd% to coastZoneEnd%: Coast zone (0% torque)
+     * - coastZoneEnd% to 100%: Progressive accel (0% to +100% torque)
      */
     struct Pedal {
-        static constexpr float GAMMA = 1.5f;            ///< Pedal response curve exponent
+        // DEFAULT ZONE BOUNDARIES (configurable via JSON API)
+        static constexpr float DEFAULT_REGEN_ZONE_END = 25.0f;   ///< Default end of regen zone (%)
+        static constexpr float DEFAULT_COAST_ZONE_END = 35.0f;   ///< Default end of coast zone (%)
         
-        // Pedal Zone Boundaries (% of pedal travel)
-        static constexpr float STRONG_REGEN_END = 15.0f;   ///< End of strong regen zone (replaces brake)
-        static constexpr float LIGHT_REGEN_END = 25.0f;    ///< End of light regen zone  
-        static constexpr float COAST_ZONE_END = 30.0f;     ///< End of coast zone (dead zone)
-        // 30-100% = Acceleration zone
+        // DEFAULT PROGRESSION FACTORS (configurable via JSON API) 
+        static constexpr float DEFAULT_REGEN_PROGRESSION = 1.8f; ///< Default regen curve (1.0=linear, 2.0=progressive)
+        static constexpr float DEFAULT_ACCEL_PROGRESSION = 1.5f; ///< Default accel curve (1.0=linear, 2.0=progressive)
         
-        // Torque Percentages for each zone
-        static constexpr float MAX_STRONG_REGEN = -60.0f;  ///< Maximum strong regen (-60%)
-        static constexpr float MIN_STRONG_REGEN = -20.0f;  ///< Minimum strong regen (-20%)
-        static constexpr float MAX_LIGHT_REGEN = -20.0f;   ///< Maximum light regen (-20%)
-        static constexpr float MIN_LIGHT_REGEN = -5.0f;    ///< Minimum light regen (-5%)
-        static constexpr float MAX_ACCELERATION = 100.0f;   ///< Maximum acceleration (100%)
-        
-        // Speed-dependent behavior thresholds (kph)
-        static constexpr float LOW_SPEED_LIMIT = 5.0f;     ///< Below this speed, reduce regen
-        static constexpr float MEDIUM_SPEED_LIMIT = 10.0f; ///< Speed for full regen availability
-        static constexpr float HIGH_SPEED_LIMIT = 50.0f;   ///< Speed for efficiency optimization
-    };
-
-    /**
-     * @brief Advanced Filtering Parameters
-     * Prevents torque spikes while maintaining responsiveness
-     */
-    struct Filtering {
-        static constexpr float SPIKE_THRESHOLD = 15.0f;    ///< Spike detection threshold (%/cycle)
-        static constexpr float NORMAL_RATE_LIMIT = 8.0f;   ///< Normal max change rate (%/cycle)  
-        static constexpr float SPIKE_RATE_LIMIT = 4.0f;    ///< Spike-detected max change rate (%/cycle)
-        static constexpr float FILTER_ALPHA = 0.15f;       ///< Exponential smoothing (15% new, 85% old)
-        static constexpr float DEADZONE_HYSTERESIS = 1.0f; ///< Hysteresis around zero (%)
+        // VALIDATION LIMITS
+        static constexpr float MIN_REGEN_ZONE_END = 10.0f;       ///< Minimum regen zone end (%)
+        static constexpr float MAX_REGEN_ZONE_END = 50.0f;       ///< Maximum regen zone end (%)
+        static constexpr float MIN_COAST_ZONE_END = 30.0f;       ///< Minimum coast zone end (%)
+        static constexpr float MAX_COAST_ZONE_END = 60.0f;       ///< Maximum coast zone end (%)
+        static constexpr float MIN_PROGRESSION = 1.0f;           ///< Minimum progression factor
+        static constexpr float MAX_PROGRESSION = 3.0f;           ///< Maximum progression factor
     };
 
     /**
      * @brief Gear Transition Control
-     * Prevents jerking during gear changes
      */
     struct GearTransition {
         static constexpr unsigned long TRANSITION_TIME_MS = 200; ///< Zero torque hold time during shifts (ms)
@@ -128,7 +105,6 @@ namespace VehicleParams {
 
     /**
      * @brief System Timing Parameters
-     * Defines control loop and timeout values
      */
     struct Timing {
         static constexpr unsigned long FAST_CYCLE_MS = 50;    ///< Fast loop interval (ms)
@@ -136,13 +112,10 @@ namespace VehicleParams {
         static constexpr unsigned long NLG_UNLOCK_TIMEOUT = 3000; ///< Charger unlock timeout (ms)
         static constexpr unsigned long PRECHARGE_TIMEOUT = 5000;  ///< Precharge timeout (ms)
         static constexpr unsigned long BMS_TIMEOUT_MS = 1500;     ///< BMS timeout (ms)
-        static constexpr float CONTROL_DT = 0.01f;                ///< PID control loop time step (seconds)
     };
-    
 
     /**
      * @brief Vehicle Speed and Performance Limits
-     * Defines vehicle performance boundaries
      */
     struct Limits {
         static constexpr float MAX_SPEED = 120.0f;        ///< Maximum speed (kph)
@@ -150,11 +123,4 @@ namespace VehicleParams {
         static constexpr int MAX_MOTOR_RPM = 8000;        ///< Maximum motor speed (RPM)
         static constexpr float MAX_ACCELERATION = 3.0f;   ///< Maximum acceleration (m/s²)
     };
-
-    // REMOVED UNUSED CONSTANTS:
-    // - Control::SPEED_FACTOR (unused)
-    // - Control::MIN_PEDAL_THRESHOLD (replaced by new pedal system)  
-    // - Control::COAST_POSITION_MIN/MAX (replaced by new pedal zones)
-    // - Regen::FADE_START, ZERO_SPEED, MIN_SPEED (not used in current implementation)
-    // - OPD constants (will be redesigned later if needed)
 };

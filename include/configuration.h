@@ -1,6 +1,6 @@
 /**
- * @file configuration.h - FIXED VERSION
- * @brief Enhanced Configuration with proper integration
+ * @file configuration.h - UPDATED with Simplified Pedal System
+ * @brief Enhanced Configuration with pedal zones and Curtis power limiting
  */
 
 #pragma once
@@ -10,7 +10,7 @@
 #include "config.h"
 
 /**
- * @brief Enhanced Configuration Class - Backwards Compatible
+ * @brief Enhanced Configuration Class - With Simplified Pedal Zones
  */
 class Configuration {
 public:
@@ -48,27 +48,33 @@ public:
     bool setMaxChargingCurrent(uint8_t current);
     bool setDriveModeFromByte(uint8_t modeByte);
     
-    // === CURTIS POWER LIMITING (existing) ===
+    // === CURTIS POWER LIMITING (existing - keep for delta-based power map) ===
     float getBaseSpeed() const { return baseSpeed; }
     float getDeltaSpeed() const { return deltaSpeed; }
     float getNominalPower() const { return nominalPower; }
     const float* getDrivePowerLimits() const { return drivePowerLimits; }
     const float* getRegenPowerLimits() const { return regenPowerLimits; }
-    float getBaselineUpdateRate() const { return baselineUpdateRate; }
-    float getBaselineDecayRate() const { return baselineDecayRate; }
-    float getRegenMultiplier() const { return regenMultiplier; }
     
     bool setBaseSpeed(float speed);
     bool setDeltaSpeed(float speed);
     bool setNominalPower(float power);
     bool setDrivePowerLimit(int zone, float power);
     bool setRegenPowerLimit(int zone, float power);
-    bool setBaselineUpdateRate(float rate);
-    bool setBaselineDecayRate(float rate);
-    bool setRegenMultiplier(float multiplier);
     void resetCurtisDefaults();
     
-    // === NEW JSON INTERFACE ===
+    // === NEW: SIMPLIFIED PEDAL ZONES ===
+    float getRegenZoneEnd() const { return regenZoneEnd; }
+    float getCoastZoneEnd() const { return coastZoneEnd; }
+    float getRegenProgression() const { return regenProgression; }
+    float getAccelProgression() const { return accelProgression; }
+    
+    bool setRegenZoneEnd(float value);
+    bool setCoastZoneEnd(float value);
+    bool setRegenProgression(float value);
+    bool setAccelProgression(float value);
+    void resetPedalDefaults();
+    
+    // === JSON INTERFACE ===
     String toJSON();
     bool fromJSON(const String& json);
     String getCategoryJSON(const String& category);
@@ -85,15 +91,18 @@ private:
     uint8_t maxSOC;
     uint8_t maxChargingCurrent;
     
-    // Curtis power limiting
+    // Curtis power limiting (keep for delta-based power map)
     float baseSpeed;
     float deltaSpeed;
     float nominalPower;
     float drivePowerLimits[5];
     float regenPowerLimits[5];
-    float baselineUpdateRate;
-    float baselineDecayRate;
-    float regenMultiplier;
+    
+    // NEW: Simplified pedal zones
+    float regenZoneEnd;        ///< End of regen zone (0-50%)
+    float coastZoneEnd;        ///< End of coast zone (regenZoneEnd-60%)
+    float regenProgression;    ///< Regen curve factor (1.0-3.0)
+    float accelProgression;    ///< Accel curve factor (1.0-3.0)
     
     // Storage keys
     static const char* KEY_DRIVE_MODE;
@@ -105,9 +114,12 @@ private:
     static const char* KEY_NOMINAL_POWER;
     static const char* KEY_DRIVE_LIMITS;
     static const char* KEY_REGEN_LIMITS;
-    static const char* KEY_BASELINE_UPDATE_RATE;
-    static const char* KEY_BASELINE_DECAY_RATE;
-    static const char* KEY_REGEN_MULTIPLIER;
+    
+    // NEW: Pedal zone keys
+    static const char* KEY_REGEN_ZONE_END;
+    static const char* KEY_COAST_ZONE_END;
+    static const char* KEY_REGEN_PROGRESSION;
+    static const char* KEY_ACCEL_PROGRESSION;
     
     // Validation limits
     static constexpr int MIN_TORQUE_LIMIT = 100;
@@ -125,18 +137,14 @@ private:
     static constexpr float MIN_POWER_LIMIT = 10.0f;
     static constexpr float MAX_DRIVE_POWER_LIMIT = 120.0f;
     static constexpr float MAX_REGEN_POWER_LIMIT = 100.0f;
-    static constexpr float MIN_BASELINE_UPDATE_RATE = 0.01f;
-    static constexpr float MAX_BASELINE_UPDATE_RATE = 0.2f;
-    static constexpr float MIN_BASELINE_DECAY_RATE = 0.9f;
-    static constexpr float MAX_BASELINE_DECAY_RATE = 0.999f;
-    static constexpr float MIN_REGEN_MULTIPLIER = 0.5f;
-    static constexpr float MAX_REGEN_MULTIPLIER = 3.0f;
     
     // Helper methods
     JsonDocument createDrivingJSON();
     JsonDocument createCurtisJSON();
+    JsonDocument createPedalJSON();  // NEW
     bool parseDrivingJSON(const JsonObject& obj);
     bool parseCurtisJSON(const JsonObject& obj);
+    bool parsePedalJSON(const JsonObject& obj);  // NEW
 };
 
 // Global configuration instance (backwards compatible)
