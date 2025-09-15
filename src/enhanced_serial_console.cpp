@@ -171,7 +171,14 @@ void EnhancedSerialConsole::handleConfigCommand(const JsonDocument& doc) {
         }
     } else if (action == "set") {
         String category = doc["category"].as<String>();
-        JsonObject data = doc["data"];
+        
+        // FIXED: Proper JsonObject handling for ArduinoJson v7
+        if (!doc["data"].is<JsonObject>()) {
+            sendJSONError("Missing or invalid data field");
+            return;
+        }
+        
+        JsonObject data = doc["data"].as<JsonObject>();
         
         if (category.isEmpty() || data.isNull()) {
             sendJSONError("Missing category or data");

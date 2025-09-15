@@ -8,6 +8,11 @@
 #include <WiFi.h>
 #include <esp_now.h>
 
+// Forward declarations
+class StateManager;
+class CANMonitor;
+class ErrorMonitor;
+
 /**
  * @brief Battery Management System data structure
  * Contains battery state information from BMS
@@ -71,8 +76,6 @@ struct NLGData {
 // Define ESP-NOW message types
 #define MSG_TYPE_BMS 0x01
 #define MSG_TYPE_DMC_TEMP 0x02
-
-class StateManager; // Forward declaration
 
 /**
  * @brief CAN Communication Manager Class
@@ -159,10 +162,6 @@ public:
     const NLGData& getNLGData() const { return nlgData; }
     
     // Control methods
-    void enableCANLogging(bool enable) { canMonitor.setLoggingEnabled(enable); }
-    String getCANStatistics() { return canMonitor.getStatisticsJSON(); }
-    void resetCANStatistics() { canMonitor.resetStatistics(); }
-    
     void setCurrentGear(GearState gear) { currentGear = gear; }
     void setTorqueDemand(float torque) { torqueDemand = torque; }
     void setSpeedDemand(int16_t speed) { speedDemand = speed; }
@@ -188,9 +187,16 @@ public:
             }
         }
     }
+
+    // CAN Monitoring methods - FIXED
+    void setCANMonitor(CANMonitor* monitor) { canMonitor = monitor; }
+    void setSystemMonitor(ErrorMonitor* monitor) { systemMonitor = monitor; }
+    void enableCANLogging(bool enable);
+    String getCANStatistics();
+    void resetCANStatistics();
         
 private:
-    CANMonitor canMonitor;  // CAN bus monitor instance
+
     /**
     * @brief Process external configuration message
     * @param buf Message data buffer
@@ -288,4 +294,8 @@ private:
     unsigned long lastSlowCycle;   ///< Last slow update cycle timestamp
     unsigned long lastBMSSendTime; ///< Last BMS data send timestamp
     unsigned long lastDMCSendTime; ///< Last DMC data send timestamp
+
+    // CAN Monitoring - FIXED: Use pointers instead of direct objects
+    CANMonitor* canMonitor = nullptr;      ///< CAN bus monitor instance
+    ErrorMonitor* systemMonitor = nullptr; ///< System error monitor instance
 };
