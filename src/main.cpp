@@ -180,7 +180,7 @@ void controlTask(void* parameter) {
 }
 
 /**
- * @brief Enhanced System Setup
+ * @brief Enhanced System Setup - ADD this code after creating the canManager
  */
 void setup() {
     Serial.begin(115200);
@@ -192,7 +192,7 @@ void setup() {
     Serial.println("ESP32 VCU with JSON Config & Monitoring");
     
     // Initialize error monitor first
-    errorMonitor = new ErrorMonitor(1000, 500); // 1000 error log entries, 500 CAN messages
+    errorMonitor = new ErrorMonitor(1000, 500);
     if (!errorMonitor) {
         Serial.println("CRITICAL: Failed to create ErrorMonitor");
         while(1);
@@ -207,8 +207,8 @@ void setup() {
     }
     canMonitor->initializeMessageDefinitions();
     
-    // Initialize configuration using the global config instance
-    config.begin(); // Use the global config instance from configuration.h
+    // Initialize configuration
+    config.begin();
     errorMonitor->logInfo("Configuration system initialized", "CONFIG");
     
     // Create core system components
@@ -217,6 +217,10 @@ void setup() {
         errorMonitor->logCritical("Failed to create CANManager", "SYSTEM");
         while(1);
     }
+
+    // FIXED: Connect monitors to CAN manager after creation
+    canManager->setCANMonitor(canMonitor);
+    canManager->setSystemMonitor(errorMonitor);
 
     stateManager = new StateManager(*canManager, nullptr);
     if (!stateManager) {
@@ -244,7 +248,7 @@ void setup() {
     }
     
     // Apply current configuration to vehicle control
-    vehicleControl->setDrivingMode(config.getDriveMode()); // Use global config instance
+    vehicleControl->setDrivingMode(config.getDriveMode());
     errorMonitor->logInfo("Applied configuration to vehicle control", "CONFIG");
     
     // Setup GPIO and interrupts
@@ -289,6 +293,7 @@ void setup() {
     Serial.println("  {\"cmd\":\"help\"} - JSON command help");
     Serial.println("==========================================");
 }
+
 
 void loop() {
     vTaskDelete(NULL);

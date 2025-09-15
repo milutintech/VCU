@@ -153,7 +153,7 @@ void CANManager::update() {
 }
 
 /**
- * @brief Check for and process incoming CAN messages
+ * @brief Check for and process incoming CAN messages - FIXED pointer access
  */
 void CANManager::checkAndProcessMessages() {
     uint8_t len;
@@ -161,10 +161,15 @@ void CANManager::checkAndProcessMessages() {
     while (CAN_MSGAVAIL == CAN.checkReceive()) {
         if (CAN.readMsgBuf(&len, buf) == CAN_OK) {
             uint32_t id = CAN.getCanId();
-            if (canMonitor.isLoggingEnabled()) {
-                    canMonitor.logMessage(id, buf, len, false);  // false = received
-                    systemMonitor.logCANMessage(id, buf, len, false, canMonitor.getMessageDescription(id));
+            
+            // FIXED: Use pointer access with null checks
+            if (canMonitor && canMonitor->isLoggingEnabled()) {
+                canMonitor->logMessage(id, buf, len, false);  // false = received
+                if (systemMonitor) {
+                    systemMonitor->logCANMessage(id, buf, len, false, canMonitor->getMessageDescription(id));
+                }
             }
+            
             switch(id) {
                 case 0x010:  // BMS message
                     processBMSMessage(buf);

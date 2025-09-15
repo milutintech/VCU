@@ -1,5 +1,5 @@
 /**
- * @file can_monitoring.h
+ * @file can_monitoring.h - FIXED VERSION
  * @brief CAN Message Monitoring and Logging Extensions
  */
 
@@ -10,7 +10,7 @@
 #include "error_monitor.h"
 
 /**
- * @brief CAN Message Definition Structure
+ * @brief CAN Message Definition Structure - FIXED with default constructor
  */
 struct CANMessageDef {
     uint32_t id;
@@ -21,6 +21,14 @@ struct CANMessageDef {
     String units[8];        // Units for each byte
     float scales[8];        // Scale factors for each byte
     float offsets[8];       // Offset values for each byte
+    
+    // FIXED: Add default constructor for std::map compatibility
+    CANMessageDef() : id(0), name(""), description(""), expectedLength(0) {
+        for (int i = 0; i < 8; i++) {
+            scales[i] = 1.0f;
+            offsets[i] = 0.0f;
+        }
+    }
     
     CANMessageDef(uint32_t msgId, const String& msgName, const String& desc, uint8_t len) 
         : id(msgId), name(msgName), description(desc), expectedLength(len) {

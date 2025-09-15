@@ -154,7 +154,7 @@ void EnhancedSerialConsole::handleJSONCommand(const String& command) {
 }
 
 /**
- * @brief Handle configuration commands
+ * @brief Handle configuration commands - FIXED for ArduinoJson v7
  * @param doc JSON document with config command
  */
 void EnhancedSerialConsole::handleConfigCommand(const JsonDocument& doc) {
@@ -173,12 +173,12 @@ void EnhancedSerialConsole::handleConfigCommand(const JsonDocument& doc) {
         String category = doc["category"].as<String>();
         
         // FIXED: Proper JsonObject handling for ArduinoJson v7
-        if (!doc["data"].is<JsonObject>()) {
+        if (!doc["data"].is<JsonObjectConst>()) {
             sendJSONError("Missing or invalid data field");
             return;
         }
         
-        JsonObject data = doc["data"].as<JsonObject>();
+        JsonObjectConst data = doc["data"].as<JsonObjectConst>();
         
         if (category.isEmpty() || data.isNull()) {
             sendJSONError("Missing category or data");
@@ -212,7 +212,6 @@ void EnhancedSerialConsole::handleConfigCommand(const JsonDocument& doc) {
         sendJSONError("Unknown config action: " + action);
     }
 }
-
 /**
  * @brief Handle monitoring commands
  * @param doc JSON document with monitor command
