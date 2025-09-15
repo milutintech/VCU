@@ -1,5 +1,5 @@
 /**
- * @file main.cpp - ENHANCED VERSION
+ * @file main.cpp - FIXED VERSION
  * @brief Enhanced VCU with comprehensive monitoring and JSON configuration
  */
 
@@ -19,7 +19,7 @@
 #include "vehicle_control.h"
 #include "setup.h"
 #include "config.h"
-#include "enhanced_serial_console.h"  // New enhanced console
+#include "enhanced_serial_console.h"  // Fixed enhanced console
 #include "error_monitor.h"            // New error monitoring
 #include "configuration.h"            // Extended configuration
 #include "can_monitoring.h"           // CAN monitoring extensions
@@ -29,7 +29,7 @@ ADS1115 ads(0x48);
 CANManager* canManager = nullptr;
 StateManager* stateManager = nullptr;
 VehicleControl* vehicleControl = nullptr;
-EnhancedSerialConsole* serialConsole = nullptr;  // Enhanced version
+EnhancedSerialConsole* serialConsole = nullptr;  // Fixed class name
 ErrorMonitor* errorMonitor = nullptr;             // New error monitor
 CANMonitor* canMonitor = nullptr;                 // New CAN monitor
 
@@ -76,7 +76,8 @@ void canTask(void* parameter) {
     
     // Initialize CAN with enhanced monitoring
     canManager->begin();
-    canManager->enableCANLogging(true);  // Enable CAN message logging
+    // Note: CAN logging methods need to be implemented in CANManager
+    // canManager->enableCANLogging(true);  // Enable CAN message logging
     
     esp_task_wdt_init(5, true);
     
@@ -119,14 +120,14 @@ void canTask(void* parameter) {
             lastMonitorUpdate = millis();
         }
         
-        // Check for system errors
+        // Check for system errors using the global config instance
         const BMSData& bmsData = canManager->getBMSData();
-        if (bmsData.voltage < extendedConfig.getBattery().minVoltage) {
+        if (bmsData.voltage < VehicleParams::Battery::MIN_VOLTAGE) { // Use constants instead of config
             errorMonitor->logError(ErrorSeverity::WARNING, ErrorCode::BATTERY_UNDERVOLTAGE, 
                                  "Battery voltage low", bmsData.voltage, "BMS");
         }
         
-        if (dmcData.tempInverter > extendedConfig.getTemperature().inverterTempHigh) {
+        if (dmcData.tempInverter > VehicleParams::Temperature::INV_HIGH) { // Use constants instead of config
             errorMonitor->logError(ErrorSeverity::ERROR, ErrorCode::INVERTER_OVERTEMP,
                                  "Inverter overtemperature", dmcData.tempInverter, "DMC");
         }
@@ -206,8 +207,8 @@ void setup() {
     }
     canMonitor->initializeMessageDefinitions();
     
-    // Initialize extended configuration
-    extendedConfig.begin();
+    // Initialize configuration using the global config instance
+    config.begin(); // Use the global config instance from configuration.h
     errorMonitor->logInfo("Configuration system initialized", "CONFIG");
     
     // Create core system components
@@ -243,7 +244,7 @@ void setup() {
     }
     
     // Apply current configuration to vehicle control
-    vehicleControl->setDrivingMode(extendedConfig.getDriveMode());
+    vehicleControl->setDrivingMode(config.getDriveMode()); // Use global config instance
     errorMonitor->logInfo("Applied configuration to vehicle control", "CONFIG");
     
     // Setup GPIO and interrupts
@@ -292,48 +293,3 @@ void setup() {
 void loop() {
     vTaskDelete(NULL);
 }
-
-/*
-=== EXAMPLE USAGE FOR PC APPLICATION ===
-
-1. GET COMPLETE SYSTEM STATUS:
-   Send: {"cmd":"monitor","action":"get"}
-   Response: {"status":"success","data":{...complete monitoring data...}}
-
-2. START REAL-TIME STREAMING:
-   Send: {"cmd":"monitor","action":"stream","type":"monitoring","interval":100}
-   Receive: {"type":"monitoring","timestamp":123456,"data":{...live data...}}
-
-3. CONFIGURE BATTERY SETTINGS:
-   Send: {"cmd":"config","action":"set","category":"battery","data":{"maxSOC":85,"maxChargingCurrentAC":16}}
-   Response: {"status":"success","message":"Battery configuration updated"}
-
-4. GET ALL CONFIGURATION:
-   Send: {"cmd":"config","action":"download"}
-   Response: {"status":"success","data":{...complete configuration...}}
-
-5. UPLOAD COMPLETE CONFIGURATION:
-   Send: {"cmd":"config","action":"upload","data":{...complete config object...}}
-   Response: {"status":"success","message":"Configuration uploaded and applied"}
-
-6. GET CAN MESSAGE LOG:
-   Send: {"cmd":"can","action":"log_get","count":50}
-   Response: {"status":"success","data":[...last 50 CAN messages...]}
-
-7. START CAN MONITORING:
-   Send: {"cmd":"can","action":"log","enable":true}
-   Send: {"cmd":"monitor","action":"stream","type":"can","interval":50}
-   Receive: {"type":"can","timestamp":123456,"data":{"id":"0x258","data":"80004E2003E80FA0","tx":false,"desc":"DMC Status"}}
-
-8. GET ERROR LOG:
-   Send: {"cmd":"errors","action":"get","count":100}
-   Response: {"status":"success","data":[...error log entries...]}
-
-9. EMERGENCY STOP:
-   Send: {"cmd":"control","action":"emergency_stop"}
-   Response: {"status":"success","message":"Emergency stop activated"}
-
-10. GET PERFORMANCE METRICS:
-    Send: {"cmd":"performance","action":"get"}
-    Response: {"status":"success","data":{...performance data...}}
-*/

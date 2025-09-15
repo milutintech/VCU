@@ -159,6 +159,10 @@ public:
     const NLGData& getNLGData() const { return nlgData; }
     
     // Control methods
+    void enableCANLogging(bool enable) { canMonitor.setLoggingEnabled(enable); }
+    String getCANStatistics() { return canMonitor.getStatisticsJSON(); }
+    void resetCANStatistics() { canMonitor.resetStatistics(); }
+    
     void setCurrentGear(GearState gear) { currentGear = gear; }
     void setTorqueDemand(float torque) { torqueDemand = torque; }
     void setSpeedDemand(int16_t speed) { speedDemand = speed; }
@@ -186,7 +190,7 @@ public:
     }
         
 private:
-
+    CANMonitor canMonitor;  // CAN bus monitor instance
     /**
     * @brief Process external configuration message
     * @param buf Message data buffer

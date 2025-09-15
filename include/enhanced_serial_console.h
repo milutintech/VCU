@@ -57,9 +57,7 @@ private:
     void handleJSONCommand(const String& command);
     void handleConfigCommand(const JsonDocument& doc);
     void handleMonitorCommand(const JsonDocument& doc);
-    void sendJSONResponse(const String& status, const String& data = "");
-    void sendJSONError(const String& message);
-    void printJSONHelp();
+    
     // Configuration commands
     void handleConfigGet(const String& category);
     void handleConfigSet(const String& category, const String& jsonData);
@@ -105,70 +103,26 @@ private:
     
     // Response helpers
     void sendJSONResponse(const String& status, const String& data = "", const String& error = "");
+    void sendJSONError(const String& message);
     void sendError(const String& message);
     void sendSuccess(const String& message = "");
     void sendData(const String& data);
     
+    // Legacy methods for backwards compatibility
+    void handleGet(const String& target, const String& parameter);
+    void handleSet(const String& target, const String& parameter, const String& value);
+    void printHelp();
+    void printValue(const String& name, int value, const String& unit = "");
+    void printValue(const String& name, float value, const String& unit = "");
+    void printValue(const String& name, bool value);
+    void printJSONHelp();  // Removed duplicate declaration
+    
     // Utility methods
     bool isJSONCommand(const String& command);
-    DynamicJsonDocument parseJSON(const String& json);
+    JsonDocument parseJSON(const String& json);
     String createResponse(const String& status, const JsonObject& data = JsonObject());
-    void printHelp();
     
     // Validation
     bool validateJSONStructure(const JsonObject& obj, const String& expectedType);
     bool validateParameterRange(const String& param, float value, float min, float max);
 };
-
-// Command format examples:
-/*
-LEGACY COMMANDS (backwards compatible):
-get:bms:all
-set:vcu:drivemode:regen
-help
-
-JSON COMMANDS:
-{"cmd":"config","action":"get","category":"driving"}
-{"cmd":"config","action":"set","category":"battery","data":{"maxSOC":85,"maxChargingCurrentAC":16}}
-{"cmd":"config","action":"upload","data":{...complete config...}}
-{"cmd":"config","action":"download"}
-{"cmd":"config","action":"backup"}
-{"cmd":"config","action":"restore","data":"...backup data..."}
-{"cmd":"config","action":"reset","category":"all"}
-
-{"cmd":"monitor","action":"get"}
-{"cmd":"monitor","action":"stream","type":"monitoring","interval":100}
-{"cmd":"monitor","action":"stream","type":"can","interval":50}
-{"cmd":"monitor","action":"stop_stream"}
-
-{"cmd":"errors","action":"get","count":50}
-{"cmd":"errors","action":"clear"}
-{"cmd":"performance","action":"get"}
-{"cmd":"performance","action":"reset"}
-
-{"cmd":"can","action":"send","id":"0x123","data":"01020304"}
-{"cmd":"can","action":"log","enable":true}
-
-{"cmd":"test","action":"start","component":"pedal"}
-{"cmd":"calibrate","action":"start","type":"pedal"}
-{"cmd":"calibrate","action":"set","param":"min","value":512}
-{"cmd":"calibrate","action":"save"}
-
-{"cmd":"control","action":"emergency_stop"}
-{"cmd":"control","action":"safe_mode","enable":true}
-{"cmd":"control","device":"pump","action":"set","value":"1"}
-
-STREAMING RESPONSES:
-{"type":"monitoring","timestamp":123456,"data":{...monitoring data...}}
-{"type":"can","timestamp":123456,"data":{"id":"0x123","data":"01020304","tx":false}}
-{"type":"error","timestamp":123456,"data":{"severity":"WARNING","code":300,"msg":"Battery undervoltage"}}
-
-ERROR RESPONSES:
-{"status":"error","message":"Invalid JSON format"}
-{"status":"error","message":"Unknown command"}
-{"status":"error","message":"Parameter out of range: maxTorque must be 100-850"}
-
-SUCCESS RESPONSES:
-{"status":"success","message":"Configuration saved"}
-{"status":"success","data":{...requested data...}}
-*/
