@@ -210,7 +210,7 @@ void CANManager::processBMSMessage(uint8_t* buf) {
     bmsData.current = (buf[4] | (buf[3] << 8));
     bmsData.maxDischarge = (buf[6] | (buf[5] << 8));
     bmsData.maxCharge = buf[7] * 2;
-    Serial.println("BMS Data - SOC: " + String(bmsData.soc) + "%, Voltage: " + String(bmsData.voltage) + "V, Current: " + String(bmsData.current) + "A, Max Discharge: " + String(bmsData.maxDischarge) + "A, Max Charge: " + String(bmsData.maxCharge) + "A");;
+    //Serial.println("BMS Data - SOC: " + String(bmsData.soc) + "%, Voltage: " + String(bmsData.voltage) + "V, Current: " + String(bmsData.current) + "A, Max Discharge: " + String(bmsData.maxDischarge) + "A, Max Charge: " + String(bmsData.maxCharge) + "A");;
 
     lastBMSUpdate = millis(); // Update timestamp on valid message
 }

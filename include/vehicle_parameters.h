@@ -52,7 +52,7 @@ namespace VehicleParams {
         static constexpr int MAX_RPM = 6000;        ///< Maximum motor RPM 0-6000
         static constexpr float MAX_ACCEL_STEP = 8.0f;   ///< Percentage ramp-up limit (%/cycle)
         static constexpr float MAX_DECEL_STEP = 15.0f;  ///< Percentage ramp-down limit (%/cycle)
-        static constexpr float DEADZONE_THRESHOLD = 2.0f; ///< Dead zone around zero (%)
+        static constexpr float DEADZONE_THRESHOLD = 0.5f; ///< Dead zone around zero (%)
     };
 
     /**
