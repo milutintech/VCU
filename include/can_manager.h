@@ -17,7 +17,7 @@ struct BMSData {
     uint16_t voltage;         ///< Battery voltage (V)
     int16_t current;         ///< Battery current (A)
     uint16_t maxDischarge;    ///< Maximum discharge current (A)
-    uint8_t maxCharge;       ///< Maximum charge current (A)
+    uint16_t maxCharge;       ///< Maximum charge current (A)
 };
 
 /**

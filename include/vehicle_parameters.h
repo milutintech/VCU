@@ -135,7 +135,7 @@ namespace VehicleParams {
         static constexpr unsigned long SLOW_CYCLE_MS = 100;   ///< Slow loop interval (ms)
         static constexpr unsigned long NLG_UNLOCK_TIMEOUT = 3000; ///< Charger unlock timeout (ms)
         static constexpr unsigned long PRECHARGE_TIMEOUT = 5000;  ///< Precharge timeout (ms)
-        static constexpr unsigned long BMS_TIMEOUT_MS = 1000;     ///< BMS timeout (ms)
+        static constexpr unsigned long BMS_TIMEOUT_MS = 1500;     ///< BMS timeout (ms)
         static constexpr float CONTROL_DT = 0.01f;                ///< PID control loop time step (seconds)
     };
     
