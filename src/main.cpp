@@ -1,20 +1,10 @@
 /**
- * @file main.cpp
- * @brief Main Vehicle Control Unit (VCU) Program
- * 
- * Core system orchestration:
- * - Task management for CAN and control systems
- * - Hardware initialization
- * - Real-time scheduling
- * - System monitoring
- * - ESP-NOW wireless communication
- * 
- * Uses dual-core ESP32:
- * Core 0: CAN communication and fast control loops
- * Core 1: State management and system control
+ * @file main.cpp - ENHANCED VERSION
+ * @brief Enhanced VCU with comprehensive monitoring and JSON configuration
  */
 
 #include <Arduino.h>
+#include <ArduinoJson.h>  // Add this for JSON support
 #include <esp_task_wdt.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -22,104 +12,123 @@
 #include <esp_adc_cal.h>
 #include <esp32-hal-adc.h>
 #include "ADS1X15.h"
-#include "AD5593R.h"
-#include <WiFi.h>
-#include <esp_now.h>
 
+// Enhanced includes
 #include "state_manager.h"
 #include "can_manager.h"
 #include "vehicle_control.h"
 #include "setup.h"
 #include "config.h"
-#include "SerialConsole.h"
-#include "configuration.h" 
+#include "enhanced_serial_console.h"  // New enhanced console
+#include "error_monitor.h"            // New error monitoring
+#include "configuration.h"            // Extended configuration
+#include "can_monitoring.h"           // CAN monitoring extensions
 
-// Global objects and pointers
-ADS1115 ads(0x48);                // ADC for pedal position
-CANManager* canManager = nullptr;  // CAN communication manager
-StateManager* stateManager = nullptr; // Vehicle state management
-VehicleControl* vehicleControl = nullptr; // Vehicle control system
-SerialConsole* serialConsole = nullptr; // Debug console interface
+// Global objects - Enhanced
+ADS1115 ads(0x48);
+CANManager* canManager = nullptr;
+StateManager* stateManager = nullptr;
+VehicleControl* vehicleControl = nullptr;
+EnhancedSerialConsole* serialConsole = nullptr;  // Enhanced version
+ErrorMonitor* errorMonitor = nullptr;             // New error monitor
+CANMonitor* canMonitor = nullptr;                 // New CAN monitor
 
-// Task handles for ESP32 dual-core operation
-TaskHandle_t canTaskHandle = nullptr;     // CAN task handle (Core 0)
-TaskHandle_t controlTaskHandle = nullptr; // Control task handle (Core 1)
+// Task handles
+TaskHandle_t canTaskHandle = nullptr;
+TaskHandle_t controlTaskHandle = nullptr;
 
+// Interrupt handling (unchanged)
 volatile bool unlockInterruptTriggered = false;
 unsigned long lastInterruptTime = 0;
-const unsigned long debounceTime = 500; // 500ms debounce
+const unsigned long debounceTime = 500;
 
 void IRAM_ATTR connectorUnlockISR() {
     unsigned long currentTime = millis();
-    
-    // Only process the interrupt if enough time has passed (debounce)
     if (currentTime - lastInterruptTime > debounceTime) {
         unlockInterruptTriggered = true;
         lastInterruptTime = currentTime;
-        Serial.println("Interrupt triggered");  // This can be removed in production
     }
 }
 
 void checkAndHandleInterrupt() {
     if (unlockInterruptTriggered) {
         if (stateManager) {
-            Serial.println("Processing connector unlock interrupt");
+            errorMonitor->logInfo("Connector unlock interrupt triggered", "USER");
             stateManager->handleConnectorUnlockInterrupt();
         }
-        unlockInterruptTriggered = false; // Clear the flag
+        unlockInterruptTriggered = false;
     }
 }
 
 /**
- * @brief CAN and Fast Control Task (Core 0)
- * 
- * Handles:
- * - CAN message processing
- * - Motor control updates
- * - Fast sensor readings
- * - Real-time control loops
- * - ESP-NOW communication
- * 
- * @param parameter Task parameters (unused)
+ * @brief Enhanced CAN Task with comprehensive monitoring
  */
 void canTask(void* parameter) {
-    Serial.print("CAN Task running on core: ");
+    Serial.print("Enhanced CAN Task running on core: ");
     Serial.println(xPortGetCoreID());
     
     // Initialize communication hardware
     SPI.begin(Pins::SCK, Pins::MISO, Pins::MOSI, Pins::SPI_CS_PIN);
     Wire.begin(Pins::SDA, Pins::SCL);
-    Wire.setClock(400000);  // 400kHz I2C
+    Wire.setClock(400000);
     ads.begin();
-    ads.setGain(2);         // Set ADC gain for pedal reading
+    ads.setGain(2);
+    
+    // Initialize CAN with enhanced monitoring
     canManager->begin();
-    esp_task_wdt_init(5, true);  // 5 second watchdog timeout
+    canManager->enableCANLogging(true);  // Enable CAN message logging
+    
+    esp_task_wdt_init(5, true);
+    
+    errorMonitor->logInfo("CAN task started successfully", "SYSTEM");
+    
+    unsigned long lastMonitorUpdate = 0;
+    const unsigned long MONITOR_UPDATE_INTERVAL = 100; // Update monitoring every 100ms
     
     for(;;) {
         esp_task_wdt_reset();
+        
+        // Update CAN communication
         canManager->update();
         
         // Update motor speed from DMC data
         const DMCData& dmcData = canManager->getDMCData();
         vehicleControl->setMotorSpeed(dmcData.speedActual);
         
-        // Calculate and apply torque demand in RUN state using NEW percentage system
+        // Calculate and apply torque demand
         if (stateManager->getCurrentState() == VehicleState::RUN) {
             vehicleControl->updateGearState();
-            
-            // NEW: Use Curtis-style neutral braking
             float torquePercentage = vehicleControl->calculateTorquePercentage();
-            
-            // Set torque as percentage (CAN manager handles conversion to Nm)
             canManager->setTorquePercentage(torquePercentage);
-            
-            // DMC enable is handled by Curtis system
             canManager->setEnableDMC(vehicleControl->isDMCEnabled());
-        }
-        else {
-            // In non-RUN states, ensure zero torque and disabled DMC
+            
+            // Log significant torque changes
+            static float lastLoggedTorque = 0.0f;
+            if (abs(torquePercentage - lastLoggedTorque) > 10.0f) {
+                errorMonitor->logInfo("Torque demand: " + String(torquePercentage) + "%", "CONTROL");
+                lastLoggedTorque = torquePercentage;
+            }
+        } else {
             canManager->setTorquePercentage(0.0f);
             canManager->setEnableDMC(false);
+        }
+        
+        // Update monitoring data periodically
+        if (millis() - lastMonitorUpdate >= MONITOR_UPDATE_INTERVAL) {
+            errorMonitor->updateMonitoringData(*canManager, *stateManager);
+            lastMonitorUpdate = millis();
+        }
+        
+        // Check for system errors
+        const BMSData& bmsData = canManager->getBMSData();
+        if (bmsData.voltage < extendedConfig.getBattery().minVoltage) {
+            errorMonitor->logError(ErrorSeverity::WARNING, ErrorCode::BATTERY_UNDERVOLTAGE, 
+                                 "Battery voltage low", bmsData.voltage, "BMS");
+        }
+        
+        if (dmcData.tempInverter > extendedConfig.getTemperature().inverterTempHigh) {
+            errorMonitor->logError(ErrorSeverity::ERROR, ErrorCode::INVERTER_OVERTEMP,
+                                 "Inverter overtemperature", dmcData.tempInverter, "DMC");
         }
         
         vTaskDelay(1);
@@ -127,24 +136,19 @@ void canTask(void* parameter) {
 }
 
 /**
- * @brief State Management and System Control Task (Core 1)
- * 
- * Handles:
- * - Vehicle state management
- * - Temperature monitoring
- * - Charging control
- * - User interface
- * - System diagnostics
- * 
- * @param parameter Task parameters (unused)
+ * @brief Enhanced Control Task with error monitoring
  */
 void controlTask(void* parameter) {
-    Serial.print("Control Task running on core: ");
+    Serial.print("Enhanced Control Task running on core: ");
     Serial.println(xPortGetCoreID());
     
-    esp_task_wdt_init(5, true);  // 5 second watchdog timeout
+    esp_task_wdt_init(5, true);
+    errorMonitor->logInfo("Control task started successfully", "SYSTEM");
     
-    stateManager->handleWakeup();  // Initial state determination
+    stateManager->handleWakeup();
+    
+    unsigned long lastPerformanceUpdate = 0;
+    const unsigned long PERFORMANCE_UPDATE_INTERVAL = 1000; // Update performance every second
     
     for(;;) {
         esp_task_wdt_reset();
@@ -152,119 +156,184 @@ void controlTask(void* parameter) {
         // Check for pending unlock interrupt
         checkAndHandleInterrupt();
         
-        // Update system state and interface
+        // Update system state
         stateManager->update();
+        
+        // Process serial console commands
         serialConsole->update();
         
-        vTaskDelay(pdMS_TO_TICKS(Constants::SLOW_CYCLE_MS));
+        // Update performance metrics periodically
+        if (millis() - lastPerformanceUpdate >= PERFORMANCE_UPDATE_INTERVAL) {
+            const MonitoringData& monData = errorMonitor->getMonitoringData();
+            errorMonitor->updatePerformanceMetrics(monData);
+            lastPerformanceUpdate = millis();
+        }
+        
+        // Check system health
+        if (!errorMonitor->isSystemHealthy()) {
+            errorMonitor->logWarning("System health check failed", "MONITOR");
+        }
+        
+        vTaskDelay(pdMS_TO_TICKS(50)); // 50ms cycle time
     }
 }
 
 /**
- * @brief System initialization
- * 
- * Performs initial setup:
- * - Serial communication
- * - GPIO configuration
- * - Sleep mode setup
- * - Task creation and scheduling
- * - ESP-NOW initialization
+ * @brief Enhanced System Setup
  */
 void setup() {
     Serial.begin(115200);
-    delay(500);  // Allow serial to initialize
+    delay(500);
     
-    Serial.println("\n\n==================================");
-    Serial.println("   Vehicle Control Unit Startup   ");
-    Serial.println("==================================");
-    Serial.println("ESP32 VCU with ESP-NOW Display Support");
+    Serial.println("\n\n==========================================");
+    Serial.println("  Enhanced Vehicle Control Unit Startup  ");
+    Serial.println("==========================================");
+    Serial.println("ESP32 VCU with JSON Config & Monitoring");
     
-    // Initialize system components in correct order
-    canManager = new CANManager(Pins::SPI_CS_PIN); // First create CAN manager
+    // Initialize error monitor first
+    errorMonitor = new ErrorMonitor(1000, 500); // 1000 error log entries, 500 CAN messages
+    if (!errorMonitor) {
+        Serial.println("CRITICAL: Failed to create ErrorMonitor");
+        while(1);
+    }
+    errorMonitor->logInfo("System startup initiated", "SYSTEM");
+    
+    // Initialize CAN monitor
+    canMonitor = new CANMonitor();
+    if (!canMonitor) {
+        errorMonitor->logCritical("Failed to create CANMonitor", "SYSTEM");
+        while(1);
+    }
+    canMonitor->initializeMessageDefinitions();
+    
+    // Initialize extended configuration
+    extendedConfig.begin();
+    errorMonitor->logInfo("Configuration system initialized", "CONFIG");
+    
+    // Create core system components
+    canManager = new CANManager(Pins::SPI_CS_PIN);
     if (!canManager) {
-        Serial.println("Failed to create CANManager");
+        errorMonitor->logCritical("Failed to create CANManager", "SYSTEM");
         while(1);
     }
 
-    stateManager = new StateManager(*canManager, nullptr);  // Pass nullptr initially
+    stateManager = new StateManager(*canManager, nullptr);
     if (!stateManager) {
-        Serial.println("Failed to create StateManager");
+        errorMonitor->logCritical("Failed to create StateManager", "SYSTEM");
         while(1);
     }
-    // Set the state manager reference in CAN manager
-    canManager->setStateManager(stateManager); 
+    canManager->setStateManager(stateManager);
     
     vehicleControl = new VehicleControl(ads);
     if (!vehicleControl) {
-        Serial.println("Failed to create VehicleControl");
+        errorMonitor->logCritical("Failed to create VehicleControl", "SYSTEM");
         while(1);
     }
+    
     if (stateManager && vehicleControl) {
         stateManager->setVehicleControl(vehicleControl);
     }
     vehicleControl->setCanManager(canManager);
-    serialConsole = new SerialConsole(*canManager, *stateManager, *vehicleControl);
+    
+    // Create enhanced serial console
+    serialConsole = new EnhancedSerialConsole(*canManager, *stateManager, *vehicleControl, *errorMonitor);
     if (!serialConsole) {
-        Serial.println("Failed to create SerialConsole");
+        errorMonitor->logCritical("Failed to create EnhancedSerialConsole", "SYSTEM");
         while(1);
     }
-
-    config.begin();
-    vehicleControl->setDrivingMode(config.getDriveMode());
-
+    
+    // Apply current configuration to vehicle control
+    vehicleControl->setDrivingMode(extendedConfig.getDriveMode());
+    errorMonitor->logInfo("Applied configuration to vehicle control", "CONFIG");
+    
+    // Setup GPIO and interrupts
     pinMode(Pins::UNLCKCON, INPUT_PULLDOWN);
     attachInterrupt(digitalPinToInterrupt(Pins::UNLCKCON), connectorUnlockISR, RISING);
-
-    // Initialize hardware
+    
     SystemSetup::initializeGPIO();
     SystemSetup::initializeSleep();
     
-    // Print WiFi MAC address for reference
+    // Print system information
     WiFi.mode(WIFI_STA);
-    Serial.print("This device MAC Address: ");
+    Serial.print("Device MAC Address: ");
     Serial.println(WiFi.macAddress());
     
-    // Create tasks with error checking
+    errorMonitor->logInfo("Hardware initialization complete", "SYSTEM");
+    
+    // Create enhanced tasks
     BaseType_t canTaskCreated = xTaskCreatePinnedToCore(
-        canTask,         // Task function
-        "CAN_Task",      // Task name
-        10000,           // Stack size (words)
-        NULL,            // Parameters
-        1,               // Priority
-        &canTaskHandle,  // Task handle
-        0                // Core ID
+        canTask, "Enhanced_CAN_Task", 12000, NULL, 1, &canTaskHandle, 0
     );
     
     if (canTaskCreated != pdPASS) {
-        Serial.println("Failed to create CAN task");
+        errorMonitor->logCritical("Failed to create CAN task", "SYSTEM");
         while(1);
     }
     
     BaseType_t controlTaskCreated = xTaskCreatePinnedToCore(
-        controlTask,         // Task function
-        "Control_Task",      // Task name
-        20000,               // Stack size (words)
-        NULL,                // Parameters
-        1,                   // Priority
-        &controlTaskHandle,  // Task handle
-        1                    // Core ID
+        controlTask, "Enhanced_Control_Task", 24000, NULL, 1, &controlTaskHandle, 1
     );
     
     if (controlTaskCreated != pdPASS) {
-        Serial.println("Failed to create Control task");
+        errorMonitor->logCritical("Failed to create Control task", "SYSTEM");
         while(1);
     }
     
-    Serial.println("System initialization complete");
-    Serial.println("==================================");
+    errorMonitor->logInfo("All tasks created successfully", "SYSTEM");
+    Serial.println("Enhanced VCU initialization complete!");
+    Serial.println("==========================================");
+    Serial.println("Available commands:");
+    Serial.println("  help - Show legacy commands");
+    Serial.println("  json_help - Show JSON API commands");
+    Serial.println("  {\"cmd\":\"help\"} - JSON command help");
+    Serial.println("==========================================");
 }
 
-/**
- * @brief Main program loop
- * 
- * Not used as functionality is handled by tasks.
- * Deletes the setup task and enters idle state.
- */
 void loop() {
-    vTaskDelete(NULL);  // Delete setup task
+    vTaskDelete(NULL);
 }
+
+/*
+=== EXAMPLE USAGE FOR PC APPLICATION ===
+
+1. GET COMPLETE SYSTEM STATUS:
+   Send: {"cmd":"monitor","action":"get"}
+   Response: {"status":"success","data":{...complete monitoring data...}}
+
+2. START REAL-TIME STREAMING:
+   Send: {"cmd":"monitor","action":"stream","type":"monitoring","interval":100}
+   Receive: {"type":"monitoring","timestamp":123456,"data":{...live data...}}
+
+3. CONFIGURE BATTERY SETTINGS:
+   Send: {"cmd":"config","action":"set","category":"battery","data":{"maxSOC":85,"maxChargingCurrentAC":16}}
+   Response: {"status":"success","message":"Battery configuration updated"}
+
+4. GET ALL CONFIGURATION:
+   Send: {"cmd":"config","action":"download"}
+   Response: {"status":"success","data":{...complete configuration...}}
+
+5. UPLOAD COMPLETE CONFIGURATION:
+   Send: {"cmd":"config","action":"upload","data":{...complete config object...}}
+   Response: {"status":"success","message":"Configuration uploaded and applied"}
+
+6. GET CAN MESSAGE LOG:
+   Send: {"cmd":"can","action":"log_get","count":50}
+   Response: {"status":"success","data":[...last 50 CAN messages...]}
+
+7. START CAN MONITORING:
+   Send: {"cmd":"can","action":"log","enable":true}
+   Send: {"cmd":"monitor","action":"stream","type":"can","interval":50}
+   Receive: {"type":"can","timestamp":123456,"data":{"id":"0x258","data":"80004E2003E80FA0","tx":false,"desc":"DMC Status"}}
+
+8. GET ERROR LOG:
+   Send: {"cmd":"errors","action":"get","count":100}
+   Response: {"status":"success","data":[...error log entries...]}
+
+9. EMERGENCY STOP:
+   Send: {"cmd":"control","action":"emergency_stop"}
+   Response: {"status":"success","message":"Emergency stop activated"}
+
+10. GET PERFORMANCE METRICS:
+    Send: {"cmd":"performance","action":"get"}
+    Response: {"status":"success","data":{...performance data...}}
+*/

@@ -1,173 +1,175 @@
 /**
- * @file SerialConsole.h
- * @brief Debug Console Interface for Vehicle Control System
- * 
- * Provides comprehensive debug interface for:
- * - Real-time system monitoring
- * - Parameter adjustment
- * - Diagnostics and testing
- * - State control
- * 
- * Command Structure:
- * - GET commands: get:<system>:<parameter>
- * - SET commands: set:<system>:<parameter>:<value>
- * 
- * Supported Systems:
- * - NLG (Charger): State, voltage, current, temperature
- * - BMS: SOC, voltage, current limits
- * - DMC (Motor): Temperature, status, torque
- * - BSC (DC-DC): Voltage, current, mode
- * - VCU: State, drive mode, system control
+ * @file enhanced_serial_console.h
+ * @brief Enhanced Serial Console with JSON Support and Streaming
  */
 
 #pragma once
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include "can_manager.h"
 #include "state_manager.h"
 #include "vehicle_control.h"
-#include "config.h"
-#include "configuration.h"  
+#include "error_monitor.h"
+#include "configuration.h"
 
-
-class SerialConsole {
-public:
-    /**
-     * @brief Constructs debug console interface
-     * @param canManager Reference to CAN communication system
-     * @param stateManager Reference to vehicle state control
-     * @param vehicleControl Reference to motor control system
-     * 
-     * Initializes monitoring interface and command parser
-     */
-    SerialConsole(CANManager& canManager, StateManager& stateManager, VehicleControl& vehicleControl);
-
-    /**
-     * @brief Process serial input and handle commands
-     * Should be called in main control loop
-     * 
-     * Handles:
-     * - Command buffering
-     * - Command parsing
-     * - Response formatting
-     * - Error handling
-     */
-    void update();
-    
-private:
-    /**
-     * @brief Process received command string
-     * @param command Complete command string to process
-     * 
-     * Supported Commands:
-     * 1. NLG (Charger) Commands:
-     *    - get:nlg:state - Current charger state
-     *    - get:nlg:voltage - Charging voltage
-     *    - get:nlg:current - Charging current
-     *    - get:nlg:temp - Charger temperature
-     *    - get:nlg:all - All charger parameters
-     * 
-     * 2. BMS Commands:
-     *    - get:bms:maxcurrent - Maximum allowed current
-     *    - get:bms:soc - State of charge
-     *    - get:bms:voltage - Battery voltage
-     *    - get:bms:current - Battery current
-     *    - get:bms:all - All battery parameters
-     * 
-     * 3. DMC (Motor) Commands:
-     *    - get:dmc:motortemp - Motor temperature
-     *    - get:dmc:invertertemp - Inverter temperature
-     *    - get:dmc:status - Operation status
-     *    - get:dmc:all - All motor parameters
-     * 
-     * 4. BSC (DC-DC) Commands:
-     *    - get:bsc:hvvoltage - High voltage
-     *    - get:bsc:lvcurrent - Low voltage current
-     *    - get:bsc:mode - Operating mode
-     *    - get:bsc:all - All converter parameters
-     * 
-     * 5. VCU Control Commands:
-     *    - get:vcu:state - System state
-     *    - get:vcu:all - All system parameters
-     *    - set:vcu:drivemode:[legacy|regen|opd] - Set drive mode
-     *    - set:vcu:bsckl15:[0|1] - Control BSC power
-     *    - set:vcu:dmckl15:[0|1] - Control DMC power
-     *    - set:vcu:nlgkl15:[0|1] - Control NLG power
-     *    - set:vcu:pump:[0|1] - Control cooling pump
-     *    - set:vcu:state:[standby|run|charging] - Force VCU state
-     *    - set:vcu:drivemode:[legacy|regen|opd] - Set drive mode
-     *    - set:vcu:bsckl15:[0|1] - Control BSC power
-     *    - set:vcu:dmckl15:[0|1] - Control DMC power
-     *    - set:vcu:nlgkl15:[0|1] - Control NLG power
-     *    - set:vcu:pump:[0|1] - Control cooling pump
-     */
-    void handleCommand(String command);
-
-    /**
-     * @brief Handle get commands for system monitoring
-     * @param target System to query (nlg/bms/dmc/bsc/vcu)
-     * @param parameter Specific parameter to read
-     * 
-     * Response Format:
-     * "<parameter_name>: <value> <unit>"
-     * 
-     * Error Handling:
-     * - Invalid target: "Unknown system: <target>"
-     * - Invalid parameter: "Unknown parameter: <parameter>"
-     * - Read error: "Error reading <parameter>"
-     */
-    void handleGet(String target, String parameter);
-
-    /**
-     * @brief Handle set commands for system control
-     * @param target System to control
-     * @param parameter Parameter to modify
-     * @param value New value to set
-     * 
-     * Safety Checks:
-     * - Value range validation
-     * - System state validation
-     * - Operation permissions
-     * 
-     * Error Handling:
-     * - Invalid value: "Invalid value for <parameter>"
-     * - Operation not allowed: "Operation not allowed in current state"
-     */
-    void handleSet(String target, String parameter, String value);
-
-    /**
-     * @brief Display help information and command list
-     * Shows all available commands with descriptions
-     * Groups commands by subsystem for clarity
-     */
-    void printHelp();
-    
-    /**
-     * @brief Print integer value with optional unit
-     * @param name Parameter name
-     * @param value Integer value
-     * @param unit Optional unit string (V, A, °C, etc)
-     */
-    void printValue(const String& name, int value, const String& unit = "");
-
-    /**
-     * @brief Print float value with optional unit
-     * @param name Parameter name
-     * @param value Float value
-     * @param unit Optional unit string
-     */
-    void printValue(const String& name, float value, const String& unit = "");
-
-    /**
-     * @brief Print boolean value
-     * @param name Parameter name
-     * @param value Boolean state
-     * 
-     * Outputs "True" or "False" for better readability
-     */
-    void printValue(const String& name, bool value);
-    
-    CANManager& canManager;        ///< Reference to CAN system
-    StateManager& stateManager;    ///< Reference to state system
-    VehicleControl& vehicleControl;///< Reference to vehicle control
-    String inputBuffer;            ///< Command input buffer
+/**
+ * @brief Streaming Mode Configuration
+ */
+enum class StreamingMode {
+    NONE,
+    MONITORING,
+    CAN_MESSAGES,
+    ERRORS,
+    PERFORMANCE
 };
+
+/**
+ * @brief Enhanced Serial Console Class
+ */
+class EnhancedSerialConsole {
+public:
+    EnhancedSerialConsole(CANManager& canManager, StateManager& stateManager, 
+                         VehicleControl& vehicleControl, ErrorMonitor& errorMonitor);
+    
+    void update();
+    void setStreamingMode(StreamingMode mode, unsigned long intervalMs = 100);
+    void stopStreaming();
+
+private:
+    // Core system references
+    CANManager& canManager;
+    StateManager& stateManager;
+    VehicleControl& vehicleControl;
+    ErrorMonitor& errorMonitor;
+    
+    // Input handling
+    String inputBuffer;
+    const size_t MAX_BUFFER_SIZE = 2048;
+    
+    // Streaming
+    StreamingMode currentStreamingMode;
+    unsigned long streamingInterval;
+    unsigned long lastStreamTime;
+    
+    // Command processing
+    void handleCommand(const String& command);
+    void handleLegacyCommand(const String& command);
+    void handleJSONCommand(const String& command);
+    void handleConfigCommand(const JsonDocument& doc);
+    void handleMonitorCommand(const JsonDocument& doc);
+    void sendJSONResponse(const String& status, const String& data = "");
+    void sendJSONError(const String& message);
+    void printJSONHelp();
+    // Configuration commands
+    void handleConfigGet(const String& category);
+    void handleConfigSet(const String& category, const String& jsonData);
+    void handleConfigUpload(const String& jsonData);
+    void handleConfigDownload();
+    void handleConfigBackup();
+    void handleConfigRestore(const String& backupData);
+    void handleConfigReset(const String& category);
+    
+    // Monitoring commands
+    void handleMonitoringGet();
+    void handlePerformanceGet();
+    void handleErrorLogGet(int maxEntries = 100);
+    void handleCANLogGet(int maxEntries = 100);
+    void handleSystemHealthGet();
+    
+    // Streaming commands
+    void handleStreamStart(const String& type, int intervalMs = 100);
+    void handleStreamStop();
+    void processStreaming();
+    
+    // Diagnostic commands
+    void handleSystemTest(const String& component);
+    void handleCalibrationStart(const String& type);
+    void handleCalibrationSet(const String& param, float value);
+    void handleCalibrationSave();
+    void handleCANMonitorToggle(bool enable);
+    void handleErrorClear();
+    void handlePerformanceReset();
+    
+    // Device control commands
+    void handleDeviceControl(const String& device, const String& action, const String& value);
+    void handleEmergencyStop();
+    void handleSafeMode(bool enable);
+    
+    // Raw CAN commands
+    void handleCANSend(uint32_t id, const String& hexData);
+    void handleCANFilter(const String& filterConfig);
+    
+    // Legacy command handlers (existing functionality)
+    void handleLegacyGet(const String& target, const String& parameter);
+    void handleLegacySet(const String& target, const String& parameter, const String& value);
+    
+    // Response helpers
+    void sendJSONResponse(const String& status, const String& data = "", const String& error = "");
+    void sendError(const String& message);
+    void sendSuccess(const String& message = "");
+    void sendData(const String& data);
+    
+    // Utility methods
+    bool isJSONCommand(const String& command);
+    DynamicJsonDocument parseJSON(const String& json);
+    String createResponse(const String& status, const JsonObject& data = JsonObject());
+    void printHelp();
+    void printJSONHelp();
+    
+    // Validation
+    bool validateJSONStructure(const JsonObject& obj, const String& expectedType);
+    bool validateParameterRange(const String& param, float value, float min, float max);
+};
+
+// Command format examples:
+/*
+LEGACY COMMANDS (backwards compatible):
+get:bms:all
+set:vcu:drivemode:regen
+help
+
+JSON COMMANDS:
+{"cmd":"config","action":"get","category":"driving"}
+{"cmd":"config","action":"set","category":"battery","data":{"maxSOC":85,"maxChargingCurrentAC":16}}
+{"cmd":"config","action":"upload","data":{...complete config...}}
+{"cmd":"config","action":"download"}
+{"cmd":"config","action":"backup"}
+{"cmd":"config","action":"restore","data":"...backup data..."}
+{"cmd":"config","action":"reset","category":"all"}
+
+{"cmd":"monitor","action":"get"}
+{"cmd":"monitor","action":"stream","type":"monitoring","interval":100}
+{"cmd":"monitor","action":"stream","type":"can","interval":50}
+{"cmd":"monitor","action":"stop_stream"}
+
+{"cmd":"errors","action":"get","count":50}
+{"cmd":"errors","action":"clear"}
+{"cmd":"performance","action":"get"}
+{"cmd":"performance","action":"reset"}
+
+{"cmd":"can","action":"send","id":"0x123","data":"01020304"}
+{"cmd":"can","action":"log","enable":true}
+
+{"cmd":"test","action":"start","component":"pedal"}
+{"cmd":"calibrate","action":"start","type":"pedal"}
+{"cmd":"calibrate","action":"set","param":"min","value":512}
+{"cmd":"calibrate","action":"save"}
+
+{"cmd":"control","action":"emergency_stop"}
+{"cmd":"control","action":"safe_mode","enable":true}
+{"cmd":"control","device":"pump","action":"set","value":"1"}
+
+STREAMING RESPONSES:
+{"type":"monitoring","timestamp":123456,"data":{...monitoring data...}}
+{"type":"can","timestamp":123456,"data":{"id":"0x123","data":"01020304","tx":false}}
+{"type":"error","timestamp":123456,"data":{"severity":"WARNING","code":300,"msg":"Battery undervoltage"}}
+
+ERROR RESPONSES:
+{"status":"error","message":"Invalid JSON format"}
+{"status":"error","message":"Unknown command"}
+{"status":"error","message":"Parameter out of range: maxTorque must be 100-850"}
+
+SUCCESS RESPONSES:
+{"status":"success","message":"Configuration saved"}
+{"status":"success","data":{...requested data...}}
+*/
