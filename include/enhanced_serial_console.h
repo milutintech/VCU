@@ -114,7 +114,6 @@ private:
     DynamicJsonDocument parseJSON(const String& json);
     String createResponse(const String& status, const JsonObject& data = JsonObject());
     void printHelp();
-    void printJSONHelp();
     
     // Validation
     bool validateJSONStructure(const JsonObject& obj, const String& expectedType);
