@@ -107,13 +107,13 @@ void canTask(void* parameter) {
         if (stateManager->getCurrentState() == VehicleState::RUN) {
             vehicleControl->updateGearState();
             
-            // NEW: Use percentage-based torque calculation
+            // NEW: Use Curtis-style neutral braking
             float torquePercentage = vehicleControl->calculateTorquePercentage();
             
-            // NEW: Set torque as percentage (CAN manager handles conversion to Nm)
+            // Set torque as percentage (CAN manager handles conversion to Nm)
             canManager->setTorquePercentage(torquePercentage);
             
-            // DMC enable is now handled by the percentage system
+            // DMC enable is handled by Curtis system
             canManager->setEnableDMC(vehicleControl->isDMCEnabled());
         }
         else {

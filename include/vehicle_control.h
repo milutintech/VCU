@@ -1,13 +1,13 @@
 /**
  * @file vehicle_control.h
- * @brief Vehicle Control System for Electric Vehicle - Updated with Percentage-Based Torque
+ * @brief Vehicle Control System with Curtis-Style Neutral Braking and Power Limiting
  * 
  * This class manages the core vehicle control logic including:
- * - Smooth one-foot driving pedal system
- * - Percentage-based torque control (-100% to +100%)
- * - Advanced filtering without lag
- * - Anti-jerk gear transitions
- * - Speed-adaptive pedal response
+ * - Curtis-style neutral braking (immediate throttle response)
+ * - Speed-based power limiting with configurable curves
+ * - Smooth torque baseline tracking
+ * - Advanced gear transition protection
+ * - Configurable driving characteristics
  */
 
 #pragma once
@@ -23,19 +23,25 @@ class CANManager;
 class VehicleControl {
 public:
     /**
-     * @brief Constructs the vehicle control system
+     * @brief Constructs the vehicle control system with Curtis-style control
      * @param ads Reference to ADS1115 ADC for pedal position reading
      */
     explicit VehicleControl(ADS1115& ads);
     
     /**
-     * @brief Calculates motor torque percentage based on smooth one-foot driving
+     * @brief NEW: Calculate motor torque percentage using Curtis-style neutral braking
      * @return Calculated torque percentage (-100% to +100%)
+     * 
+     * Features:
+     * - Immediate throttle response (no zones)
+     * - Speed-based power limiting
+     * - Torque baseline tracking for neutral braking
+     * - Configurable power curves
      */
     float calculateTorquePercentage();
 
     /**
-     * @brief Updates gear state based on switch inputs and speed
+     * @brief Updates gear state based on switch inputs with anti-jerk protection
      * Handles gear selection with anti-jerk protection
      */
     void updateGearState();
@@ -77,6 +83,7 @@ public:
     void clearTorqueState() {
         lastTorquePercent = 0.0f;
         filteredTorquePercent = 0.0f;
+        torqueBaseline = 0.0f;  // NEW: Reset baseline
         enableDMC = false;
         wasInDeadband = false;
         isInGearTransition = false;
@@ -90,46 +97,63 @@ public:
 
 private:
     /**
-     * @brief Samples pedal position from ADC
+     * @brief Sample pedal position from ADC with averaging
      * @return Raw ADC value averaged over 4 samples
      */
     int32_t samplePedalPosition();
 
     /**
-     * @brief Calculates current vehicle speed based on motor RPM and gear ratios
+     * @brief Calculate current vehicle speed based on motor RPM and gear ratios
      * @return Vehicle speed in kph
      */
     float calculateVehicleSpeed();
     
     /**
-     * @brief NEW: Handle smooth one-foot driving with percentage-based torque
-     * @param throttlePosition Processed pedal position (0-100%)
-     * @param speed Current vehicle speed in kph
-     * @return Calculated torque percentage (-100% to +100%)
+     * @brief NEW: Calculate power limit based on current motor speed using Curtis curves
+     * @param motorSpeed Current motor speed in RPM
+     * @param isDriving true for drive power limits, false for regen limits
+     * @return Power limit percentage (0-120%)
      */
-    float handleSmoothDriving(float throttlePosition, float speed);
+    float calculatePowerLimit(float motorSpeed, bool isDriving = true);
     
     /**
-     * @brief NEW: Apply advanced filtering to prevent spikes without lag
-     * @param requestedTorquePercent Raw calculated torque percentage
-     * @return Filtered torque percentage
+     * @brief NEW: Interpolate power limit between Curtis speed zones
+     * @param motorSpeed Current motor speed in RPM
+     * @param powerLimits Array of power limits for the 5 zones
+     * @return Interpolated power limit percentage
      */
-    float applyAdvancedFiltering(float requestedTorquePercent);
+    float interpolatePowerLimit(float motorSpeed, const float* powerLimits);
+    
+    /**
+     * @brief NEW: Get Curtis speed zone boundaries based on configuration
+     * @param zone Zone index (0-4)
+     * @return Speed boundary for the zone in RPM
+     */
+    float getCurtisSpeedBoundary(int zone);
+    
+    /**
+     * @brief NEW: Update torque baseline for neutral braking
+     * @param currentTorque Current actual torque demand
+     * 
+     * Tracks recent torque history to create the "neutral point" that makes
+     * any throttle reduction feel like immediate braking.
+     */
+    void updateTorqueBaseline(float currentTorque);
+    
+    /**
+     * @brief NEW: Apply Curtis-style neutral braking logic
+     * @param throttlePercent Raw throttle position (0-100%)
+     * @param powerLimit Current power limit based on speed
+     * @return Calculated torque percentage with neutral braking applied
+     */
+    float applyCurtisNeutralBraking(float throttlePercent, float powerLimit);
 
     /**
-     * @brief NEW: Apply gear transition protection to prevent jerking
+     * @brief Apply gear transition protection to prevent jerking
      * @param torquePercent Input torque percentage
      * @return Modified torque with gear transition protection
      */
     float applyGearTransitionProtection(float torquePercent);
-
-    /**
-     * @brief NEW: Apply speed-adaptive pedal response
-     * @param throttlePosition Raw pedal position (0-100%)
-     * @param speed Current vehicle speed (kph)
-     * @return Modified pedal position for speed-dependent behavior
-     */
-    float applySpeedAdaptation(float throttlePosition, float speed);
 
     /**
      * @brief Apply deadband hysteresis around zero
@@ -149,24 +173,25 @@ private:
     bool wasInDeadband;              // Deadband hysteresis state
     bool wasEnabled;                 // Previous enable state
     
-    // NEW: Gear transition state management
+    // Gear transition state management
     bool isInGearTransition;         // Flag indicating gear change in progress
     unsigned long gearTransitionStartTime; // Timestamp for gear transition timing
     GearState previousGear;          // Track previous gear for transition detection
     
-    // NEW: Percentage-based torque tracking
+    // Basic torque tracking
     float lastTorquePercent;         // Last calculated torque percentage
     float filteredTorquePercent;     // Filtered torque percentage
     float motorSpeed;                // Current motor speed
     CANManager* canManager = nullptr; 
     
-    // NEW: Advanced filtering state variables
-    float previousFilteredTorque;    // Previous filtered value for spike detection
-    bool spikeDetected;              // Spike detection flag
-    unsigned long lastFilterTime;    // For timing calculations
+    // NEW: Curtis Neutral Braking State Variables
+    float torqueBaseline;            // Current torque baseline for neutral braking
+    unsigned long lastBaselineUpdate; // Timestamp for baseline updates
+    float previousThrottlePercent;   // Previous throttle position for delta calculation
+    bool neutralBrakingActive;       // Flag indicating neutral braking is engaged
     
-    // NEW: Pedal zone tracking for smooth transitions
-    int currentPedalZone;            // Track which pedal zone we're in (0=regen, 1=coast, 2=accel)
-    int previousPedalZone;           // Previous pedal zone for transition detection
-    float zoneTransitionFactor;      // Smoothing factor for zone transitions
+    // NEW: Curtis Power Limiting State
+    float currentPowerLimit;         // Current power limit percentage
+    float previousPowerLimit;        // Previous power limit for smoothing
+    unsigned long lastPowerUpdate;   // Timestamp for power limit updates
 };

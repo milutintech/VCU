@@ -1,24 +1,23 @@
 /**
  * @file vehicle_control.cpp
- * @brief Implementation of smooth one-foot driving system with percentage-based torque
+ * @brief Implementation of Curtis-style neutral braking with configurable power limiting
  * 
- * New Features:
- * - Progressive pedal zones for natural brake-to-accelerate feel
- * - Percentage-based torque system (-100% to +100%)
- * - Advanced filtering to prevent spikes without lag
- * - Anti-jerk gear transition protection  
- * - Speed-adaptive pedal response
- * - Proper DMC enable logic
+ * Features:
+ * - Curtis-style neutral braking for immediate throttle response
+ * - Speed-based power limiting with configurable curves (1,2,4,8 delta zones)
+ * - Smooth torque baseline tracking
+ * - Full throttle range utilization (no clamping)
+ * - Configurable driving characteristics
  */
 
 #include "vehicle_control.h"
 #include "can_manager.h" 
 #include "config.h"
 #include "ADS1X15.h"
-#include "configuration.h"  
+#include "configuration.h"
 
 /**
- * @brief Constructor - initializes vehicle control system with new smooth driving
+ * @brief Constructor - initializes vehicle control system with Curtis-style control
  */
 VehicleControl::VehicleControl(ADS1115& ads) 
     : ads(ads)
@@ -35,35 +34,32 @@ VehicleControl::VehicleControl(ADS1115& ads)
     , lastTorquePercent(0.0f)
     , filteredTorquePercent(0.0f)
     , motorSpeed(0.0f)
-    , previousFilteredTorque(0.0f)
-    , spikeDetected(false)
-    , lastFilterTime(0)
-    , currentPedalZone(-1)
-    , previousPedalZone(-1)
-    , zoneTransitionFactor(1.0f)
+    , torqueBaseline(0.0f)
+    , lastBaselineUpdate(0)
+    , previousThrottlePercent(0.0f)
+    , neutralBrakingActive(false)
+    , currentPowerLimit(100.0f)
+    , previousPowerLimit(100.0f)
+    , lastPowerUpdate(0)
 {
 }
 
 /**
- * @brief Calculate motor torque percentage based on smooth one-foot driving
+ * @brief Calculate motor torque percentage using Curtis-style neutral braking
  * @return Calculated torque percentage (-100% to +100%)
  * 
- * Main control flow:
- * 1. Sample and map pedal position
- * 2. Apply speed adaptation
- * 3. Calculate torque based on pedal zones
- * 4. Apply advanced filtering
- * 5. Apply gear transition protection
- * 6. Update DMC enable logic
+ * Curtis Logic Flow:
+ * 1. Sample and map throttle position 
+ * 2. Calculate current power limit based on motor speed
+ * 3. Apply Curtis neutral braking logic
+ * 4. Update torque baseline for next iteration
+ * 5. Apply gear direction and safety limits
  */
- 
-// PROGRESSIVE SMOOTH FORMULA: Replace calculateTorquePercentage() in vehicle_control.cpp
-
 float VehicleControl::calculateTorquePercentage() {
     // Sample pedal position
     int32_t sampledPotiValue = samplePedalPosition();
     
-    // Map using correct ADC values from config.h
+    // Map using correct ADC values from config.h (0-100%)
     float rawThrottle = map(sampledPotiValue, ADC::MinValPot, ADC::MaxValPot, 0, 100);
     rawThrottle = constrain(rawThrottle, 0.0f, 100.0f);
     
@@ -71,14 +67,15 @@ float VehicleControl::calculateTorquePercentage() {
     float throttlePosition = pow(rawThrottle / 100.0f, VehicleParams::Pedal::GAMMA) * 100.0f;
     
     // Debug output
-    Serial.printf("ADC: %d -> %.1f%%", sampledPotiValue, throttlePosition);
+    Serial.printf("ADC: %d -> %.1f%% throttle", sampledPotiValue, throttlePosition);
     
     // Update reverse light based on gear state
     digitalWrite(Pins::BCKLIGHT, currentGear == GearState::REVERSE ? HIGH : LOW);
     digitalWrite(19, currentGear == GearState::REVERSE ? HIGH : LOW);
 
-    // Handle neutral gear
+    // Handle neutral gear - always zero torque
     if (currentGear == GearState::NEUTRAL) {
+        torqueBaseline = 0.0f;  // Reset baseline in neutral
         lastTorquePercent = 0.0f;
         filteredTorquePercent = 0.0f;
         enableDMC = false;
@@ -88,237 +85,174 @@ float VehicleControl::calculateTorquePercentage() {
         return 0.0f;
     }
     
-    // PROGRESSIVE FORMULA - One continuous smooth curve
-    float calculatedTorquePercent = 0.0f;
+    // Calculate current power limit based on motor speed
+    bool isDriving = (currentGear == GearState::DRIVE) ? (throttlePosition > previousThrottlePercent) : 
+                     (throttlePosition > previousThrottlePercent);
+    float powerLimit = calculatePowerLimit(abs(motorSpeed), isDriving);
     
-    // Define key points for the curve
-    const float REGEN_END = 15.0f;      // End of regen zone
-    const float COAST_END = 17.0f;      // End of coast zone (narrow 2% zone)
-    const float MAX_REGEN = -25.0f;     // Maximum regen at 0% pedal
-    const float MAX_ACCEL = 100.0f;     // Maximum acceleration at 100% pedal
-    
-    if (throttlePosition <= REGEN_END) {
-        // 0-15%: SMOOTH REGEN CURVE
-        // Use exponential decay curve: strong regen at 0%, fading to 0 at 15%
-        float t = throttlePosition / REGEN_END; // 0.0 to 1.0
-        
-        // Smooth exponential curve: y = max_regen * (1 - t)^power
-        calculatedTorquePercent = MAX_REGEN * pow(1.0f - t, 1.2f);
-        
-        Serial.printf(" -> REGEN: %.1f%%", calculatedTorquePercent);
-    }
-    else if (throttlePosition <= COAST_END) {
-        // 15-17%: NARROW COAST ZONE with smooth transitions
-        float t = (throttlePosition - REGEN_END) / (COAST_END - REGEN_END); // 0.0 to 1.0
-        
-        // Smooth cosine transition from regen to zero
-        calculatedTorquePercent = (MAX_REGEN * pow(0.0f, 1.8f)) * (1.0f - t);
-        
-        Serial.printf(" -> COAST: %.1f%%", calculatedTorquePercent);
-    }
-    else {
-        // 17-100%: SMOOTH ACCELERATION CURVE
-        float t = (throttlePosition - COAST_END) / (100.0f - COAST_END); // 0.0 to 1.0
-        
-        // Progressive acceleration curve with three segments blended smoothly
-        float accelPercent;
-        
-        if (t < 0.3f) {
-            // First 30% of accel zone (17-42% pedal): Gentle start
-            float segment_t = t / 0.3f; // 0.0 to 1.0
-            accelPercent = 25.0f * pow(segment_t, 1.5f); // 0% to 25%
-        }
-        else if (t < 0.7f) {
-            // Middle 40% of accel zone (42-75% pedal): Linear progression  
-            float segment_t = (t - 0.3f) / 0.4f; // 0.0 to 1.0
-            accelPercent = 25.0f + (45.0f * segment_t); // 25% to 70%
-        }
-        else {
-            // Last 30% of accel zone (75-100% pedal): Power curve
-            float segment_t = (t - 0.7f) / 0.3f; // 0.0 to 1.0
-            accelPercent = 70.0f + (30.0f * pow(segment_t, 0.8f)); // 70% to 100%
-        }
-        
-        // Apply user-configurable max torque scaling
-        float maxTorquePercent = (float)config.getMaxTorque() / (float)VehicleParams::Motor::MAX_TRQ * 100.0f;
-        calculatedTorquePercent = (accelPercent / 100.0f) * maxTorquePercent;
-        
-        Serial.printf(" -> ACCEL: %.1f%%", calculatedTorquePercent);
-    }
-    
-    // OPTIONAL: Add slight smoothing filter for extra smoothness
-    static float smoothedTorque = 0.0f;
-    const float SMOOTH_FACTOR = 0.15f; // 15% new, 85% previous
-    smoothedTorque = (SMOOTH_FACTOR * calculatedTorquePercent) + ((1.0f - SMOOTH_FACTOR) * smoothedTorque);
-    calculatedTorquePercent = smoothedTorque;
+    // Apply Curtis neutral braking logic
+    float calculatedTorquePercent = applyCurtisNeutralBraking(throttlePosition, powerLimit);
     
     // Apply proper direction based on gear state
     if (currentGear == GearState::DRIVE) {
-        calculatedTorquePercent = -calculatedTorquePercent;
+        calculatedTorquePercent = -calculatedTorquePercent;  // Negative = forward in drive
     }
+    // In REVERSE, positive torque = reverse motion (no sign change needed)
+    
+    // Apply gear transition protection
+    calculatedTorquePercent = applyGearTransitionProtection(calculatedTorquePercent);
+    
+    // Apply deadband hysteresis
+    calculatedTorquePercent = applyDeadbandHysteresis(calculatedTorquePercent);
     
     // Update DMC enable logic
-    enableDMC = (abs(calculatedTorquePercent) > 0.3f);
+    enableDMC = (abs(calculatedTorquePercent) > 0.5f);
+    
+    // Update torque baseline for next iteration
+    updateTorqueBaseline(calculatedTorquePercent);
     
     // Store for next iteration
     lastTorquePercent = calculatedTorquePercent;
     filteredTorquePercent = calculatedTorquePercent;
+    previousThrottlePercent = throttlePosition;
     
-    Serial.printf(" -> FINAL: %.1f%% (DMC: %s)\n", 
-                  calculatedTorquePercent, enableDMC ? "ON" : "OFF");
+    Serial.printf(" -> Power Limit: %.1f%%, Baseline: %.1f%%, Final: %.1f%% (DMC: %s)\n", 
+                  powerLimit, torqueBaseline, calculatedTorquePercent, enableDMC ? "ON" : "OFF");
     
     return calculatedTorquePercent;
 }
 
 /**
- * @brief Handle smooth one-foot driving with progressive pedal zones
- * @param throttlePosition Adapted pedal position (0-100%)
- * @param speed Current vehicle speed in kph
- * @return Calculated torque percentage (-100% to +100%)
+ * @brief Calculate power limit based on current motor speed using Curtis curves
+ * @param motorSpeed Current motor speed in RPM
+ * @param isDriving true for drive power limits, false for regen limits
+ * @return Power limit percentage (0-120%)
  */
-float VehicleControl::handleSmoothDriving(float throttlePosition, float speed) {
-    // Determine current pedal zone
-    int newPedalZone;
-    if (throttlePosition <= VehicleParams::Pedal::STRONG_REGEN_END) {
-        newPedalZone = 0; // Strong regen zone (0-15%)
-    } else if (throttlePosition <= VehicleParams::Pedal::LIGHT_REGEN_END) {
-        newPedalZone = 1; // Light regen zone (15-25%)
-    } else if (throttlePosition <= VehicleParams::Pedal::COAST_ZONE_END) {
-        newPedalZone = 2; // Coast zone (25-30%)
-    } else {
-        newPedalZone = 3; // Acceleration zone (30-100%)
-    }
-    
-    // Detect zone transitions for smooth blending
-    bool zoneTransition = (previousPedalZone != newPedalZone) && (previousPedalZone != -1);
-    if (zoneTransition) {
-        zoneTransitionFactor = 0.7f; // Start with reduced response during transition
-    } else {
-        // Gradually return to full response
-        zoneTransitionFactor = min(1.0f, zoneTransitionFactor + 0.05f);
-    }
-    
-    float torquePercent = 0.0f;
-    
-    switch (newPedalZone) {
-        case 0: { // Strong regen zone (0-15%) - Replaces brake pedal
-            float normalizedPosition = throttlePosition / VehicleParams::Pedal::STRONG_REGEN_END;
-            // Inverted mapping: 0% pedal = max regen, 15% pedal = min regen
-            float regenIntensity = 1.0f - normalizedPosition;
-            
-            // Progressive curve for better feel
-            regenIntensity = pow(regenIntensity, 0.8f);
-            
-            // Calculate regen torque percentage
-            torquePercent = VehicleParams::Pedal::MAX_STRONG_REGEN + 
-                           (VehicleParams::Pedal::MIN_STRONG_REGEN - VehicleParams::Pedal::MAX_STRONG_REGEN) * (1.0f - regenIntensity);
-            
-            break;
-        }
-        
-        case 1: { // Light regen zone (15-25%) - Gentle slowing
-            float normalizedPosition = (throttlePosition - VehicleParams::Pedal::STRONG_REGEN_END) / 
-                                     (VehicleParams::Pedal::LIGHT_REGEN_END - VehicleParams::Pedal::STRONG_REGEN_END);
-            // Inverted mapping: 15% pedal = max light regen, 25% pedal = min light regen
-            float regenIntensity = 1.0f - normalizedPosition;
-            
-            // Smooth curve for gentle transition
-            regenIntensity = pow(regenIntensity, 0.9f);
-            
-            torquePercent = VehicleParams::Pedal::MAX_LIGHT_REGEN + 
-                           (VehicleParams::Pedal::MIN_LIGHT_REGEN - VehicleParams::Pedal::MAX_LIGHT_REGEN) * (1.0f - regenIntensity);
-            
-            break;
-        }
-        
-        case 2: { // Coast zone (25-30%) - Zero torque
-            // Smooth fade from light regen to zero during zone transitions
-            if (previousPedalZone == 1) {
-                float fadePosition = (throttlePosition - VehicleParams::Pedal::LIGHT_REGEN_END) / 
-                                   (VehicleParams::Pedal::COAST_ZONE_END - VehicleParams::Pedal::LIGHT_REGEN_END);
-                float fadeRatio = pow(1.0f - fadePosition, 0.5f);
-                torquePercent = VehicleParams::Pedal::MIN_LIGHT_REGEN * fadeRatio * 0.3f; // Max 30% carry-over
-            } else {
-                torquePercent = 0.0f; // Pure coast
-            }
-            break;
-        }
-        
-        case 3: { // Acceleration zone (30-100%) - Progressive power
-            float normalizedPosition = (throttlePosition - VehicleParams::Pedal::COAST_ZONE_END) / 
-                                     (100.0f - VehicleParams::Pedal::COAST_ZONE_END);
-            
-            // Progressive acceleration curve for better control
-            float accelIntensity;
-            if (normalizedPosition < 0.4f) {
-                // Gentle initial acceleration (30-50% pedal)
-                accelIntensity = pow(normalizedPosition / 0.4f, 1.4f) * 0.3f;
-            } else {
-                // More aggressive acceleration (50-100% pedal)
-                accelIntensity = 0.3f + pow((normalizedPosition - 0.4f) / 0.6f, 1.1f) * 0.7f;
-            }
-            
-            // Apply user-configurable torque limit
-            float maxTorquePercent = (float)config.getMaxTorque() / (float)VehicleParams::Motor::MAX_TRQ * 100.0f;
-            torquePercent = accelIntensity * maxTorquePercent;
-            
-            break;
-        }
-    }
-    
-    // Apply zone transition smoothing
-    torquePercent *= zoneTransitionFactor;
-    
-    // Apply proper direction based on gear state
-    // DRIVE: Negative torque = forward accel, Positive torque = regen (opposes forward motion)  
-    // REVERSE: Positive torque = reverse accel, Negative torque = regen (opposes reverse motion)
-    if (currentGear == GearState::REVERSE) {
-        torquePercent = -torquePercent; // Flip signs for reverse
-    }
-    
-    // Store zone information for next iteration
-    previousPedalZone = currentPedalZone;
-    currentPedalZone = newPedalZone;
-    
-    return torquePercent;
+float VehicleControl::calculatePowerLimit(float motorSpeed, bool isDriving) {
+    const float* powerLimits = isDriving ? config.getDrivePowerLimits() : config.getRegenPowerLimits();
+    return interpolatePowerLimit(motorSpeed, powerLimits);
 }
 
 /**
- * @brief Apply advanced filtering to prevent torque spikes without lag
- * @param requestedTorquePercent Raw calculated torque percentage
- * @return Filtered torque percentage
+ * @brief Interpolate power limit between Curtis speed zones
+ * @param motorSpeed Current motor speed in RPM
+ * @param powerLimits Array of power limits for the 5 zones
+ * @return Interpolated power limit percentage
  */
-float VehicleControl::applyAdvancedFiltering(float requestedTorquePercent) {
-    unsigned long currentTime = millis();
-    float deltaTime = (currentTime - lastFilterTime) / 1000.0f; // Convert to seconds
-    lastFilterTime = currentTime;
+float VehicleControl::interpolatePowerLimit(float motorSpeed, const float* powerLimits) {
+    float baseSpeed = config.getBaseSpeed();
+    float deltaSpeed = config.getDeltaSpeed();
     
-    // Prevent division by zero
-    if (deltaTime == 0.0f) deltaTime = 0.001f;
+    // Curtis speed zones: Base+1×Δ, Base+2×Δ, Base+4×Δ, Base+8×Δ
+    float speedZones[5] = {
+        baseSpeed + 1 * deltaSpeed,  // Zone 0 boundary
+        baseSpeed + 2 * deltaSpeed,  // Zone 1 boundary  
+        baseSpeed + 4 * deltaSpeed,  // Zone 2 boundary
+        baseSpeed + 8 * deltaSpeed,  // Zone 3 boundary
+        999999.0f                    // Zone 4 (no upper limit)
+    };
     
-    // Calculate rate of change
-    float torqueChange = requestedTorquePercent - filteredTorquePercent;
-    float changeRate = abs(torqueChange) / deltaTime;
-    
-    // Spike detection: Check if change rate exceeds threshold
-    spikeDetected = (changeRate > VehicleParams::Filtering::SPIKE_THRESHOLD);
-    
-    // Apply rate limiting based on spike detection
-    float maxChangePerCycle = spikeDetected ? 
-        VehicleParams::Filtering::SPIKE_RATE_LIMIT : 
-        VehicleParams::Filtering::NORMAL_RATE_LIMIT;
-    
-    // Limit the change rate
-    if (abs(torqueChange) > maxChangePerCycle) {
-        torqueChange = (torqueChange > 0) ? maxChangePerCycle : -maxChangePerCycle;
+    // Find which zone we're in and interpolate
+    for (int i = 0; i < 5; i++) {
+        if (motorSpeed <= speedZones[i]) {
+            if (i == 0) {
+                // Below first zone boundary - use nominal power
+                return powerLimits[0];
+            }
+            
+            // Linear interpolation between zones
+            float prevSpeed = (i == 1) ? 0.0f : speedZones[i-2];
+            float zoneProgress = (motorSpeed - prevSpeed) / (speedZones[i] - prevSpeed);
+            zoneProgress = constrain(zoneProgress, 0.0f, 1.0f);
+            
+            return powerLimits[i-1] + (powerLimits[i] - powerLimits[i-1]) * zoneProgress;
+        }
     }
     
-    // Apply exponential smoothing filter for additional smoothness
-    float targetTorque = filteredTorquePercent + torqueChange;
-    filteredTorquePercent = (VehicleParams::Filtering::FILTER_ALPHA * targetTorque) + 
-                           ((1.0f - VehicleParams::Filtering::FILTER_ALPHA) * filteredTorquePercent);
+    // Above all zones - use final zone power
+    return powerLimits[4];
+}
+
+/**
+ * @brief Apply Curtis-style neutral braking logic
+ * @param throttlePercent Raw throttle position (0-100%)
+ * @param powerLimit Current power limit based on speed
+ * @return Calculated torque percentage with neutral braking applied
+ */
+float VehicleControl::applyCurtisNeutralBraking(float throttlePercent, float powerLimit) {
+    // Scale throttle to use full available power range (NO CLAMPING!)
+    float scaledThrottlePercent = (throttlePercent / 100.0f) * powerLimit;
     
-    return filteredTorquePercent;
+    // Convert to torque percentage (relative to max possible torque)
+    float maxPossibleTorquePercent = (float)config.getMaxTorque() / (float)VehicleParams::Motor::MAX_TRQ * 100.0f;
+    float requestedTorquePercent = (scaledThrottlePercent / 100.0f) * maxPossibleTorquePercent;
+    
+    // Curtis Neutral Braking Logic:
+    // Calculate difference from current baseline (this is the magic!)
+    float torqueDelta = requestedTorquePercent - torqueBaseline;
+    
+    // Apply neutral braking characteristics
+    if (torqueDelta < 0) {
+        // Requesting less torque than baseline = REGEN
+        neutralBrakingActive = true;
+        
+        // Apply regen multiplier for stronger braking feel
+        float regenTorque = torqueDelta * config.getRegenMultiplier();
+        
+        // Limit regen based on current power limits
+        float maxRegenPercent = (powerLimit / 100.0f) * maxPossibleTorquePercent;
+        regenTorque = constrain(regenTorque, -maxRegenPercent, 0.0f);
+        
+        return torqueBaseline + regenTorque;
+    } else {
+        // Requesting more torque than baseline = ACCELERATION
+        neutralBrakingActive = false;
+        
+        // Limit acceleration based on current power limits
+        float maxAccelPercent = (powerLimit / 100.0f) * maxPossibleTorquePercent;
+        float finalTorque = constrain(requestedTorquePercent, 0.0f, maxAccelPercent);
+        
+        return finalTorque;
+    }
+}
+
+/**
+ * @brief Update torque baseline for neutral braking
+ * @param currentTorque Current actual torque demand
+ * 
+ * The baseline tracks recent torque history to create the "neutral point"
+ * that makes any throttle reduction feel like immediate braking.
+ */
+void VehicleControl::updateTorqueBaseline(float currentTorque) {
+    unsigned long currentTime = millis();
+    
+    // Skip updates if too frequent (minimum 10ms between updates)
+    if (currentTime - lastBaselineUpdate < 10) {
+        return;
+    }
+    
+    lastBaselineUpdate = currentTime;
+    
+    // Curtis-style baseline tracking
+    float updateRate = config.getBaselineUpdateRate();
+    float decayRate = config.getBaselineDecayRate();
+    
+    if (abs(currentTorque) > 1.0f) {
+        // Active torque demand - baseline follows current torque
+        torqueBaseline = (updateRate * currentTorque) + ((1.0f - updateRate) * torqueBaseline);
+    } else {
+        // Low/zero torque - baseline decays toward zero for natural coasting
+        torqueBaseline *= decayRate;
+        
+        // Prevent baseline from getting stuck at very small values
+        if (abs(torqueBaseline) < 0.5f) {
+            torqueBaseline = 0.0f;
+        }
+    }
+    
+    // Safety limits - prevent baseline from exceeding reasonable bounds
+    float maxBaselinePercent = (float)config.getMaxTorque() / (float)VehicleParams::Motor::MAX_TRQ * 100.0f;
+    torqueBaseline = constrain(torqueBaseline, -maxBaselinePercent, maxBaselinePercent);
 }
 
 /**
@@ -333,6 +267,7 @@ float VehicleControl::applyGearTransitionProtection(float torquePercent) {
     if (previousGear != currentGear && previousGear != GearState::NEUTRAL) {
         isInGearTransition = true;
         gearTransitionStartTime = currentTime;
+        torqueBaseline = 0.0f;  // Reset baseline during gear changes
         Serial.println("Gear transition detected - applying anti-jerk protection");
     }
     
@@ -359,42 +294,6 @@ float VehicleControl::applyGearTransitionProtection(float torquePercent) {
     
     previousGear = currentGear;
     return torquePercent;
-}
-
-/**
- * @brief Apply speed-adaptive pedal response
- * @param throttlePosition Raw pedal position (0-100%)
- * @param speed Current vehicle speed (kph)
- * @return Modified pedal position for speed-dependent behavior
- */
-float VehicleControl::applySpeedAdaptation(float throttlePosition, float speed) {
-    float absSpeed = abs(speed);
-    
-    // At very low speeds, reduce regen sensitivity to prevent jerky stops
-    if (absSpeed < VehicleParams::Pedal::LOW_SPEED_LIMIT) {
-        // Reduce regen zones and expand coast zone at low speeds
-        if (throttlePosition <= VehicleParams::Pedal::STRONG_REGEN_END) {
-            // Reduce strong regen intensity by 40% at low speeds
-            float regenReduction = 0.6f;
-            throttlePosition = throttlePosition / regenReduction;
-            throttlePosition = min(throttlePosition, VehicleParams::Pedal::STRONG_REGEN_END);
-        }
-    }
-    // At medium speeds, full regen available
-    else if (absSpeed < VehicleParams::Pedal::MEDIUM_SPEED_LIMIT) {
-        // Normal operation - no modification needed
-    }
-    // At high speeds, optimize for efficiency
-    else if (absSpeed > VehicleParams::Pedal::HIGH_SPEED_LIMIT) {
-        // Slightly increase coast zone for better efficiency at highway speeds
-        if (throttlePosition > VehicleParams::Pedal::LIGHT_REGEN_END && 
-            throttlePosition < VehicleParams::Pedal::COAST_ZONE_END + 5.0f) {
-            // Expand coast zone by 5% at high speeds
-            throttlePosition = VehicleParams::Pedal::COAST_ZONE_END;
-        }
-    }
-    
-    return throttlePosition;
 }
 
 /**
@@ -468,11 +367,11 @@ void VehicleControl::setCurrentGear(GearState gear) {
 
 /**
  * @brief Set current driving mode
- * @param mode New driving mode (currently only REGEN supported for smooth driving)
+ * @param mode New driving mode
  */
 void VehicleControl::setDrivingMode(DriveMode mode) {
     currentDrivingMode = mode;
-    // Note: Legacy and OPD modes can be implemented later using the same percentage system
+    // Note: Curtis neutral braking works with all modes
 }
 
 /**
@@ -503,6 +402,7 @@ void VehicleControl::updateGearState() {
             inErrorClearSequence = true;
             errorClearStartTime = millis();
             enableDMC = false;
+            torqueBaseline = 0.0f;  // Reset baseline when going to neutral
             canManager->setNeedsClearError(true);
         } 
         else if (inErrorClearSequence) {
