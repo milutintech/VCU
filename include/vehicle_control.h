@@ -1,9 +1,10 @@
 /**
- * @file vehicle_control.h - SIMPLIFIED Control System
- * @brief Vehicle Control System with Simple Pedal Zones and Delta-Based Power Limiting
+ * @file vehicle_control.h - ENHANCED with Smooth Torque Transitions
+ * @brief Vehicle Control System with Configurable Transition Timing and Three-Zone Pedal System
  * 
- * This class manages the simplified vehicle control logic including:
+ * This class manages the enhanced vehicle control logic including:
  * - Three-zone pedal system (regen/coast/accel)
+ * - Smooth torque transitions with configurable timing
  * - Progressive curves for natural feel
  * - Delta-based power limiting with configurable curves
  * - Advanced gear transition protection
@@ -22,20 +23,21 @@ class CANManager;
 class VehicleControl {
 public:
     /**
-     * @brief Constructs the vehicle control system with simplified pedal zones
+     * @brief Constructs the enhanced vehicle control system
      * @param ads Reference to ADS1115 ADC for pedal position reading
      */
     explicit VehicleControl(ADS1115& ads);
     
     /**
-     * @brief Calculate motor torque percentage using simplified pedal zones
-     * @return Calculated torque percentage (-100% to +100%)
+     * @brief Calculate motor torque percentage with smooth transitions
+     * @return Smoothly transitioned torque percentage (-100% to +100%)
      * 
      * Features:
      * - Three-zone pedal system (regen/coast/accel)
+     * - Configurable smooth transitions for all torque changes
      * - Progressive curves for natural pedal feel
      * - Delta-based power limiting by motor speed
-     * - Configurable zone boundaries and progression factors
+     * - Separate timing for regen/power engage/release
      */
     float calculateTorquePercentage();
 
@@ -79,21 +81,77 @@ public:
      * @brief Force clear all torque and reset control state
      * Useful for emergency stops or when aborting operations
      */
-    void clearTorqueState() {
-        lastTorquePercent = 0.0f;
-        filteredTorquePercent = 0.0f;
-        enableDMC = false;
-        wasInDeadband = false;
-        isInGearTransition = false;
-    }
+    void clearTorqueState();
     
     // Configuration methods
     void setCanManager(CANManager* canMgr) { canManager = canMgr; }
     void setGearRatio(GearRatio ratio) { currentGearRatio = ratio; }
     
+    // NEW: Torque transition configuration methods
+    /**
+     * @brief Set regen engagement transition time
+     * @param timeMs Time in milliseconds (0-1000ms)
+     */
+    void setRegenEngageTime(float timeMs);
+    
+    /**
+     * @brief Set regen release transition time
+     * @param timeMs Time in milliseconds (0-1000ms)
+     */
+    void setRegenReleaseTime(float timeMs);
+    
+    /**
+     * @brief Set power engagement transition time
+     * @param timeMs Time in milliseconds (0-1000ms)
+     */
+    void setPowerEngageTime(float timeMs);
+    
+    /**
+     * @brief Set power release transition time
+     * @param timeMs Time in milliseconds (0-1000ms)
+     */
+    void setPowerReleaseTime(float timeMs);
+    
+    /**
+     * @brief Set crossover transition time (regen <-> power)
+     * @param timeMs Time in milliseconds (0-1000ms)
+     */
+    void setCrossoverTime(float timeMs);
+    
+    /**
+     * @brief Get current torque output (for monitoring/debugging)
+     * @return Current smoothed torque output percentage
+     */
+    float getCurrentTorqueOutput() const { return currentTorqueOutput; }
+    
+    /**
+     * @brief Get target torque from pedal (for monitoring/debugging)
+     * @return Target torque percentage from pedal input
+     */
+    float getTargetTorqueFromPedal() const { return targetTorqueFromPedal; }
+    
+    /**
+     * @brief Check if currently in a torque transition
+     * @return true if transition is active
+     */
+    bool isInTorqueTransition() const { return currentTransition != TransitionType::NONE; }
+    
     static constexpr float MAX_VEHICLE_SPEED = 120.0f;  // kph
 
 private:
+    /**
+     * @brief Transition types for smooth torque control
+     */
+    enum class TransitionType {
+        NONE,
+        REGEN_ENGAGE,      ///< 0 -> negative torque (lift-off regen)
+        REGEN_RELEASE,     ///< negative -> 0 torque (regen release)
+        POWER_ENGAGE,      ///< 0 -> positive torque (acceleration)
+        POWER_RELEASE,     ///< positive -> 0 torque (deceleration)
+        REGEN_TO_POWER,    ///< negative -> positive (regen to accel)
+        POWER_TO_REGEN     ///< positive -> negative (accel to regen)
+    };
+
     /**
      * @brief Sample pedal position from ADC with averaging
      * @return Raw ADC value averaged over 4 samples
@@ -105,6 +163,41 @@ private:
      * @return Vehicle speed in kph
      */
     float calculateVehicleSpeed();
+    
+    /**
+     * @brief Calculate immediate torque target from pedal input
+     * @return Target torque percentage without transitions applied
+     */
+    float calculateImmediateTorqueFromPedal();
+    
+    /**
+     * @brief Apply smooth torque transitions
+     * @param targetTorque Target torque from pedal input
+     * @return Smoothly transitioned torque
+     */
+    float applyTorqueTransition(float targetTorque);
+    
+    /**
+     * @brief Detect what type of transition is occurring
+     * @param current Current torque output
+     * @param target Target torque from pedal
+     * @return Detected transition type
+     */
+    TransitionType detectTransitionType(float current, float target);
+    
+    /**
+     * @brief Get transition time for specific transition type
+     * @param type Transition type
+     * @return Transition time in milliseconds
+     */
+    float getTransitionTime(TransitionType type);
+    
+    /**
+     * @brief Apply smooth interpolation curve (ease-in-out)
+     * @param progress Transition progress (0.0 to 1.0)
+     * @return Curved progress value
+     */
+    float applySmoothCurve(float progress);
     
     /**
      * @brief Calculate power limit based on current motor speed using delta curves
@@ -123,7 +216,7 @@ private:
     float interpolatePowerLimit(float motorSpeed, const float* powerLimits);
     
     /**
-     * @brief NEW: Apply simplified three-zone pedal mapping
+     * @brief Apply simplified three-zone pedal mapping
      * @param throttlePercent Raw throttle position (0-100%)
      * @return Torque percentage with zone mapping applied
      */
@@ -151,25 +244,45 @@ private:
      */
     float applyDeadbandHysteresis(float torquePercent);
     
-    // Member variables
-    ADS1115& ads;                    // Reference to ADC
-    DriveMode currentDrivingMode;    // Current driving mode
-    GearState currentGear;           // Current gear state
-    GearRatio currentGearRatio;      // Current gear ratio
-    bool shiftAttempted;             // Track shift attempts at high speed
+    // Core member variables
+    ADS1115& ads;                    ///< Reference to ADC
+    DriveMode currentDrivingMode;    ///< Current driving mode
+    GearState currentGear;           ///< Current gear state
+    GearRatio currentGearRatio;      ///< Current gear ratio
+    bool shiftAttempted;             ///< Track shift attempts at high speed
     
-    bool enableDMC;                  // DMC enable flag
-    bool wasInDeadband;              // Deadband hysteresis state
-    bool wasEnabled;                 // Previous enable state
+    bool enableDMC;                  ///< DMC enable flag
+    bool wasInDeadband;              ///< Deadband hysteresis state
+    bool wasEnabled;                 ///< Previous enable state
     
     // Gear transition state management
-    bool isInGearTransition;         // Flag indicating gear change in progress
-    unsigned long gearTransitionStartTime; // Timestamp for gear transition timing
-    GearState previousGear;          // Track previous gear for transition detection
+    bool isInGearTransition;         ///< Flag indicating gear change in progress
+    unsigned long gearTransitionStartTime; ///< Timestamp for gear transition timing
+    GearState previousGear;          ///< Track previous gear for transition detection
     
     // Basic torque tracking
-    float lastTorquePercent;         // Last calculated torque percentage
-    float filteredTorquePercent;     // Filtered torque percentage
-    float motorSpeed;                // Current motor speed
+    float lastTorquePercent;         ///< Last calculated torque percentage
+    float filteredTorquePercent;     ///< Filtered torque percentage
+    float motorSpeed;                ///< Current motor speed
     CANManager* canManager = nullptr; 
+    
+    // NEW: Smooth torque transition system
+    float currentTorqueOutput;       ///< Actual torque being output
+    float targetTorqueFromPedal;     ///< Target torque from pedal input
+    unsigned long lastTransitionTime; ///< Last transition update time
+    
+    TransitionType currentTransition; ///< Current transition type
+    float transitionStartTorque;     ///< Torque value when transition started
+    unsigned long transitionStartTime; ///< Timestamp when transition started
+    
+    // Configurable transition times (milliseconds)
+    float regenEngageTimeMs;         ///< Regen engagement time (0 -> negative torque)
+    float regenReleaseTimeMs;        ///< Regen release time (negative -> 0 torque)
+    float powerEngageTimeMs;         ///< Power engagement time (0 -> positive torque)
+    float powerReleaseTimeMs;        ///< Power release time (positive -> 0 torque)
+    float crossoverTimeMs;           ///< Crossover transition time (regen <-> power)
+    
+    // Validation constants
+    static constexpr float MIN_TRANSITION_TIME = 0.0f;   ///< Minimum transition time
+    static constexpr float MAX_TRANSITION_TIME = 1000.0f; ///< Maximum transition time
 };

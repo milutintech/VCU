@@ -1,6 +1,6 @@
 /**
- * @file configuration.cpp - UPDATED with Simplified Pedal System
- * @brief Implementation of enhanced configuration management
+ * @file configuration.cpp - ENHANCED with Torque Transition Configuration
+ * @brief Implementation of enhanced configuration management with transition timing
  */
 
 #include "configuration.h"
@@ -9,22 +9,31 @@
 // Static members initialization
 const char* Configuration::NAMESPACE = "vcu_config";
 
-// Storage keys
+// Storage keys - Basic
 const char* Configuration::KEY_DRIVE_MODE = "drive_mode";
 const char* Configuration::KEY_MAX_TORQUE = "max_torque";
 const char* Configuration::KEY_MAX_SOC = "max_soc";
 const char* Configuration::KEY_MAX_CHARGING_CURRENT = "max_ac_curr";
+
+// Storage keys - Curtis
 const char* Configuration::KEY_BASE_SPEED = "curtis_base_speed";
 const char* Configuration::KEY_DELTA_SPEED = "curtis_delta_speed";
 const char* Configuration::KEY_NOMINAL_POWER = "curtis_nom_power";
 const char* Configuration::KEY_DRIVE_LIMITS = "curtis_drive_limits";
 const char* Configuration::KEY_REGEN_LIMITS = "curtis_regen_limits";
 
-// NEW: Pedal zone keys
+// Storage keys - Pedal zones
 const char* Configuration::KEY_REGEN_ZONE_END = "pedal_regen_end";
 const char* Configuration::KEY_COAST_ZONE_END = "pedal_coast_end";
 const char* Configuration::KEY_REGEN_PROGRESSION = "pedal_regen_prog";
 const char* Configuration::KEY_ACCEL_PROGRESSION = "pedal_accel_prog";
+
+// NEW: Storage keys - Transition timing
+const char* Configuration::KEY_REGEN_ENGAGE_TIME = "trans_regen_engage";
+const char* Configuration::KEY_REGEN_RELEASE_TIME = "trans_regen_release";
+const char* Configuration::KEY_POWER_ENGAGE_TIME = "trans_power_engage";
+const char* Configuration::KEY_POWER_RELEASE_TIME = "trans_power_release";
+const char* Configuration::KEY_CROSSOVER_TIME = "trans_crossover";
 
 // Global configuration instance
 Configuration config;
@@ -53,41 +62,55 @@ void Configuration::resetToDefaults() {
     // Curtis defaults (keep for power limiting)
     resetCurtisDefaults();
     
-    // NEW: Pedal zone defaults
+    // Pedal zone defaults
     resetPedalDefaults();
+    
+    // NEW: Transition timing defaults
+    resetTransitionDefaults();
 }
 
 /**
  * @brief Reset Curtis power limits to defaults
  */
 void Configuration::resetCurtisDefaults() {
-    baseSpeed = 1000.0f;  // Change from 2000.0f to 1000.0f
-    deltaSpeed = 500.0f;  // ✓ Already matches
-    nominalPower = 85.0f; // Keep as is
+    baseSpeed = 1000.0f;  // ✓ Already correct
+    deltaSpeed = 500.0f;  // ✓ Already correct
+    nominalPower = 85.0f; // ✓ Keep as is
     
-    // Drive curve - set all to 100%
-    drivePowerLimits[0] = 100.0f;  // Change from 85.0f
-    drivePowerLimits[1] = 100.0f;  // Change from 95.0f  
-    drivePowerLimits[2] = 100.0f;  // ✓ Already matches
-    drivePowerLimits[3] = 100.0f;  // Change from 70.0f
-    drivePowerLimits[4] = 100.0f;  // Change from 35.0f
+    // Drive curve - all 100% (already correct)
+    drivePowerLimits[0] = 100.0f;  // ✓ Already correct
+    drivePowerLimits[1] = 100.0f;  // ✓ Already correct
+    drivePowerLimits[2] = 100.0f;  // ✓ Already correct
+    drivePowerLimits[3] = 100.0f;  // ✓ Already correct
+    drivePowerLimits[4] = 100.0f;  // ✓ Already correct
     
-    // Regen curve - match your settings
-    regenPowerLimits[0] = 20.0f;   // Change from 80.0f
-    regenPowerLimits[1] = 25.0f;   // Change from 85.0f
-    regenPowerLimits[2] = 35.0f;   // Change from 90.0f
-    regenPowerLimits[3] = 50.0f;   // Change from 60.0f
-    regenPowerLimits[4] = 50.0f;   // Change from 25.0f
+    // Update regen curve to match HTML
+    regenPowerLimits[0] = 20.0f;   // ✓ Already correct
+    regenPowerLimits[1] = 30.0f;   // Change from 25.0f to 30.0f
+    regenPowerLimits[2] = 30.0f;   // Change from 35.0f to 30.0f
+    regenPowerLimits[3] = 40.0f;   // Change from 50.0f to 40.0f
+    regenPowerLimits[4] = 50.0f;   // ✓ Already correct
 }
 
 /**
- * @brief NEW: Reset pedal zone settings to defaults
+ * @brief Reset pedal zone settings to defaults
  */
 void Configuration::resetPedalDefaults() {
     regenZoneEnd = VehicleParams::Pedal::DEFAULT_REGEN_ZONE_END;
     coastZoneEnd = VehicleParams::Pedal::DEFAULT_COAST_ZONE_END;
     regenProgression = VehicleParams::Pedal::DEFAULT_REGEN_PROGRESSION;
     accelProgression = VehicleParams::Pedal::DEFAULT_ACCEL_PROGRESSION;
+}
+
+/**
+ * @brief NEW: Reset torque transition timing to defaults
+ */
+void Configuration::resetTransitionDefaults() {
+    regenEngageTime = 300.0f;   // 300ms - smooth regen engagement (lift-off)
+    regenReleaseTime = 150.0f;  // 150ms - quick regen release (back to coast)
+    powerEngageTime = 200.0f;   // 200ms - gentle power engagement (acceleration)
+    powerReleaseTime = 100.0f;  // 100ms - quick power release (lift throttle)
+    crossoverTime = 400.0f;     // 400ms - slow regen<->power crossover for comfort
 }
 
 /**
@@ -111,11 +134,18 @@ bool Configuration::save() {
     success &= preferences.putBytes(KEY_DRIVE_LIMITS, drivePowerLimits, sizeof(drivePowerLimits));
     success &= preferences.putBytes(KEY_REGEN_LIMITS, regenPowerLimits, sizeof(regenPowerLimits));
     
-    // NEW: Save pedal zone parameters
+    // Save pedal zone parameters
     success &= preferences.putFloat(KEY_REGEN_ZONE_END, regenZoneEnd);
     success &= preferences.putFloat(KEY_COAST_ZONE_END, coastZoneEnd);
     success &= preferences.putFloat(KEY_REGEN_PROGRESSION, regenProgression);
     success &= preferences.putFloat(KEY_ACCEL_PROGRESSION, accelProgression);
+    
+    // NEW: Save transition timing parameters
+    success &= preferences.putFloat(KEY_REGEN_ENGAGE_TIME, regenEngageTime);
+    success &= preferences.putFloat(KEY_REGEN_RELEASE_TIME, regenReleaseTime);
+    success &= preferences.putFloat(KEY_POWER_ENGAGE_TIME, powerEngageTime);
+    success &= preferences.putFloat(KEY_POWER_RELEASE_TIME, powerReleaseTime);
+    success &= preferences.putFloat(KEY_CROSSOVER_TIME, crossoverTime);
     
     preferences.end();
     return success;
@@ -195,7 +225,7 @@ bool Configuration::load() {
         }
     }
     
-    // NEW: Load pedal zone parameters
+    // Load pedal zone parameters
     if (preferences.isKey(KEY_REGEN_ZONE_END)) {
         float value = preferences.getFloat(KEY_REGEN_ZONE_END, regenZoneEnd);
         if (value >= VehicleParams::Pedal::MIN_REGEN_ZONE_END && 
@@ -229,11 +259,88 @@ bool Configuration::load() {
         }
     }
     
+    // NEW: Load transition timing parameters
+    if (preferences.isKey(KEY_REGEN_ENGAGE_TIME)) {
+        float time = preferences.getFloat(KEY_REGEN_ENGAGE_TIME, regenEngageTime);
+        if (time >= MIN_TRANSITION_TIME && time <= MAX_TRANSITION_TIME) {
+            regenEngageTime = time;
+        }
+    }
+    
+    if (preferences.isKey(KEY_REGEN_RELEASE_TIME)) {
+        float time = preferences.getFloat(KEY_REGEN_RELEASE_TIME, regenReleaseTime);
+        if (time >= MIN_TRANSITION_TIME && time <= MAX_TRANSITION_TIME) {
+            regenReleaseTime = time;
+        }
+    }
+    
+    if (preferences.isKey(KEY_POWER_ENGAGE_TIME)) {
+        float time = preferences.getFloat(KEY_POWER_ENGAGE_TIME, powerEngageTime);
+        if (time >= MIN_TRANSITION_TIME && time <= MAX_TRANSITION_TIME) {
+            powerEngageTime = time;
+        }
+    }
+    
+    if (preferences.isKey(KEY_POWER_RELEASE_TIME)) {
+        float time = preferences.getFloat(KEY_POWER_RELEASE_TIME, powerReleaseTime);
+        if (time >= MIN_TRANSITION_TIME && time <= MAX_TRANSITION_TIME) {
+            powerReleaseTime = time;
+        }
+    }
+    
+    if (preferences.isKey(KEY_CROSSOVER_TIME)) {
+        float time = preferences.getFloat(KEY_CROSSOVER_TIME, crossoverTime);
+        if (time >= MIN_TRANSITION_TIME && time <= MAX_TRANSITION_TIME) {
+            crossoverTime = time;
+        }
+    }
+    
     preferences.end();
     return success;
 }
 
-// === PEDAL ZONE SETTERS ===
+// === TRANSITION TIMING SETTERS (NEW) ===
+bool Configuration::setRegenEngageTime(float timeMs) {
+    if (timeMs >= MIN_TRANSITION_TIME && timeMs <= MAX_TRANSITION_TIME) {
+        regenEngageTime = timeMs;
+        return true;
+    }
+    return false;
+}
+
+bool Configuration::setRegenReleaseTime(float timeMs) {
+    if (timeMs >= MIN_TRANSITION_TIME && timeMs <= MAX_TRANSITION_TIME) {
+        regenReleaseTime = timeMs;
+        return true;
+    }
+    return false;
+}
+
+bool Configuration::setPowerEngageTime(float timeMs) {
+    if (timeMs >= MIN_TRANSITION_TIME && timeMs <= MAX_TRANSITION_TIME) {
+        powerEngageTime = timeMs;
+        return true;
+    }
+    return false;
+}
+
+bool Configuration::setPowerReleaseTime(float timeMs) {
+    if (timeMs >= MIN_TRANSITION_TIME && timeMs <= MAX_TRANSITION_TIME) {
+        powerReleaseTime = timeMs;
+        return true;
+    }
+    return false;
+}
+
+bool Configuration::setCrossoverTime(float timeMs) {
+    if (timeMs >= MIN_TRANSITION_TIME && timeMs <= MAX_TRANSITION_TIME) {
+        crossoverTime = timeMs;
+        return true;
+    }
+    return false;
+}
+
+// === PEDAL ZONE SETTERS (UNCHANGED) ===
 bool Configuration::setRegenZoneEnd(float value) {
     if (value >= VehicleParams::Pedal::MIN_REGEN_ZONE_END && 
         value <= VehicleParams::Pedal::MAX_REGEN_ZONE_END &&
@@ -272,7 +379,7 @@ bool Configuration::setAccelProgression(float value) {
     return false;
 }
 
-// === EXISTING SETTERS (unchanged) ===
+// === EXISTING SETTERS (UNCHANGED) ===
 bool Configuration::setDriveModeFromByte(uint8_t modeByte) {
     if (modeByte <= static_cast<uint8_t>(DriveMode::OPD)) {
         driveMode = static_cast<DriveMode>(modeByte);
@@ -341,7 +448,7 @@ String Configuration::getDriveModeString() const {
     }
 }
 
-// === CURTIS SETTERS (unchanged) ===
+// === CURTIS SETTERS (UNCHANGED) ===
 bool Configuration::setBaseSpeed(float speed) {
     if (speed >= MIN_BASE_SPEED && speed <= MAX_BASE_SPEED) {
         baseSpeed = speed;
@@ -382,7 +489,7 @@ bool Configuration::setRegenPowerLimit(int zone, float power) {
     return false;
 }
 
-// === JSON INTERFACE ===
+// === JSON INTERFACE (UPDATED) ===
 String Configuration::toJSON() {
     JsonDocument doc;
     
@@ -408,12 +515,20 @@ String Configuration::toJSON() {
         regenArray.add(regenPowerLimits[i]);
     }
     
-    // NEW: Pedal config
+    // Pedal config
     JsonObject pedal = doc["pedal"].to<JsonObject>();
     pedal["regenZoneEnd"] = regenZoneEnd;
     pedal["coastZoneEnd"] = coastZoneEnd;
     pedal["regenProgression"] = regenProgression;
     pedal["accelProgression"] = accelProgression;
+    
+    // NEW: Transition config
+    JsonObject transitions = doc["transitions"].to<JsonObject>();
+    transitions["regenEngageTime"] = regenEngageTime;
+    transitions["regenReleaseTime"] = regenReleaseTime;
+    transitions["powerEngageTime"] = powerEngageTime;
+    transitions["powerReleaseTime"] = powerReleaseTime;
+    transitions["crossoverTime"] = crossoverTime;
     
     String result;
     serializeJson(doc, result);
@@ -421,7 +536,7 @@ String Configuration::toJSON() {
 }
 
 bool Configuration::fromJSON(const String& json) {
-    JsonDocument doc;
+    JsonDocument doc;  // Increase from default
     DeserializationError error = deserializeJson(doc, json);
     
     if (error) {
@@ -437,9 +552,13 @@ bool Configuration::fromJSON(const String& json) {
         parseCurtisJSON(doc["curtis"]);
     }
     
-    // NEW: Parse pedal configuration
     if (doc["pedal"].is<JsonObject>()) {
         parsePedalJSON(doc["pedal"]);
+    }
+    
+    // NEW: Parse transition configuration
+    if (doc["transitions"].is<JsonObject>()) {
+        parseTransitionJSON(doc["transitions"]);
     }
     
     return true;
@@ -456,8 +575,13 @@ String Configuration::getCategoryJSON(const String& category) {
         String result;
         serializeJson(doc, result);
         return result;
-    } else if (category == "pedal") {  // NEW
+    } else if (category == "pedal") {
         JsonDocument doc = createPedalJSON();
+        String result;
+        serializeJson(doc, result);
+        return result;
+    } else if (category == "transitions") {  // NEW
+        JsonDocument doc = createTransitionJSON();
         String result;
         serializeJson(doc, result);
         return result;
@@ -478,8 +602,10 @@ bool Configuration::setCategoryJSON(const String& category, const String& json) 
         return parseDrivingJSON(doc.as<JsonObject>());
     } else if (category == "curtis") {
         return parseCurtisJSON(doc.as<JsonObject>());
-    } else if (category == "pedal") {  // NEW
+    } else if (category == "pedal") {
         return parsePedalJSON(doc.as<JsonObject>());
+    } else if (category == "transitions") {  // NEW
+        return parseTransitionJSON(doc.as<JsonObject>());
     }
     
     return false;
@@ -509,13 +635,23 @@ JsonDocument Configuration::createCurtisJSON() {
     return doc;
 }
 
-// NEW: Pedal JSON helper
 JsonDocument Configuration::createPedalJSON() {
     JsonDocument doc;
     doc["regenZoneEnd"] = regenZoneEnd;
     doc["coastZoneEnd"] = coastZoneEnd;
     doc["regenProgression"] = regenProgression;
     doc["accelProgression"] = accelProgression;
+    return doc;
+}
+
+// NEW: Transition JSON helper
+JsonDocument Configuration::createTransitionJSON() {
+    JsonDocument doc;
+    doc["regenEngageTime"] = regenEngageTime;
+    doc["regenReleaseTime"] = regenReleaseTime;
+    doc["powerEngageTime"] = powerEngageTime;
+    doc["powerReleaseTime"] = powerReleaseTime;
+    doc["crossoverTime"] = crossoverTime;
     return doc;
 }
 
@@ -565,7 +701,6 @@ bool Configuration::parseCurtisJSON(const JsonObject& obj) {
     return true;
 }
 
-// NEW: Parse pedal JSON
 bool Configuration::parsePedalJSON(const JsonObject& obj) {
     if (obj["regenZoneEnd"].is<float>()) {
         setRegenZoneEnd(obj["regenZoneEnd"]);
@@ -581,6 +716,31 @@ bool Configuration::parsePedalJSON(const JsonObject& obj) {
     
     if (obj["accelProgression"].is<float>()) {
         setAccelProgression(obj["accelProgression"]);
+    }
+    
+    return true;
+}
+
+// NEW: Parse transition JSON
+bool Configuration::parseTransitionJSON(const JsonObject& obj) {
+    if (obj["regenEngageTime"].is<float>()) {
+        setRegenEngageTime(obj["regenEngageTime"]);
+    }
+    
+    if (obj["regenReleaseTime"].is<float>()) {
+        setRegenReleaseTime(obj["regenReleaseTime"]);
+    }
+    
+    if (obj["powerEngageTime"].is<float>()) {
+        setPowerEngageTime(obj["powerEngageTime"]);
+    }
+    
+    if (obj["powerReleaseTime"].is<float>()) {
+        setPowerReleaseTime(obj["powerReleaseTime"]);
+    }
+    
+    if (obj["crossoverTime"].is<float>()) {
+        setCrossoverTime(obj["crossoverTime"]);
     }
     
     return true;

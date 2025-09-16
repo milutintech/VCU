@@ -1,9 +1,10 @@
 /**
- * @file vehicle_control.cpp - SIMPLIFIED Implementation
- * @brief Implementation of simplified three-zone pedal system with delta-based power limiting
+ * @file vehicle_control.cpp - ENHANCED with Smooth Torque Transitions
+ * @brief Implementation of enhanced three-zone pedal system with configurable transition timing
  * 
  * Features:
  * - Simple three-zone pedal system (regen/coast/accel)
+ * - Smooth torque transitions with separate timing for each transition type
  * - Progressive curves for natural pedal feel  
  * - Delta-based power limiting (keeps existing Curtis power maps)
  * - Configurable zone boundaries and progression factors
@@ -16,7 +17,7 @@
 #include "configuration.h"
 
 /**
- * @brief Constructor - initializes simplified vehicle control system
+ * @brief Constructor - initializes enhanced vehicle control system with smooth transitions
  */
 VehicleControl::VehicleControl(ADS1115& ads) 
     : ads(ads)
@@ -33,36 +34,68 @@ VehicleControl::VehicleControl(ADS1115& ads)
     , lastTorquePercent(0.0f)
     , filteredTorquePercent(0.0f)
     , motorSpeed(0.0f)
+    // NEW: Initialize transition system
+    , currentTorqueOutput(0.0f)
+    , targetTorqueFromPedal(0.0f)
+    , lastTransitionTime(millis())
+    , currentTransition(TransitionType::NONE)
+    , transitionStartTorque(0.0f)
+    , transitionStartTime(0)
+    // Default transition times (will be overridden by configuration)
+    , regenEngageTimeMs(300.0f)   // 300ms for smooth regen engagement
+    , regenReleaseTimeMs(150.0f)  // 150ms for regen release
+    , powerEngageTimeMs(200.0f)   // 200ms for power engagement  
+    , powerReleaseTimeMs(100.0f)  // 100ms for power release
+    , crossoverTimeMs(400.0f)     // 400ms for crossover transitions
 {
 }
 
 /**
- * @brief SIMPLIFIED: Calculate motor torque percentage using three-zone pedal system
- * @return Calculated torque percentage (-100% to +100%)
+ * @brief ENHANCED: Calculate motor torque percentage with smooth transitions
+ * @return Smoothly transitioned torque percentage (-100% to +100%)
  */
 float VehicleControl::calculateTorquePercentage() {
+    // Step 1: Calculate immediate target torque from pedal (existing logic)
+    targetTorqueFromPedal = calculateImmediateTorqueFromPedal();
+    
+    // Step 2: Apply smooth transition to reach target
+    float smoothTorque = applyTorqueTransition(targetTorqueFromPedal);
+    
+    // Step 3: Apply existing protections (gear transitions, deadband, etc.)
+    smoothTorque = applyGearTransitionProtection(smoothTorque);
+    smoothTorque = applyDeadbandHysteresis(smoothTorque);
+    
+    // Update output tracking
+    currentTorqueOutput = smoothTorque;
+    enableDMC = (abs(smoothTorque) > 0.5f);
+    
+    // Store for next iteration
+    lastTorquePercent = smoothTorque;
+    filteredTorquePercent = smoothTorque;
+    
+    return smoothTorque;
+}
+
+/**
+ * @brief Calculate immediate torque target from pedal input (renamed existing logic)
+ * @return Target torque percentage without transitions applied
+ */
+float VehicleControl::calculateImmediateTorqueFromPedal() {
     // Sample pedal position
     int32_t sampledPotiValue = samplePedalPosition();
-    
+    //Serial.printf("Sampled ADC Value: %d\n", sampledPotiValue);
     // Map using correct ADC values from config.h (0-100%)
     float rawThrottle = map(sampledPotiValue, ADC::MinValPot, ADC::MaxValPot, 0, 100);
     rawThrottle = constrain(rawThrottle, 0.0f, 100.0f);
-    
-    // Debug output
-    //Serial.printf("ADC: %d -> %.1f%% throttle", sampledPotiValue, rawThrottle);
-    
+    //Serial.printf("Raw Throttle: %.1f%%\n", rawThrottle);
     // Update reverse light based on gear state
     digitalWrite(Pins::BCKLIGHT, currentGear == GearState::REVERSE ? HIGH : LOW);
     digitalWrite(19, currentGear == GearState::REVERSE ? HIGH : LOW);
 
     // Handle neutral gear - always zero torque
     if (currentGear == GearState::NEUTRAL) {
-        lastTorquePercent = 0.0f;
-        filteredTorquePercent = 0.0f;
-        enableDMC = false;
         digitalWrite(19, LOW);  
         digitalWrite(Pins::BCKLIGHT, LOW);
-        //Serial.println(" -> NEUTRAL: 0%");
         return 0.0f;
     }
     
@@ -71,13 +104,9 @@ float VehicleControl::calculateTorquePercentage() {
     
     // Apply delta-based power limiting (keep existing Curtis power maps)
     bool isDriving = (baseTorquePercent > 0);  // Positive = acceleration, Negative = regen
-    float powerLimit = calculatePowerLimit(abs(motorSpeed), isDriving);
     
     // Apply power limiting
-    float maxPossibleTorquePercent = (float)config.getMaxTorque() / (float)VehicleParams::Motor::MAX_TRQ * 100.0f;
     float limitedTorquePercent;
-    
-
     if (isDriving) {
         // Scale acceleration proportionally based on speed zones
         float drivePowerLimit = calculatePowerLimit(abs(motorSpeed), true);  // Use drive zones
@@ -87,6 +116,7 @@ float VehicleControl::calculateTorquePercentage() {
         float regenPowerLimit = calculatePowerLimit(abs(motorSpeed), false); // Use regen zones
         limitedTorquePercent = baseTorquePercent * (regenPowerLimit / 100.0f);
     }
+    
     // Apply gear direction
     float calculatedTorquePercent = limitedTorquePercent;
     if (currentGear == GearState::DRIVE) {
@@ -94,27 +124,179 @@ float VehicleControl::calculateTorquePercentage() {
     }
     // In REVERSE, positive torque = reverse motion (no sign change needed)
     
-    // Apply gear transition protection
-    calculatedTorquePercent = applyGearTransitionProtection(calculatedTorquePercent);
-    
-    // Apply deadband hysteresis
-    calculatedTorquePercent = applyDeadbandHysteresis(calculatedTorquePercent);
-    
-    // Update DMC enable logic
-    enableDMC = (abs(calculatedTorquePercent) > 0.5f);
-    
-    // Store for next iteration
-    lastTorquePercent = calculatedTorquePercent;
-    filteredTorquePercent = calculatedTorquePercent;
-    
-    //Serial.printf(" -> Zones: %.1f%%, Power Limit: %.1f%%, Final: %.1f%% (DMC: %s)\n", 
-       //           baseTorquePercent, powerLimit, calculatedTorquePercent, enableDMC ? "ON" : "OFF");
-    
     return calculatedTorquePercent;
 }
 
 /**
- * @brief NEW: Apply simplified three-zone pedal mapping
+ * @brief NEW: Apply smooth torque transitions
+ * @param targetTorque Target torque from pedal input
+ * @return Smoothly transitioned torque
+ */
+float VehicleControl::applyTorqueTransition(float targetTorque) {
+    unsigned long currentTime = millis();
+    lastTransitionTime = currentTime;
+    
+    // If target equals current, no transition needed
+    if (abs(targetTorque - currentTorqueOutput) < 0.1f) {
+        currentTransition = TransitionType::NONE;
+        return targetTorque;
+    }
+    
+    // Detect transition type when starting new transition
+    if (currentTransition == TransitionType::NONE) {
+        currentTransition = detectTransitionType(currentTorqueOutput, targetTorque);
+        transitionStartTorque = currentTorqueOutput;
+        transitionStartTime = currentTime;
+        
+        // Debug output for transition start
+        // Serial.printf("Transition started: %d, From: %.1f%%, To: %.1f%%\n", 
+        //               (int)currentTransition, currentTorqueOutput, targetTorque);
+    }
+    
+    // Get transition time for current transition type
+    float transitionTimeMs = getTransitionTime(currentTransition);
+    
+    // If transition time is 0, return target immediately (instant transition)
+    if (transitionTimeMs <= 0.0f) {
+        currentTransition = TransitionType::NONE;
+        return targetTorque;
+    }
+    
+    // Calculate transition progress (0.0 to 1.0)
+    float elapsedTime = currentTime - transitionStartTime;
+    float progress = elapsedTime / transitionTimeMs;
+    
+    if (progress >= 1.0f) {
+        // Transition complete
+        currentTransition = TransitionType::NONE;
+        return targetTorque;
+    }
+    
+    // Apply smooth interpolation curve
+    float smoothProgress = applySmoothCurve(progress);
+    float interpolatedTorque = transitionStartTorque + 
+                              (targetTorque - transitionStartTorque) * smoothProgress;
+    
+    return interpolatedTorque;
+}
+
+/**
+ * @brief Detect what type of transition is occurring
+ */
+VehicleControl::TransitionType VehicleControl::detectTransitionType(float current, float target) {
+    const float threshold = 1.0f; // Small threshold to avoid noise
+    
+    bool currentIsZero = (abs(current) < threshold);
+    bool currentIsPositive = (current > threshold);
+    bool currentIsNegative = (current < -threshold);
+    
+    bool targetIsZero = (abs(target) < threshold);
+    bool targetIsPositive = (target > threshold);
+    bool targetIsNegative = (target < -threshold);
+    
+    // Regen engagement: 0 -> negative
+    if (currentIsZero && targetIsNegative) {
+        return TransitionType::REGEN_ENGAGE;
+    }
+    // Regen release: negative -> 0
+    if (currentIsNegative && targetIsZero) {
+        return TransitionType::REGEN_RELEASE;
+    }
+    // Power engagement: 0 -> positive
+    if (currentIsZero && targetIsPositive) {
+        return TransitionType::POWER_ENGAGE;
+    }
+    // Power release: positive -> 0
+    if (currentIsPositive && targetIsZero) {
+        return TransitionType::POWER_RELEASE;
+    }
+    // Crossover: negative -> positive
+    if (currentIsNegative && targetIsPositive) {
+        return TransitionType::REGEN_TO_POWER;
+    }
+    // Crossover: positive -> negative
+    if (currentIsPositive && targetIsNegative) {
+        return TransitionType::POWER_TO_REGEN;
+    }
+    
+    // Same-sign transitions use the engage time for that direction
+    if (currentIsNegative && targetIsNegative) {
+        return TransitionType::REGEN_ENGAGE;
+    }
+    if (currentIsPositive && targetIsPositive) {
+        return TransitionType::POWER_ENGAGE;
+    }
+    
+    return TransitionType::NONE;
+}
+
+/**
+ * @brief Get transition time for specific transition type
+ */
+float VehicleControl::getTransitionTime(TransitionType type) {
+    switch (type) {
+        case TransitionType::REGEN_ENGAGE:  return regenEngageTimeMs;
+        case TransitionType::REGEN_RELEASE: return regenReleaseTimeMs;
+        case TransitionType::POWER_ENGAGE:  return powerEngageTimeMs;
+        case TransitionType::POWER_RELEASE: return powerReleaseTimeMs;
+        case TransitionType::REGEN_TO_POWER:
+        case TransitionType::POWER_TO_REGEN: return crossoverTimeMs;
+        default: return 0.0f;
+    }
+}
+
+/**
+ * @brief Apply smooth interpolation curve (ease-in-out)
+ */
+float VehicleControl::applySmoothCurve(float progress) {
+    // Smooth S-curve (ease-in-out) for natural feel
+    // Slow start, fast middle, slow end
+    if (progress < 0.5f) {
+        return 2.0f * progress * progress;
+    } else {
+        return -1.0f + (4.0f - 2.0f * progress) * progress;
+    }
+}
+
+/**
+ * @brief NEW: Torque transition configuration methods
+ */
+void VehicleControl::setRegenEngageTime(float timeMs) {
+    regenEngageTimeMs = constrain(timeMs, MIN_TRANSITION_TIME, MAX_TRANSITION_TIME);
+}
+
+void VehicleControl::setRegenReleaseTime(float timeMs) {
+    regenReleaseTimeMs = constrain(timeMs, MIN_TRANSITION_TIME, MAX_TRANSITION_TIME);
+}
+
+void VehicleControl::setPowerEngageTime(float timeMs) {
+    powerEngageTimeMs = constrain(timeMs, MIN_TRANSITION_TIME, MAX_TRANSITION_TIME);
+}
+
+void VehicleControl::setPowerReleaseTime(float timeMs) {
+    powerReleaseTimeMs = constrain(timeMs, MIN_TRANSITION_TIME, MAX_TRANSITION_TIME);
+}
+
+void VehicleControl::setCrossoverTime(float timeMs) {
+    crossoverTimeMs = constrain(timeMs, MIN_TRANSITION_TIME, MAX_TRANSITION_TIME);
+}
+
+/**
+ * @brief Enhanced force clear with transition reset
+ */
+void VehicleControl::clearTorqueState() {
+    lastTorquePercent = 0.0f;
+    filteredTorquePercent = 0.0f;
+    currentTorqueOutput = 0.0f;      // NEW
+    targetTorqueFromPedal = 0.0f;    // NEW
+    currentTransition = TransitionType::NONE;  // NEW
+    enableDMC = false;
+    wasInDeadband = false;
+    isInGearTransition = false;
+}
+
+/**
+ * @brief Apply simplified three-zone pedal mapping (UNCHANGED)
  * @param throttlePercent Raw throttle position (0-100%)
  * @return Torque percentage with zone mapping applied
  */
@@ -131,12 +313,10 @@ float VehicleControl::applyPedalZones(float throttlePercent) {
         float curvedPosition = applyProgressiveCurve(zonePosition, regenProgression);
         float torquePercent = -curvedPosition * 100.0f;  // Negative for regen
         
-        Serial.printf(" -> REGEN ZONE (%.1f%% in zone)", zonePosition * 100.0f);
         return torquePercent;
     }
     else if (throttlePercent <= coastZoneEnd) {
         // COAST ZONE: regenZoneEnd% to coastZoneEnd% -> 0% torque
-        //Serial.printf(" -> COAST ZONE");
         return 0.0f;
     }
     else {
@@ -146,13 +326,12 @@ float VehicleControl::applyPedalZones(float throttlePercent) {
         float curvedPosition = applyProgressiveCurve(zonePosition, accelProgression);
         float torquePercent = curvedPosition * 100.0f;  // Positive for accel
         
-        //Serial.printf(" -> ACCEL ZONE (%.1f%% in zone)", zonePosition * 100.0f);
         return torquePercent;
     }
 }
 
 /**
- * @brief Apply progressive curve to zone value
+ * @brief Apply progressive curve to zone value (UNCHANGED)
  * @param zonePosition Position within zone (0-1)
  * @param progression Progression factor (1.0=linear, >1.0=progressive)
  * @return Curved output value (0-1)
@@ -167,7 +346,7 @@ float VehicleControl::applyProgressiveCurve(float zonePosition, float progressio
 }
 
 /**
- * @brief Calculate power limit based on current motor speed using delta curves
+ * @brief Calculate power limit based on current motor speed using delta curves (UNCHANGED)
  * @param motorSpeed Current motor speed in RPM
  * @param isDriving true for drive power limits, false for regen limits
  * @return Power limit percentage (0-120%)
@@ -332,7 +511,7 @@ void VehicleControl::setCurrentGear(GearState gear) {
  */
 void VehicleControl::setDrivingMode(DriveMode mode) {
     currentDrivingMode = mode;
-    // Note: Simplified system works with all modes
+    // Note: Enhanced system works with all modes
 }
 
 /**

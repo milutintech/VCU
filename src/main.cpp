@@ -246,9 +246,19 @@ void setup() {
         errorMonitor->logCritical("Failed to create EnhancedSerialConsole", "SYSTEM");
         while(1);
     }
+
     
     // Apply current configuration to vehicle control
-    vehicleControl->setDrivingMode(config.getDriveMode());
+    vehicleControl->setDrivingMode(config.getDriveMode());    
+    // NEW: Apply transition configuration to vehicle control
+    vehicleControl->setRegenEngageTime(config.getRegenEngageTime());
+    vehicleControl->setRegenReleaseTime(config.getRegenReleaseTime());
+    vehicleControl->setPowerEngageTime(config.getPowerEngageTime());
+    vehicleControl->setPowerReleaseTime(config.getPowerReleaseTime());
+    vehicleControl->setCrossoverTime(config.getCrossoverTime());
+    
+    errorMonitor->logInfo("Applied configuration to vehicle control", "CONFIG");
+    errorMonitor->logInfo("Transition timing configured", "CONFIG"); 
     errorMonitor->logInfo("Applied configuration to vehicle control", "CONFIG");
     
     // Setup GPIO and interrupts
@@ -283,6 +293,7 @@ void setup() {
         errorMonitor->logCritical("Failed to create Control task", "SYSTEM");
         while(1);
     }
+    
     
     errorMonitor->logInfo("All tasks created successfully", "SYSTEM");
     Serial.println("Enhanced VCU initialization complete!");

@@ -78,23 +78,20 @@ namespace VehicleParams {
      * - coastZoneEnd% to 100%: Progressive accel (0% to +100% torque)
      */
     struct Pedal {
-        // DEFAULT ZONE BOUNDARIES (configurable via JSON API)
-        static constexpr float DEFAULT_REGEN_ZONE_END = 25.0f;   ///< Default end of regen zone (%)
-        static constexpr float DEFAULT_COAST_ZONE_END = 30.0f;   ///< Default end of coast zone (%)
- 
-        // DEFAULT PROGRESSION FACTORS (configurable via JSON API) 
-        static constexpr float DEFAULT_REGEN_PROGRESSION = 1.1f; ///< Default regen curve (1.0=linear, 2.0=progressive)
-        static constexpr float DEFAULT_ACCEL_PROGRESSION = 1.5f; ///< Default accel curve (1.0=linear, 2.0=progressive)
+        // Update default values to match
+        static constexpr float DEFAULT_REGEN_ZONE_END = 16.0f;   // Change from 25.0f
+        static constexpr float DEFAULT_COAST_ZONE_END = 17.0f;   // Change from 30.0f
+        static constexpr float DEFAULT_REGEN_PROGRESSION = 1.5f; // Change from 1.1f
+        static constexpr float DEFAULT_ACCEL_PROGRESSION = 1.7f; // Change from 1.5f
         
-        // VALIDATION LIMITS
-        static constexpr float MIN_REGEN_ZONE_END = 10.0f;       ///< Minimum regen zone end (%)
-        static constexpr float MAX_REGEN_ZONE_END = 50.0f;       ///< Maximum regen zone end (%)
-        static constexpr float MIN_COAST_ZONE_END = 15.0f;       ///< Minimum coast zone end (%)
-        static constexpr float MAX_COAST_ZONE_END = 60.0f;       ///< Maximum coast zone end (%)
-        static constexpr float MIN_PROGRESSION = 1.0f;           ///< Minimum progression factor
-        static constexpr float MAX_PROGRESSION = 3.0f;           ///< Maximum progression factor
+        // Validation limits remain the same
+        static constexpr float MIN_REGEN_ZONE_END = 10.0f;
+        static constexpr float MAX_REGEN_ZONE_END = 50.0f;
+        static constexpr float MIN_COAST_ZONE_END = 15.0f;
+        static constexpr float MAX_COAST_ZONE_END = 60.0f;
+        static constexpr float MIN_PROGRESSION = 1.0f;
+        static constexpr float MAX_PROGRESSION = 3.0f;
     };
-
     /**
      * @brief Gear Transition Control
      */

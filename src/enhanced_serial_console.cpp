@@ -446,15 +446,19 @@ void EnhancedSerialConsole::printJSONHelp() {
     Serial.println("Configuration:");
     Serial.println("  {\"cmd\":\"config\",\"action\":\"get\"} - Get all config");
     Serial.println("  {\"cmd\":\"config\",\"action\":\"get\",\"category\":\"driving\"} - Get driving config");
-    Serial.println("  {\"cmd\":\"config\",\"action\":\"set\",\"category\":\"driving\",\"data\":{\"maxTorque\":500}} - Set config");
+    Serial.println("  {\"cmd\":\"config\",\"action\":\"get\",\"category\":\"curtis\"} - Get Curtis power limits");
+    Serial.println("  {\"cmd\":\"config\",\"action\":\"get\",\"category\":\"pedal\"} - Get pedal zones");
+    Serial.println("  {\"cmd\":\"config\",\"action\":\"get\",\"category\":\"transitions\"} - Get transition timing");  // NEW
+    Serial.println("  {\"cmd\":\"config\",\"action\":\"set\",\"category\":\"transitions\",\"data\":{...}} - Set transitions");  // NEW
     Serial.println("  {\"cmd\":\"config\",\"action\":\"save\"} - Save to flash");
     Serial.println("  {\"cmd\":\"config\",\"action\":\"reset\"} - Reset to defaults");
     Serial.println("");
     Serial.println("Monitoring:");
     Serial.println("  {\"cmd\":\"monitor\",\"action\":\"get\"} - Get system status");
     Serial.println("");
-    Serial.println("Available categories: driving, curtis");
+    Serial.println("Available categories: driving, curtis, pedal, transitions");  // Updated
 }
+
 
 /**
  * @brief Print integer value with optional unit

@@ -1,6 +1,6 @@
 /**
- * @file configuration.h - UPDATED with Simplified Pedal System
- * @brief Enhanced Configuration with pedal zones and Curtis power limiting
+ * @file configuration.h - UPDATED with Torque Transition Configuration
+ * @brief Enhanced Configuration with pedal zones, Curtis power limiting, and torque transitions
  */
 
 #pragma once
@@ -10,7 +10,7 @@
 #include "config.h"
 
 /**
- * @brief Enhanced Configuration Class - With Simplified Pedal Zones
+ * @brief Enhanced Configuration Class - With Torque Transition Support
  */
 class Configuration {
 public:
@@ -62,7 +62,7 @@ public:
     bool setRegenPowerLimit(int zone, float power);
     void resetCurtisDefaults();
     
-    // === NEW: SIMPLIFIED PEDAL ZONES ===
+    // === SIMPLIFIED PEDAL ZONES ===
     float getRegenZoneEnd() const { return regenZoneEnd; }
     float getCoastZoneEnd() const { return coastZoneEnd; }
     float getRegenProgression() const { return regenProgression; }
@@ -73,6 +73,20 @@ public:
     bool setRegenProgression(float value);
     bool setAccelProgression(float value);
     void resetPedalDefaults();
+    
+    // === NEW: TORQUE TRANSITION TIMING ===
+    float getRegenEngageTime() const { return regenEngageTime; }
+    float getRegenReleaseTime() const { return regenReleaseTime; }
+    float getPowerEngageTime() const { return powerEngageTime; }
+    float getPowerReleaseTime() const { return powerReleaseTime; }
+    float getCrossoverTime() const { return crossoverTime; }
+    
+    bool setRegenEngageTime(float timeMs);
+    bool setRegenReleaseTime(float timeMs);
+    bool setPowerEngageTime(float timeMs);
+    bool setPowerReleaseTime(float timeMs);
+    bool setCrossoverTime(float timeMs);
+    void resetTransitionDefaults();
     
     // === JSON INTERFACE ===
     String toJSON();
@@ -98,36 +112,54 @@ private:
     float drivePowerLimits[5];
     float regenPowerLimits[5];
     
-    // NEW: Simplified pedal zones
+    // Simplified pedal zones
     float regenZoneEnd;        ///< End of regen zone (0-50%)
     float coastZoneEnd;        ///< End of coast zone (regenZoneEnd-60%)
     float regenProgression;    ///< Regen curve factor (1.0-3.0)
     float accelProgression;    ///< Accel curve factor (1.0-3.0)
     
-    // Storage keys
+    // NEW: Torque transition timing (milliseconds)
+    float regenEngageTime;     ///< Regen engagement time (0 -> negative torque)
+    float regenReleaseTime;    ///< Regen release time (negative -> 0 torque)
+    float powerEngageTime;     ///< Power engagement time (0 -> positive torque)
+    float powerReleaseTime;    ///< Power release time (positive -> 0 torque)
+    float crossoverTime;       ///< Crossover transition time (regen <-> power)
+    
+    // Storage keys - Basic
     static const char* KEY_DRIVE_MODE;
     static const char* KEY_MAX_TORQUE;
     static const char* KEY_MAX_SOC;
     static const char* KEY_MAX_CHARGING_CURRENT;
+    
+    // Storage keys - Curtis
     static const char* KEY_BASE_SPEED;
     static const char* KEY_DELTA_SPEED;
     static const char* KEY_NOMINAL_POWER;
     static const char* KEY_DRIVE_LIMITS;
     static const char* KEY_REGEN_LIMITS;
     
-    // NEW: Pedal zone keys
+    // Storage keys - Pedal zones
     static const char* KEY_REGEN_ZONE_END;
     static const char* KEY_COAST_ZONE_END;
     static const char* KEY_REGEN_PROGRESSION;
     static const char* KEY_ACCEL_PROGRESSION;
     
-    // Validation limits
+    // NEW: Storage keys - Transition timing
+    static const char* KEY_REGEN_ENGAGE_TIME;
+    static const char* KEY_REGEN_RELEASE_TIME;
+    static const char* KEY_POWER_ENGAGE_TIME;
+    static const char* KEY_POWER_RELEASE_TIME;
+    static const char* KEY_CROSSOVER_TIME;
+    
+    // Validation limits - Basic
     static constexpr int MIN_TORQUE_LIMIT = 100;
     static constexpr int MAX_TORQUE_LIMIT = 850;
     static constexpr int MIN_SOC_LIMIT = 50;
     static constexpr int MAX_SOC_LIMIT = 100;
     static constexpr int MIN_CHARGING_CURRENT = 6;
     static constexpr int MAX_CHARGING_CURRENT = 32;
+    
+    // Validation limits - Curtis
     static constexpr float MIN_BASE_SPEED = 500.0f;
     static constexpr float MAX_BASE_SPEED = 5000.0f;
     static constexpr float MIN_DELTA_SPEED = 100.0f;
@@ -138,13 +170,20 @@ private:
     static constexpr float MAX_DRIVE_POWER_LIMIT = 120.0f;
     static constexpr float MAX_REGEN_POWER_LIMIT = 100.0f;
     
+    // NEW: Validation limits - Transition timing
+    static constexpr float MIN_TRANSITION_TIME = 0.0f;
+    static constexpr float MAX_TRANSITION_TIME = 1000.0f;
+    
     // Helper methods
     JsonDocument createDrivingJSON();
     JsonDocument createCurtisJSON();
-    JsonDocument createPedalJSON();  // NEW
+    JsonDocument createPedalJSON();
+    JsonDocument createTransitionJSON();  // NEW
+    
     bool parseDrivingJSON(const JsonObject& obj);
     bool parseCurtisJSON(const JsonObject& obj);
-    bool parsePedalJSON(const JsonObject& obj);  // NEW
+    bool parsePedalJSON(const JsonObject& obj);
+    bool parseTransitionJSON(const JsonObject& obj);  // NEW
 };
 
 // Global configuration instance (backwards compatible)
