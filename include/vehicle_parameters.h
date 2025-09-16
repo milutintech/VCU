@@ -80,16 +80,16 @@ namespace VehicleParams {
     struct Pedal {
         // DEFAULT ZONE BOUNDARIES (configurable via JSON API)
         static constexpr float DEFAULT_REGEN_ZONE_END = 25.0f;   ///< Default end of regen zone (%)
-        static constexpr float DEFAULT_COAST_ZONE_END = 35.0f;   ///< Default end of coast zone (%)
-        
+        static constexpr float DEFAULT_COAST_ZONE_END = 30.0f;   ///< Default end of coast zone (%)
+ 
         // DEFAULT PROGRESSION FACTORS (configurable via JSON API) 
-        static constexpr float DEFAULT_REGEN_PROGRESSION = 1.8f; ///< Default regen curve (1.0=linear, 2.0=progressive)
+        static constexpr float DEFAULT_REGEN_PROGRESSION = 1.1f; ///< Default regen curve (1.0=linear, 2.0=progressive)
         static constexpr float DEFAULT_ACCEL_PROGRESSION = 1.5f; ///< Default accel curve (1.0=linear, 2.0=progressive)
         
         // VALIDATION LIMITS
         static constexpr float MIN_REGEN_ZONE_END = 10.0f;       ///< Minimum regen zone end (%)
         static constexpr float MAX_REGEN_ZONE_END = 50.0f;       ///< Maximum regen zone end (%)
-        static constexpr float MIN_COAST_ZONE_END = 30.0f;       ///< Minimum coast zone end (%)
+        static constexpr float MIN_COAST_ZONE_END = 15.0f;       ///< Minimum coast zone end (%)
         static constexpr float MAX_COAST_ZONE_END = 60.0f;       ///< Maximum coast zone end (%)
         static constexpr float MIN_PROGRESSION = 1.0f;           ///< Minimum progression factor
         static constexpr float MAX_PROGRESSION = 3.0f;           ///< Maximum progression factor

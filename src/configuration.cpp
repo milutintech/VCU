@@ -61,23 +61,23 @@ void Configuration::resetToDefaults() {
  * @brief Reset Curtis power limits to defaults
  */
 void Configuration::resetCurtisDefaults() {
-    baseSpeed = 2000.0f;
-    deltaSpeed = 500.0f;
-    nominalPower = 85.0f;
+    baseSpeed = 1000.0f;  // Change from 2000.0f to 1000.0f
+    deltaSpeed = 500.0f;  // ✓ Already matches
+    nominalPower = 85.0f; // Keep as is
     
-    // Default drive curve
-    drivePowerLimits[0] = 85.0f;
-    drivePowerLimits[1] = 95.0f;
-    drivePowerLimits[2] = 100.0f;
-    drivePowerLimits[3] = 70.0f;
-    drivePowerLimits[4] = 35.0f;
+    // Drive curve - set all to 100%
+    drivePowerLimits[0] = 100.0f;  // Change from 85.0f
+    drivePowerLimits[1] = 100.0f;  // Change from 95.0f  
+    drivePowerLimits[2] = 100.0f;  // ✓ Already matches
+    drivePowerLimits[3] = 100.0f;  // Change from 70.0f
+    drivePowerLimits[4] = 100.0f;  // Change from 35.0f
     
-    // Default regen curve
-    regenPowerLimits[0] = 80.0f;
-    regenPowerLimits[1] = 85.0f;
-    regenPowerLimits[2] = 90.0f;
-    regenPowerLimits[3] = 60.0f;
-    regenPowerLimits[4] = 25.0f;
+    // Regen curve - match your settings
+    regenPowerLimits[0] = 20.0f;   // Change from 80.0f
+    regenPowerLimits[1] = 25.0f;   // Change from 85.0f
+    regenPowerLimits[2] = 35.0f;   // Change from 90.0f
+    regenPowerLimits[3] = 50.0f;   // Change from 60.0f
+    regenPowerLimits[4] = 50.0f;   // Change from 25.0f
 }
 
 /**

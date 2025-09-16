@@ -49,7 +49,7 @@ float VehicleControl::calculateTorquePercentage() {
     rawThrottle = constrain(rawThrottle, 0.0f, 100.0f);
     
     // Debug output
-    Serial.printf("ADC: %d -> %.1f%% throttle", sampledPotiValue, rawThrottle);
+    //Serial.printf("ADC: %d -> %.1f%% throttle", sampledPotiValue, rawThrottle);
     
     // Update reverse light based on gear state
     digitalWrite(Pins::BCKLIGHT, currentGear == GearState::REVERSE ? HIGH : LOW);
@@ -62,7 +62,7 @@ float VehicleControl::calculateTorquePercentage() {
         enableDMC = false;
         digitalWrite(19, LOW);  
         digitalWrite(Pins::BCKLIGHT, LOW);
-        Serial.println(" -> NEUTRAL: 0%");
+        //Serial.println(" -> NEUTRAL: 0%");
         return 0.0f;
     }
     
@@ -77,17 +77,16 @@ float VehicleControl::calculateTorquePercentage() {
     float maxPossibleTorquePercent = (float)config.getMaxTorque() / (float)VehicleParams::Motor::MAX_TRQ * 100.0f;
     float limitedTorquePercent;
     
+
     if (isDriving) {
-        // Limit acceleration power
-        float maxAccelPercent = (powerLimit / 100.0f) * maxPossibleTorquePercent;
-        limitedTorquePercent = constrain(baseTorquePercent, 0.0f, maxAccelPercent);
+        // Scale acceleration proportionally based on speed zones
+        float drivePowerLimit = calculatePowerLimit(abs(motorSpeed), true);  // Use drive zones
+        limitedTorquePercent = baseTorquePercent * (drivePowerLimit / 100.0f);
     } else {
-        // Limit regen power (use regen power limits)
-        float regenPowerLimit = calculatePowerLimit(abs(motorSpeed), false);  // false = regen limits
-        float maxRegenPercent = (regenPowerLimit / 100.0f) * maxPossibleTorquePercent;
-        limitedTorquePercent = constrain(baseTorquePercent, -maxRegenPercent, 0.0f);
+        // Scale regen proportionally based on speed zones  
+        float regenPowerLimit = calculatePowerLimit(abs(motorSpeed), false); // Use regen zones
+        limitedTorquePercent = baseTorquePercent * (regenPowerLimit / 100.0f);
     }
-    
     // Apply gear direction
     float calculatedTorquePercent = limitedTorquePercent;
     if (currentGear == GearState::DRIVE) {
@@ -108,8 +107,8 @@ float VehicleControl::calculateTorquePercentage() {
     lastTorquePercent = calculatedTorquePercent;
     filteredTorquePercent = calculatedTorquePercent;
     
-    Serial.printf(" -> Zones: %.1f%%, Power Limit: %.1f%%, Final: %.1f%% (DMC: %s)\n", 
-                  baseTorquePercent, powerLimit, calculatedTorquePercent, enableDMC ? "ON" : "OFF");
+    //Serial.printf(" -> Zones: %.1f%%, Power Limit: %.1f%%, Final: %.1f%% (DMC: %s)\n", 
+       //           baseTorquePercent, powerLimit, calculatedTorquePercent, enableDMC ? "ON" : "OFF");
     
     return calculatedTorquePercent;
 }
@@ -127,12 +126,8 @@ float VehicleControl::applyPedalZones(float throttlePercent) {
     float accelProgression = config.getAccelProgression();
     
     if (throttlePercent <= regenZoneEnd) {
-        // REGEN ZONE: 0% to regenZoneEnd% -> 0% to -100% torque
-        if (throttlePercent == 0.0f) {
-            return 0.0f;  // No torque at zero pedal
-        }
-        
-        float zonePosition = throttlePercent / regenZoneEnd;  // 0-1 within regen zone
+        // REGEN ZONE: 0% to regenZoneEnd% -> -100% to 0% torque (inverted for lift-off regen)
+        float zonePosition = 1.0f - (throttlePercent / regenZoneEnd);  // INVERTED: 1.0 at 0% pedal, 0.0 at regenZoneEnd%
         float curvedPosition = applyProgressiveCurve(zonePosition, regenProgression);
         float torquePercent = -curvedPosition * 100.0f;  // Negative for regen
         
@@ -141,7 +136,7 @@ float VehicleControl::applyPedalZones(float throttlePercent) {
     }
     else if (throttlePercent <= coastZoneEnd) {
         // COAST ZONE: regenZoneEnd% to coastZoneEnd% -> 0% torque
-        Serial.printf(" -> COAST ZONE");
+        //Serial.printf(" -> COAST ZONE");
         return 0.0f;
     }
     else {
@@ -151,7 +146,7 @@ float VehicleControl::applyPedalZones(float throttlePercent) {
         float curvedPosition = applyProgressiveCurve(zonePosition, accelProgression);
         float torquePercent = curvedPosition * 100.0f;  // Positive for accel
         
-        Serial.printf(" -> ACCEL ZONE (%.1f%% in zone)", zonePosition * 100.0f);
+        //Serial.printf(" -> ACCEL ZONE (%.1f%% in zone)", zonePosition * 100.0f);
         return torquePercent;
     }
 }
