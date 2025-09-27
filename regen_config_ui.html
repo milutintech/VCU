@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simplified Regen Configuration Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .connection-section {
+            padding: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .connection-panel {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tabs {
+            display: flex;
+            margin: 0 30px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border: 2px solid #f0f0f0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 20px 15px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            border: none;
+            background: #f8f9fa;
+            color: #666;
+            border-right: 1px solid #e1e5e9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab:last-child {
+            border-right: none;
+        }
+
+        .tab div:first-child {
+            font-size: 24px;
+            line-height: 1;
+        }
+
+        .tab div:last-child {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            box-shadow: inset 0 2px 10px rgba(79, 172, 254, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .tab:hover:not(.active) {
+            background: #e3f2fd;
+            color: #4facfe;
+            transform: translateY(-1px);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section {
+            margin-bottom: 30px;
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .section h2 {
+            color: #4facfe;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            font-weight: 500;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .param-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .param {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e1e5e9;
+        }
+
+        .param-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .param-value {
+            font-weight: 600;
+            color: #4facfe;
+            font-size: 1.1rem;
+        }
+
+        .param input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+            margin: 10px 0;
+        }
+
+        .param input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(79, 172, 254, 0.3);
+        }
+
+        .param input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(79, 172, 254, 0.3);
+        }
+
+        .power-limits {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+        }
+
+        .power-limits .param {
+            background: #fff3e0;
+            border: 1px solid #ffcc80;
+        }
+
+        .pedal-zones .param {
+            background: #e8f5e8;
+            border: 1px solid #81c784;
+        }
+
+        button {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .preset-buttons button {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        select, input[type="number"] {
+            padding: 10px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+            transition: border-color 0.3s ease;
+        }
+
+        select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            color: #495057;
+        }
+
+        .param-description {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .zone-visualization {
+            background: #f0f8ff;
+            border: 2px solid #4facfe;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .zone-bar {
+            height: 30px;
+            border-radius: 15px;
+            position: relative;
+            background: linear-gradient(90deg, #ff4444 0%, #ff4444 25%, #666666 25%, #666666 35%, #44ff44 35%, #44ff44 100%);
+            margin: 10px 0;
+        }
+
+        .zone-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ Simplified Regen Configuration</h1>
+            <p>Three-Zone Pedal System with Delta Power Limiting</p>
+        </div>
+
+        <!-- Connection Section -->
+        <div class="connection-section">
+            <h2 style="color: #4facfe; margin-bottom: 20px;">🔌 Serial Connection</h2>
+            <div class="connection-panel">
+                <button id="connectBtn">Connect Serial</button>
+                <select id="baudRate">
+                    <option value="9600">9600</option>
+                    <option value="19200">19200</option>
+                    <option value="38400">38400</option>
+                    <option value="57600">57600</option>
+                    <option value="115200" selected>115200</option>
+                    <option value="230400">230400</option>
+                    <option value="460800">460800</option>
+                    <option value="921600">921600</option>
+                </select>
+                <button id="getConfig">Get Current Config</button>
+                <button id="saveConfig">Save to Flash</button>
+            </div>
+            <div id="connectionStatus" class="status disconnected">Not Connected</div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div style="text-align: center; margin: 20px 0 10px 0; padding: 0 30px;">
+            <h3 style="color: #4facfe; margin-bottom: 15px;">📋 Control Panels</h3>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('config', this)">
+                <div>🎛️</div>
+                <div>Configuration</div>
+            </button>
+            <button class="tab" onclick="switchTab('monitoring', this)">
+                <div>📊</div>
+                <div>Monitoring</div>
+            </button>
+            <button class="tab" onclick="switchTab('settings', this)">
+                <div>⚙️</div>
+                <div>Settings</div>
+            </button>
+        </div>
+
+        <!-- Configuration Tab -->
+        <div id="configTab" class="tab-content active">
+            <!-- Pedal Zone Configuration -->
+            <div class="section">
+                <h2>🎯 Three-Zone Pedal Configuration</h2>
+                
+                <!-- Zone Visualization -->
+                <div class="zone-visualization">
+                    <h4>Pedal Zone Layout</h4>
+                    <div class="zone-bar" id="zoneBar"></div>
+                    <div class="zone-labels">
+                        <span style="color: #ff4444;">Regen Zone</span>
+                        <span style="color: #666666;">Coast Zone</span>
+                        <span style="color: #44ff44;">Accel Zone</span>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 11px;">
+                        <span>0% → <span id="regenEndLabel">25%</span> → <span id="coastEndLabel">35%</span> → 100%</span>
+                    </div>
+                </div>
+
+                <div class="param-group pedal-zones">
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Regen Zone End (%)</span>
+                            <span class="param-value" id="regenZoneEndValue">25</span>
+                        </div>
+                        <input type="range" id="regenZoneEnd" min="10" max="50" step="1" value="25">
+                        <div class="param-description">End of regen zone (10-50%)</div>
+                    </div>
+
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Coast Zone End (%)</span>
+                            <span class="param-value" id="coastZoneEndValue">35</span>
+                        </div>
+                        <input type="range" id="coastZoneEnd" min="15" max="60" step="1" value="35">
+                        <div class="param-description">End of coast zone (15-60%)</div>
+                    </div>
+
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Regen Progression</span>
+                            <span class="param-value" id="regenProgressionValue">1.8</span>
+                        </div>
+                        <input type="range" id="regenProgression" min="1.0" max="3.0" step="0.1" value="1.8">
+                        <div class="param-description">Regen curve factor (1.0=linear, 3.0=progressive)</div>
+                    </div>
+
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Accel Progression</span>
+                            <span class="param-value" id="accelProgressionValue">1.5</span>
+                        </div>
+                        <input type="range" id="accelProgression" min="1.0" max="3.0" step="0.1" value="1.5">
+                        <div class="param-description">Accel curve factor (1.0=linear, 3.0=progressive)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Parameters -->
+            <div class="section">
+                <h2>⚙️ System Parameters</h2>
+                
+                <div class="param-group">
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Max Torque (Nm)</span>
+                            <span class="param-value" id="maxTorqueValue">850</span>
+                        </div>
+                        <input type="range" id="maxTorque" min="100" max="850" step="25" value="850">
+                        <div class="param-description">Maximum configurable torque</div>
+                    </div>
+
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Base Speed (RPM)</span>
+                            <span class="param-value" id="baseSpeedValue">2000</span>
+                        </div>
+                        <input type="range" id="baseSpeed" min="500" max="5000" step="100" value="2000">
+                        <div class="param-description">Foundation speed for power zones</div>
+                    </div>
+
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Delta Speed (RPM)</span>
+                            <span class="param-value" id="deltaSpeedValue">500</span>
+                        </div>
+                        <input type="range" id="deltaSpeed" min="100" max="2000" step="50" value="500">
+                        <div class="param-description">Zone width multiplier</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Power Limits (Drive) -->
+            <div class="section">
+                <h2>🚀 Drive Power Limits (Speed Zones)</h2>
+                <div class="power-limits">
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Zone 0 (Low Speed)</span>
+                            <span class="param-value" id="drivePowerLimit0Value">85</span>
+                        </div>
+                        <input type="range" id="drivePowerLimit0" min="10" max="120" step="5" value="85">
+                        <div class="param-description">Drive power % at low speed</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Zone 1</span>
+                            <span class="param-value" id="drivePowerLimit1Value">95</span>
+                        </div>
+                        <input type="range" id="drivePowerLimit1" min="10" max="120" step="5" value="95">
+                        <div class="param-description">Drive power %</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Zone 2</span>
+                            <span class="param-value" id="drivePowerLimit2Value">100</span>
+                        </div>
+                        <input type="range" id="drivePowerLimit2" min="10" max="120" step="5" value="100">
+                        <div class="param-description">Drive power %</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Zone 3</span>
+                            <span class="param-value" id="drivePowerLimit3Value">70</span>
+                        </div>
+                        <input type="range" id="drivePowerLimit3" min="10" max="120" step="5" value="70">
+                        <div class="param-description">Drive power %</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Zone 4 (High Speed)</span>
+                            <span class="param-value" id="drivePowerLimit4Value">35</span>
+                        </div>
+                        <input type="range" id="drivePowerLimit4" min="10" max="120" step="5" value="35">
+                        <div class="param-description">Drive power % at high speed</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Power Limits (Regen) -->
+            <div class="section">
+                <h2>🔋 Regen Power Limits (Speed Zones)</h2>
+                <div class="power-limits">
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Zone 0 (Low Speed)</span>
+                            <span class="param-value" id="regenPowerLimit0Value">80</span>
+                        </div>
+                        <input type="range" id="regenPowerLimit0" min="10" max="100" step="5" value="80">
+                        <div class="param-description">Regen power % at low speed</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Zone 1</span>
+                            <span class="param-value" id="regenPowerLimit1Value">85</span>
+                        </div>
+                        <input type="range" id="regenPowerLimit1" min="10" max="100" step="5" value="85">
+                        <div class="param-description">Regen power %</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Zone 2</span>
+                            <span class="param-value" id="regenPowerLimit2Value">90</span>
+                        </div>
+                        <input type="range" id="regenPowerLimit2" min="10" max="100" step="5" value="90">
+                        <div class="param-description">Regen power %</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Zone 3</span>
+                            <span class="param-value" id="regenPowerLimit3Value">60</span>
+                        </div>
+                        <input type="range" id="regenPowerLimit3" min="10" max="100" step="5" value="60">
+                        <div class="param-description">Regen power %</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Zone 4 (High Speed)</span>
+                            <span class="param-value" id="regenPowerLimit4Value">25</span>
+                        </div>
+                        <input type="range" id="regenPowerLimit4" min="10" max="100" step="5" value="25">
+                        <div class="param-description">Regen power % at high speed</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Presets -->
+            <div class="section">
+                <h2>🎯 Configuration Presets</h2>
+                <div class="preset-buttons">
+                    <button onclick="applyPreset('gentle')">Gentle</button>
+                    <button onclick="applyPreset('balanced')">Balanced</button>
+                    <button onclick="applyPreset('aggressive')">Aggressive</button>
+                    <button onclick="applyPreset('sport')">Sport</button>
+                    <button onclick="sendCurrentConfig()">Send Current Config</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monitoring Tab -->
+        <div id="monitoringTab" class="tab-content">
+            <div class="section">
+                <h2>🚗 Vehicle Status</h2>
+                <div class="param-group">
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Vehicle State</span>
+                            <span class="param-value" id="vehicleStateValue">STANDBY</span>
+                        </div>
+                        <div class="param-description">Current vehicle operational state</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Battery Armed</span>
+                            <span class="param-value" id="batteryArmedValue">No</span>
+                        </div>
+                        <div class="param-description">High voltage system status</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Precharge Complete</span>
+                            <span class="param-value" id="prechargeCompleteValue">No</span>
+                        </div>
+                        <div class="param-description">Battery precharge sequence status</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🔋 Battery Management System</h2>
+                <div class="param-group">
+                    <div class="param">
+                        <div class="param-label">
+                            <span>State of Charge</span>
+                            <span class="param-value" id="socValue">0%</span>
+                        </div>
+                        <div class="param-description">Battery charge level</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Pack Voltage</span>
+                            <span class="param-value" id="packVoltageValue">0V</span>
+                        </div>
+                        <div class="param-description">Total battery pack voltage</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Pack Current</span>
+                            <span class="param-value" id="packCurrentValue">0A</span>
+                        </div>
+                        <div class="param-description">Battery current (+ = discharge, - = charge)</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Max Discharge</span>
+                            <span class="param-value" id="maxDischargeValue">0A</span>
+                        </div>
+                        <div class="param-description">BMS discharge current limit</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Max Charge</span>
+                            <span class="param-value" id="maxChargeValue">0A</span>
+                        </div>
+                        <div class="param-description">BMS charge current limit</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>⚡ Motor Controller (DMC)</h2>
+                <div class="param-group">
+                    <div class="param">
+                        <div class="param-label">
+                            <span>DMC Ready</span>
+                            <span class="param-value" id="dmcReadyValue">No</span>
+                        </div>
+                        <div class="param-description">Motor controller ready state</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Motor Speed</span>
+                            <span class="param-value" id="motorSpeedValue">0 RPM</span>
+                        </div>
+                        <div class="param-description">Current motor speed</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Actual Torque</span>
+                            <span class="param-value" id="actualTorqueValue">0 Nm</span>
+                        </div>
+                        <div class="param-description">Current motor torque output</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Inverter Temperature</span>
+                            <span class="param-value" id="inverterTempValue">0°C</span>
+                        </div>
+                        <div class="param-description">Inverter temperature</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Motor Temperature</span>
+                            <span class="param-value" id="motorTempValue">0°C</span>
+                        </div>
+                        <div class="param-description">Motor temperature</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🔄 DC-DC Converter (BSC)</h2>
+                <div class="param-group">
+                    <div class="param">
+                        <div class="param-label">
+                            <span>HV Voltage</span>
+                            <span class="param-value" id="hvVoltageValue">0V</span>
+                        </div>
+                        <div class="param-description">High voltage side</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>LV Voltage</span>
+                            <span class="param-value" id="lvVoltageValue">0V</span>
+                        </div>
+                        <div class="param-description">Low voltage side (12V system)</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>HV Current</span>
+                            <span class="param-value" id="hvCurrentValue">0A</span>
+                        </div>
+                        <div class="param-description">High voltage current</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>BSC Mode</span>
+                            <span class="param-value" id="bscModeValue">BUCK</span>
+                        </div>
+                        <div class="param-description">DC-DC converter operating mode</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🔌 Charger (NLG)</h2>
+                <div class="param-group">
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Charger State</span>
+                            <span class="param-value" id="chargerStateValue">SLEEP</span>
+                        </div>
+                        <div class="param-description">Current charging state</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Charging Voltage</span>
+                            <span class="param-value" id="chargingVoltageValue">0V</span>
+                        </div>
+                        <div class="param-description">DC charging voltage</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Charging Current</span>
+                            <span class="param-value" id="chargingCurrentValue">0A</span>
+                        </div>
+                        <div class="param-description">DC charging current</div>
+                    </div>
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Connector Locked</span>
+                            <span class="param-value" id="connectorLockedValue">No</span>
+                        </div>
+                        <div class="param-description">Charge connector lock status</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🔄 Auto-Refresh</h2>
+                <div class="param-group">
+                    <div class="param">
+                        <button id="refreshMonitoring" onclick="requestMonitoringData()">Refresh Now</button>
+                        <button id="toggleAutoRefresh" onclick="toggleAutoRefresh()">Start Auto-Refresh</button>
+                        <span style="margin-left: 15px;">Interval: 
+                            <select id="refreshInterval">
+                                <option value="1000">1s</option>
+                                <option value="2000" selected>2s</option>
+                                <option value="5000">5s</option>
+                            </select>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settingsTab" class="tab-content">
+            <div class="section">
+                <h2>🚗 Drive Settings</h2>
+                <div class="param-group">
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Drive Mode</span>
+                            <span class="param-value" id="driveModeValue">REGEN</span>
+                        </div>
+                        <select id="driveMode">
+                            <option value="legacy">Legacy</option>
+                            <option value="regen" selected>Regen</option>
+                            <option value="opd">One Pedal Drive</option>
+                        </select>
+                        <div class="param-description">Vehicle driving behavior mode</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🔋 Battery Settings</h2>
+                <div class="param-group">
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Maximum SOC (%)</span>
+                            <span class="param-value" id="maxSOCValue">100</span>
+                        </div>
+                        <input type="range" id="maxSOC" min="50" max="100" step="5" value="100">
+                        <div class="param-description">Maximum battery charge level (50-100%)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>⚡ Charging Settings</h2>
+                <div class="param-group">
+                    <div class="param">
+                        <div class="param-label">
+                            <span>Max Charging Current (A)</span>
+                            <span class="param-value" id="maxChargingCurrentValue">32</span>
+                        </div>
+                        <input type="range" id="maxChargingCurrent" min="6" max="32" step="2" value="32">
+                        <div class="param-description">Maximum AC charging current (6-32A)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>💾 Configuration Management</h2>
+                <div class="preset-buttons">
+                    <button onclick="resetToDefaults()">Reset to Defaults</button>
+                    <button onclick="exportConfig()">Export Config</button>
+                    <button onclick="document.getElementById('importFile').click()">Import Config</button>
+                    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importConfig(event)">
+                </div>
+            </div>
+        </div>
+
+        <!-- Communication Log Section -->
+        <div class="connection-section">
+            <h2 style="color: #4facfe; margin-bottom: 20px;">📋 Communication Log</h2>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let port = null;
+        let writer = null;
+        let reader = null;
+        let autoRefreshInterval = null;
+
+        // Updated configuration presets for simplified system
+        const presets = {
+            gentle: {
+                // Pedal zones
+                regenZoneEnd: 30.0,
+                coastZoneEnd: 40.0,
+                regenProgression: 1.2,
+                accelProgression: 1.2,
+                // System params
+                maxTorque: 600,
+                baseSpeed: 2000.0,
+                deltaSpeed: 500.0,
+                // Power limits
+                drivePowerLimits: [70.0, 80.0, 85.0, 60.0, 30.0],
+                regenPowerLimits: [70.0, 75.0, 80.0, 50.0, 20.0]
+            },
+            balanced: {
+                // Pedal zones
+                regenZoneEnd: 25.0,
+                coastZoneEnd: 35.0,
+                regenProgression: 1.8,
+                accelProgression: 1.5,
+                // System params
+                maxTorque: 750,
+                baseSpeed: 2000.0,
+                deltaSpeed: 500.0,
+                // Power limits
+                drivePowerLimits: [85.0, 95.0, 100.0, 70.0, 35.0],
+                regenPowerLimits: [80.0, 85.0, 90.0, 60.0, 25.0]
+            },
+            aggressive: {
+                // Pedal zones
+                regenZoneEnd: 20.0,
+                coastZoneEnd: 28.0,
+                regenProgression: 2.2,
+                accelProgression: 2.0,
+                // System params
+                maxTorque: 850,
+                baseSpeed: 2000.0,
+                deltaSpeed: 500.0,
+                // Power limits
+                drivePowerLimits: [95.0, 105.0, 110.0, 85.0, 50.0],
+                regenPowerLimits: [90.0, 95.0, 100.0, 80.0, 40.0]
+            },
+            sport: {
+                // Pedal zones
+                regenZoneEnd: 15.0,
+                coastZoneEnd: 22.0,
+                regenProgression: 2.5,
+                accelProgression: 2.2,
+                // System params
+                maxTorque: 850,
+                baseSpeed: 1800.0,
+                deltaSpeed: 600.0,
+                // Power limits
+                drivePowerLimits: [100.0, 110.0, 115.0, 90.0, 60.0],
+                regenPowerLimits: [95.0, 100.0, 100.0, 85.0, 50.0]
+            }
+        };
+
+        // Initialize UI
+        function initializeUI() {
+            console.log('Initializing UI components...');
+            
+            // Setup slider event listeners with null checks
+            const sliders = document.querySelectorAll('input[type="range"]');
+            console.log(`Found ${sliders.length} sliders`);
+            
+            sliders.forEach(slider => {
+                slider.addEventListener('input', function() {
+                    const valueElement = document.getElementById(this.id + 'Value');
+                    if (valueElement) {
+                        valueElement.textContent = this.value;
+                    }
+                    
+                    // Update zone visualization when pedal parameters change
+                    if (this.id === 'regenZoneEnd' || this.id === 'coastZoneEnd') {
+                        updateZoneVisualization();
+                    }
+                });
+                
+                // Trigger initial update
+                slider.dispatchEvent(new Event('input'));
+            });
+
+            // Setup button event listeners with null checks
+            const connectBtn = document.getElementById('connectBtn');
+            const getConfigBtn = document.getElementById('getConfig');
+            const saveConfigBtn = document.getElementById('saveConfig');
+            
+            if (connectBtn) {
+                connectBtn.addEventListener('click', connectSerial);
+                console.log('Connect button event listener added');
+            }
+            if (getConfigBtn) getConfigBtn.addEventListener('click', getCurrentConfig);
+            if (saveConfigBtn) saveConfigBtn.addEventListener('click', saveConfig);
+            
+            // Setup settings controls with null checks
+            const driveModeSelect = document.getElementById('driveMode');
+            if (driveModeSelect) {
+                driveModeSelect.addEventListener('change', function() {
+                    const driveModeValue = document.getElementById('driveModeValue');
+                    if (driveModeValue) {
+                        driveModeValue.textContent = this.options[this.selectedIndex].text;
+                    }
+                });
+            }
+            
+            // Initial zone visualization update
+            updateZoneVisualization();
+            
+            // Ensure first tab is active by default
+            const firstTab = document.querySelector('.tab');
+            const firstTabContent = document.getElementById('configTab');
+            
+            if (firstTab && firstTabContent) {
+                firstTab.classList.add('active');
+                firstTabContent.classList.add('active');
+                console.log('Set first tab as active');
+            }
+            
+            console.log('UI initialization complete');
+        }
+
+        // Tab switching with null checks
+        function switchTab(tabName, clickedTab) {
+            console.log(`Switching to tab: ${tabName}`);
+            
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            const selectedTab = document.getElementById(tabName + 'Tab');
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+                console.log(`Activated tab content: ${tabName}Tab`);
+            }
+            
+            // Add active class to clicked tab
+            if (clickedTab) {
+                clickedTab.classList.add('active');
+                console.log('Activated clicked tab');
+            }
+            
+            // Request monitoring data if switching to monitoring tab
+            if (tabName === 'monitoring') {
+                requestMonitoringData();
+            }
+        }
+
+        // Update zone visualization with null checks
+        function updateZoneVisualization() {
+            const regenEndSlider = document.getElementById('regenZoneEnd');
+            const coastEndSlider = document.getElementById('coastZoneEnd');
+            const regenEndLabel = document.getElementById('regenEndLabel');
+            const coastEndLabel = document.getElementById('coastEndLabel');
+            const zoneBar = document.getElementById('zoneBar');
+            
+            if (!regenEndSlider || !coastEndSlider || !regenEndLabel || !coastEndLabel || !zoneBar) {
+                console.log('Zone visualization elements not found');
+                return; // Elements not found, skip update
+            }
+            
+            const regenEnd = parseFloat(regenEndSlider.value);
+            const coastEnd = parseFloat(coastEndSlider.value);
+            
+            regenEndLabel.textContent = regenEnd + '%';
+            coastEndLabel.textContent = coastEnd + '%';
+            
+            const regenWidth = regenEnd;
+            const coastWidth = coastEnd - regenEnd;
+            const accelWidth = 100 - coastEnd;
+            
+            zoneBar.style.background = `linear-gradient(90deg, 
+                #ff4444 0%, #ff4444 ${regenWidth}%, 
+                #666666 ${regenWidth}%, #666666 ${coastEnd}%, 
+                #44ff44 ${coastEnd}%, #44ff44 100%)`;
+        }
+
+        // Serial connection
+        async function connectSerial() {
+            try {
+                const baudRate = parseInt(document.getElementById('baudRate').value);
+                
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: baudRate });
+
+                writer = port.writable.getWriter();
+                reader = port.readable.getReader();
+
+                logMessage('Connected to serial port at ' + baudRate + ' baud');
+
+                const connectBtn = document.getElementById('connectBtn');
+                const connectionStatus = document.getElementById('connectionStatus');
+                
+                if (connectBtn) {
+                    connectBtn.textContent = 'Disconnect';
+                    connectBtn.onclick = disconnectSerial;
+                }
+                
+                if (connectionStatus) {
+                    connectionStatus.textContent = 'Connected';
+                    connectionStatus.className = 'status connected';
+                }
+
+                // Start reading responses with error recovery
+                readSerialData().catch(error => {
+                    logMessage('Serial reading stopped: ' + error.message);
+                    // Try to gracefully handle disconnection
+                    if (port && !port.readable) {
+                        disconnectSerial();
+                    }
+                });
+
+            } catch (error) {
+                logMessage('Connection failed: ' + error.message);
+            }
+        }
+
+        async function disconnectSerial() {
+            try {
+                // Stop reading first
+                if (reader) {
+                    try {
+                        await reader.cancel();
+                    } catch (e) {
+                        console.log('Reader cancel error:', e);
+                    }
+                    try {
+                        await reader.releaseLock();
+                    } catch (e) {
+                        console.log('Reader release error:', e);
+                    }
+                }
+                
+                if (writer) {
+                    try {
+                        await writer.releaseLock();
+                    } catch (e) {
+                        console.log('Writer release error:', e);
+                    }
+                }
+                
+                if (port) {
+                    try {
+                        await port.close();
+                    } catch (e) {
+                        console.log('Port close error:', e);
+                    }
+                }
+
+                port = null;
+                writer = null;
+                reader = null;
+
+                // Stop auto-refresh if active
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                    autoRefreshInterval = null;
+                    const button = document.getElementById('toggleAutoRefresh');
+                    if (button) {
+                        button.textContent = 'Start Auto-Refresh';
+                        button.style.background = 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
+                    }
+                }
+
+                const connectBtn = document.getElementById('connectBtn');
+                const connectionStatus = document.getElementById('connectionStatus');
+                
+                if (connectBtn) {
+                    connectBtn.textContent = 'Connect Serial';
+                    connectBtn.onclick = connectSerial;
+                }
+                
+                if (connectionStatus) {
+                    connectionStatus.textContent = 'Not Connected';
+                    connectionStatus.className = 'status disconnected';
+                }
+
+                logMessage('Disconnected from serial port');
+
+            } catch (error) {
+                logMessage('Disconnection error: ' + error.message);
+            }
+        }
+
+        async function readSerialData() {
+            try {
+                while (port && port.readable) {
+                    const { value, done } = await reader.read();
+                    if (done) {
+                        console.log('Serial reader done');
+                        break;
+                    }
+
+                    const text = new TextDecoder().decode(value);
+                    
+                    // Limit logging to prevent UI freeze with rapid data
+                    if (text.length < 500) {
+                        logMessage('RX: ' + text.trim());
+                    } else {
+                        logMessage('RX: Large data received (' + text.length + ' chars)');
+                    }
+                    
+                    // Try to parse JSON responses
+                    try {
+                        const response = JSON.parse(text.trim());
+                        if (response.data) {
+                            // Use requestAnimationFrame to prevent UI blocking
+                            requestAnimationFrame(() => {
+                                if (response.cmd === 'monitor') {
+                                    updateMonitoringData(response.data);
+                                } else {
+                                    updateUIFromConfig(response.data);
+                                }
+                            });
+                        }
+                        
+                        // Handle export config response
+                        if (response.status === 'success' && response.cmd === 'config' && response.action === 'get') {
+                            const configData = JSON.stringify(response.data, null, 2);
+                            const blob = new Blob([configData], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'vcu_config_' + new Date().toISOString().split('T')[0] + '.json';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                            logMessage('Configuration exported');
+                        }
+                    } catch (e) {
+                        // Not JSON, just logged above
+                    }
+                    
+                    // Yield to browser to prevent freezing
+                    await new Promise(resolve => setTimeout(resolve, 1));
+                }
+            } catch (error) {
+                if (error.name !== 'NetworkError') {
+                    logMessage('Read error: ' + error.message);
+                }
+                console.log('Serial read loop ended:', error.message);
+            }
+        }
+
+        // Send command via serial
+        async function sendCommand(command) {
+            if (!writer) {
+                logMessage('Not connected to serial port');
+                return;
+            }
+
+            try {
+                const commandStr = JSON.stringify(command) + '\n';
+                await writer.write(new TextEncoder().encode(commandStr));
+                logMessage('Sent: ' + commandStr.trim());
+            } catch (error) {
+                logMessage('Send error: ' + error.message);
+            }
+        }
+
+        // Get current configuration
+        function getCurrentConfig() {
+            sendCommand({
+                "cmd": "config",
+                "action": "get"
+            });
+        }
+
+        // Save configuration to flash
+        function saveConfig() {
+            sendCommand({
+                "cmd": "config",
+                "action": "save"
+            });
+        }
+
+        // Monitoring functions
+        function requestMonitoringData() {
+            sendCommand({
+                "cmd": "monitor",
+                "action": "get"
+            });
+        }
+
+        function toggleAutoRefresh() {
+            const button = document.getElementById('toggleAutoRefresh');
+            const intervalSelect = document.getElementById('refreshInterval');
+            
+            if (!button || !intervalSelect) {
+                logMessage('Auto-refresh controls not found');
+                return;
+            }
+            
+            const interval = parseInt(intervalSelect.value);
+            
+            if (autoRefreshInterval) {
+                // Stop auto-refresh
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                button.textContent = 'Start Auto-Refresh';
+                button.style.background = 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
+            } else {
+                // Start auto-refresh
+                autoRefreshInterval = setInterval(requestMonitoringData, interval);
+                button.textContent = 'Stop Auto-Refresh';
+                button.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)';
+                requestMonitoringData(); // Initial request
+            }
+        }
+
+        // Update monitoring display with null checks
+        function updateMonitoringData(data) {
+            // Helper function to safely update element
+            function safeUpdateElement(id, value) {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = value;
+                }
+            }
+
+            // Vehicle Status
+            if (data.vehicleState !== undefined) {
+                const states = ['STANDBY', 'RUN', 'CHARGING'];
+                safeUpdateElement('vehicleStateValue', states[data.vehicleState] || 'UNKNOWN');
+            }
+            safeUpdateElement('batteryArmedValue', data.batteryArmed ? 'Yes' : 'No');
+            safeUpdateElement('prechargeCompleteValue', data.prechargeComplete ? 'Yes' : 'No');
+
+            // BMS Data
+            if (data.bms) {
+                safeUpdateElement('socValue', data.bms.soc + '%');
+                safeUpdateElement('packVoltageValue', data.bms.voltage + 'V');
+                safeUpdateElement('packCurrentValue', data.bms.current + 'A');
+                safeUpdateElement('maxDischargeValue', data.bms.maxDischarge + 'A');
+                safeUpdateElement('maxChargeValue', data.bms.maxCharge + 'A');
+            }
+
+            // DMC Data
+            if (data.dmc) {
+                safeUpdateElement('dmcReadyValue', data.dmc.ready ? 'Yes' : 'No');
+                safeUpdateElement('motorSpeedValue', Math.round(data.dmc.speedActual) + ' RPM');
+                safeUpdateElement('actualTorqueValue', data.dmc.torqueActual.toFixed(1) + ' Nm');
+                safeUpdateElement('inverterTempValue', data.dmc.tempInverter.toFixed(1) + '°C');
+                safeUpdateElement('motorTempValue', data.dmc.tempMotor.toFixed(1) + '°C');
+            }
+
+            // BSC Data
+            if (data.bsc) {
+                safeUpdateElement('hvVoltageValue', data.bsc.hvVoltageAct.toFixed(1) + 'V');
+                safeUpdateElement('lvVoltageValue', data.bsc.lvVoltageAct.toFixed(1) + 'V');
+                safeUpdateElement('hvCurrentValue', data.bsc.hvCurrentAct.toFixed(1) + 'A');
+                safeUpdateElement('bscModeValue', data.bsc.mode ? 'BOOST' : 'BUCK');
+            }
+
+            // NLG Data
+            if (data.nlg) {
+                const chargerStates = ['SLEEP', 'WAKEUP', 'STANDBY', 'READY2CHARGE', 'CHARGE', 'SHUTDOWN'];
+                safeUpdateElement('chargerStateValue', chargerStates[data.nlg.stateAct] || 'UNKNOWN');
+                safeUpdateElement('chargingVoltageValue', data.nlg.dcHvVoltageAct + 'V');
+                safeUpdateElement('chargingCurrentValue', data.nlg.dcHvCurrentAct + 'A');
+                safeUpdateElement('connectorLockedValue', data.nlg.connectorLocked ? 'Yes' : 'No');
+            }
+        }
+
+        // Apply preset configuration
+        function applyPreset(presetName) {
+            if (!presets[presetName]) return;
+
+            const preset = presets[presetName];
+            
+            // Update pedal zone sliders
+            document.getElementById('regenZoneEnd').value = preset.regenZoneEnd;
+            document.getElementById('coastZoneEnd').value = preset.coastZoneEnd;
+            document.getElementById('regenProgression').value = preset.regenProgression;
+            document.getElementById('accelProgression').value = preset.accelProgression;
+            
+            // Update system parameter sliders
+            document.getElementById('maxTorque').value = preset.maxTorque;
+            document.getElementById('baseSpeed').value = preset.baseSpeed;
+            document.getElementById('deltaSpeed').value = preset.deltaSpeed;
+            
+            // Update drive power limits
+            for (let i = 0; i < 5; i++) {
+                document.getElementById(`drivePowerLimit${i}`).value = preset.drivePowerLimits[i];
+            }
+            
+            // Update regen power limits
+            for (let i = 0; i < 5; i++) {
+                document.getElementById(`regenPowerLimit${i}`).value = preset.regenPowerLimits[i];
+            }
+
+            // Update display values
+            document.querySelectorAll('input[type="range"]').forEach(slider => {
+                slider.dispatchEvent(new Event('input'));
+            });
+
+            logMessage(`Applied ${presetName} preset`);
+        }
+
+        // Send current configuration
+        function sendCurrentConfig() {
+            // Send pedal configuration
+            const pedalConfig = {
+                regenZoneEnd: parseFloat(document.getElementById('regenZoneEnd').value),
+                coastZoneEnd: parseFloat(document.getElementById('coastZoneEnd').value),
+                regenProgression: parseFloat(document.getElementById('regenProgression').value),
+                accelProgression: parseFloat(document.getElementById('accelProgression').value)
+            };
+            
+            sendCommand({
+                "cmd": "config",
+                "action": "set",
+                "category": "pedal",
+                "data": pedalConfig
+            });
+
+            // Send Curtis configuration
+            const curtisConfig = {
+                baseSpeed: parseFloat(document.getElementById('baseSpeed').value),
+                deltaSpeed: parseFloat(document.getElementById('deltaSpeed').value),
+                drivePowerLimits: [
+                    parseFloat(document.getElementById('drivePowerLimit0').value),
+                    parseFloat(document.getElementById('drivePowerLimit1').value),
+                    parseFloat(document.getElementById('drivePowerLimit2').value),
+                    parseFloat(document.getElementById('drivePowerLimit3').value),
+                    parseFloat(document.getElementById('drivePowerLimit4').value)
+                ],
+                regenPowerLimits: [
+                    parseFloat(document.getElementById('regenPowerLimit0').value),
+                    parseFloat(document.getElementById('regenPowerLimit1').value),
+                    parseFloat(document.getElementById('regenPowerLimit2').value),
+                    parseFloat(document.getElementById('regenPowerLimit3').value),
+                    parseFloat(document.getElementById('regenPowerLimit4').value)
+                ]
+            };
+
+            sendCommand({
+                "cmd": "config",
+                "action": "set",
+                "category": "curtis",
+                "data": curtisConfig
+            });
+
+            // Send settings configuration
+            sendCommand({
+                "cmd": "config",
+                "action": "set",
+                "category": "battery",
+                "data": {
+                    "maxSOC": parseInt(document.getElementById('maxSOC').value),
+                    "maxChargingCurrentAC": parseInt(document.getElementById('maxChargingCurrent').value)
+                }
+            });
+
+            sendCommand({
+                "cmd": "config",
+                "action": "set", 
+                "category": "driving",
+                "data": {
+                    "mode": document.getElementById('driveMode').value,
+                    "maxTorque": parseInt(document.getElementById('maxTorque').value)
+                }
+            });
+        }
+
+        // Settings functions with null checks
+        function resetToDefaults() {
+            if (confirm('Reset all settings to defaults? This cannot be undone.')) {
+                sendCommand({
+                    "cmd": "config",
+                    "action": "reset"
+                });
+                logMessage('Reset command sent');
+            }
+        }
+
+        function exportConfig() {
+            // Get current config and create download
+            sendCommand({
+                "cmd": "config",
+                "action": "get"
+            });
+            // The response will be handled in the serial read function
+            // and we can create a download there
+        }
+
+        function importConfig(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    
+                    // Send each category separately
+                    if (config.pedal) {
+                        sendCommand({
+                            "cmd": "config",
+                            "action": "set",
+                            "category": "pedal",
+                            "data": config.pedal
+                        });
+                    }
+                    
+                    if (config.curtis) {
+                        sendCommand({
+                            "cmd": "config",
+                            "action": "set",
+                            "category": "curtis",
+                            "data": config.curtis
+                        });
+                    }
+                    
+                    if (config.driving) {
+                        sendCommand({
+                            "cmd": "config",
+                            "action": "set",
+                            "category": "driving",
+                            "data": config.driving
+                        });
+                    }
+                    
+                    if (config.battery) {
+                        sendCommand({
+                            "cmd": "config",
+                            "action": "set",
+                            "category": "battery",
+                            "data": config.battery
+                        });
+                    }
+                    
+                    logMessage('Configuration imported and sent');
+                } catch (error) {
+                    logMessage('Error importing config: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Update UI from received configuration (optimized)
+        function updateUIFromConfig(config) {
+            const updates = [];
+            
+            // Collect all UI updates first
+            if (config.pedal) {
+                if (config.pedal.regenZoneEnd !== undefined) {
+                    updates.push(() => document.getElementById('regenZoneEnd').value = config.pedal.regenZoneEnd);
+                }
+                if (config.pedal.coastZoneEnd !== undefined) {
+                    updates.push(() => document.getElementById('coastZoneEnd').value = config.pedal.coastZoneEnd);
+                }
+                if (config.pedal.regenProgression !== undefined) {
+                    updates.push(() => document.getElementById('regenProgression').value = config.pedal.regenProgression);
+                }
+                if (config.pedal.accelProgression !== undefined) {
+                    updates.push(() => document.getElementById('accelProgression').value = config.pedal.accelProgression);
+                }
+            }
+            
+            if (config.curtis) {
+                if (config.curtis.baseSpeed !== undefined) {
+                    updates.push(() => document.getElementById('baseSpeed').value = config.curtis.baseSpeed);
+                }
+                if (config.curtis.deltaSpeed !== undefined) {
+                    updates.push(() => document.getElementById('deltaSpeed').value = config.curtis.deltaSpeed);
+                }
+                if (config.curtis.drivePowerLimits) {
+                    for (let i = 0; i < Math.min(5, config.curtis.drivePowerLimits.length); i++) {
+                        const index = i;
+                        updates.push(() => document.getElementById(`drivePowerLimit${index}`).value = config.curtis.drivePowerLimits[index]);
+                    }
+                }
+                if (config.curtis.regenPowerLimits) {
+                    for (let i = 0; i < Math.min(5, config.curtis.regenPowerLimits.length); i++) {
+                        const index = i;
+                        updates.push(() => document.getElementById(`regenPowerLimit${index}`).value = config.curtis.regenPowerLimits[index]);
+                    }
+                }
+            }
+            
+            if (config.driving) {
+                if (config.driving.maxTorque !== undefined) {
+                    updates.push(() => document.getElementById('maxTorque').value = config.driving.maxTorque);
+                }
+                if (config.driving.mode !== undefined) {
+                    updates.push(() => {
+                        document.getElementById('driveMode').value = config.driving.mode;
+                        document.getElementById('driveModeValue').textContent = config.driving.mode.toUpperCase();
+                    });
+                }
+            }
+            
+            // Update battery config
+            if (config.battery) {
+                if (config.battery.maxSOC !== undefined) {
+                    updates.push(() => document.getElementById('maxSOC').value = config.battery.maxSOC);
+                }
+                if (config.battery.maxChargingCurrentAC !== undefined) {
+                    updates.push(() => document.getElementById('maxChargingCurrent').value = config.battery.maxChargingCurrentAC);
+                }
+            }
+
+            // Apply updates in batches to prevent UI blocking
+            const batchSize = 5;
+            let updateIndex = 0;
+            
+            function processBatch() {
+                const batch = updates.slice(updateIndex, updateIndex + batchSize);
+                batch.forEach(update => update());
+                updateIndex += batchSize;
+                
+                if (updateIndex < updates.length) {
+                    requestAnimationFrame(processBatch);
+                } else {
+                    // Update display values after all slider values are set
+                    requestAnimationFrame(() => {
+                        document.querySelectorAll('input[type="range"]').forEach(slider => {
+                            const event = new Event('input', { bubbles: true });
+                            slider.dispatchEvent(event);
+                        });
+                        logMessage('UI updated from configuration');
+                    });
+                }
+            }
+            
+            if (updates.length > 0) {
+                processBatch();
+            }
+        }
+
+        // Log messages with rate limiting
+        let logBuffer = [];
+        let logUpdateTimer = null;
+        const MAX_LOG_ENTRIES = 100;
+
+        function logMessage(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            
+            logBuffer.push(logEntry);
+            
+            // Keep only recent entries
+            if (logBuffer.length > MAX_LOG_ENTRIES) {
+                logBuffer = logBuffer.slice(-MAX_LOG_ENTRIES);
+            }
+            
+            // Batch DOM updates to prevent blocking
+            if (!logUpdateTimer) {
+                logUpdateTimer = setTimeout(() => {
+                    const log = document.getElementById('log');
+                    if (log) {
+                        log.innerHTML = logBuffer.map(entry => `<div>${entry}</div>`).join('');
+                        log.scrollTop = log.scrollHeight;
+                    }
+                    logUpdateTimer = null;
+                }, 50); // Update every 50ms max
+            }
+        }
+
+        // Check Web Serial API support and add connection monitoring
+        if (!('serial' in navigator)) {
+            logMessage('Web Serial API not supported. Use Chrome, Edge, or Opera.');
+            const connectBtn = document.getElementById('connectBtn');
+            if (connectBtn) {
+                connectBtn.disabled = true;
+            }
+        } else {
+            // Monitor for serial port disconnection
+            navigator.serial.addEventListener('disconnect', (event) => {
+                if (event.target === port) {
+                    logMessage('Serial device disconnected');
+                    disconnectSerial();
+                }
+            });
+        }
+
+        // Initialize when page loads with debug
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing UI...');
+            
+            // Check if tabs are present
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            console.log(`Found ${tabs.length} tabs and ${tabContents.length} tab contents`);
+            
+            initializeUI();
+            
+            // Log initial state
+            console.log('UI initialized');
+            logMessage('Interface loaded with ' + tabs.length + ' tabs');
+        });
+    </script>
+</body>
+</html>

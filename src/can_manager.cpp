@@ -473,13 +473,13 @@ void CANManager::sendDMC() {
  */
 void CANManager::sendNLG() {
     int nlgVoltageScale = static_cast<int>(VehicleParams::Battery::MAX_VOLTAGE * 10);
-    
+    Serial.println(bmsData.maxCharge);
     // Check if BMS timeout has occurred
-    static unsigned long lastBMSUpdate = 0; // Track BMS messages
     // Note: You need to update lastBMSUpdate in your processBMSMessage() method
     if (millis() - lastBMSUpdate > VehicleParams::Timing::BMS_TIMEOUT_MS) {
         bmsData.maxCharge = 0;  // Set max charge current to 0 if timeout occurs
     }
+    static unsigned long lastBMSUpdate = 0; // Track BMS messages
 
     // Use the configuration value for maximum charging current
     uint8_t maxNlgCurrentAC = config.getMaxChargingCurrent();
@@ -487,11 +487,10 @@ void CANManager::sendNLG() {
     // Limit charging current by smaller of max charger current and BMS max charge
     float limitedCurrentDC = std::min(static_cast<int>(VehicleParams::Battery::MAX_NLG_CURRENT), 
                                     static_cast<int>(bmsData.maxCharge));
-    
     // Recovery mode for low voltage
-    if (bmsData.voltage < VehicleParams::Battery::MIN_VOLTAGE && bmsData.maxCharge == 0) {
+   /* if (bmsData.voltage < VehicleParams::Battery::MIN_VOLTAGE && bmsData.maxCharge == 0) {
         limitedCurrentDC = 5;  // Force 5A in recovery mode
-    }
+    }*/
     
     int nlgCurrentScaleDC = static_cast<int>((limitedCurrentDC + 102.4) * 10);
     int nlgCurrentScaleAC = static_cast<int>((maxNlgCurrentAC + 102.4) * 10);
