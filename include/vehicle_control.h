@@ -135,7 +135,26 @@ public:
      * @return true if transition is active
      */
     bool isInTorqueTransition() const { return currentTransition != TransitionType::NONE; }
-    
+
+    // Getters for web interface
+    /**
+     * @brief Get throttle percentage (normalized pedal position)
+     * @return Throttle percentage 0-100%
+     */
+    float getThrottlePercentage() const { return throttlePercentage; }
+
+    /**
+     * @brief Get torque percentage demand
+     * @return Torque percentage -100% to +100%
+     */
+    float getTorquePercentage() const { return lastTorquePercent; }
+
+    /**
+     * @brief Get current gear state
+     * @return Current gear (DRIVE/NEUTRAL/REVERSE)
+     */
+    GearState getCurrentGear() const { return currentGear; }
+
     static constexpr float MAX_VEHICLE_SPEED = 120.0f;  // kph
 
 private:
@@ -269,6 +288,7 @@ private:
     // NEW: Smooth torque transition system
     float currentTorqueOutput;       ///< Actual torque being output
     float targetTorqueFromPedal;     ///< Target torque from pedal input
+    float throttlePercentage;        ///< Raw throttle position 0-100%
     unsigned long lastTransitionTime; ///< Last transition update time
     
     TransitionType currentTransition; ///< Current transition type

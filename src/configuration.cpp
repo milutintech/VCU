@@ -15,25 +15,25 @@ const char* Configuration::KEY_MAX_TORQUE = "max_torque";
 const char* Configuration::KEY_MAX_SOC = "max_soc";
 const char* Configuration::KEY_MAX_CHARGING_CURRENT = "max_ac_curr";
 
-// Storage keys - Curtis
-const char* Configuration::KEY_BASE_SPEED = "curtis_base_speed";
-const char* Configuration::KEY_DELTA_SPEED = "curtis_delta_speed";
-const char* Configuration::KEY_NOMINAL_POWER = "curtis_nom_power";
-const char* Configuration::KEY_DRIVE_LIMITS = "curtis_drive_limits";
-const char* Configuration::KEY_REGEN_LIMITS = "curtis_regen_limits";
+// Storage keys - Curtis (max 15 chars for NVS)
+const char* Configuration::KEY_BASE_SPEED = "curt_base_spd";      // 13 chars
+const char* Configuration::KEY_DELTA_SPEED = "curt_delta_spd";    // 14 chars
+const char* Configuration::KEY_NOMINAL_POWER = "curt_nom_pwr";    // 12 chars
+const char* Configuration::KEY_DRIVE_LIMITS = "curt_drv_lim";     // 12 chars
+const char* Configuration::KEY_REGEN_LIMITS = "curt_reg_lim";     // 12 chars
 
-// Storage keys - Pedal zones
-const char* Configuration::KEY_REGEN_ZONE_END = "pedal_regen_end";
-const char* Configuration::KEY_COAST_ZONE_END = "pedal_coast_end";
-const char* Configuration::KEY_REGEN_PROGRESSION = "pedal_regen_prog";
-const char* Configuration::KEY_ACCEL_PROGRESSION = "pedal_accel_prog";
+// Storage keys - Pedal zones (max 15 chars for NVS)
+const char* Configuration::KEY_REGEN_ZONE_END = "ped_regen_end";  // 13 chars
+const char* Configuration::KEY_COAST_ZONE_END = "ped_coast_end";  // 13 chars
+const char* Configuration::KEY_REGEN_PROGRESSION = "ped_reg_prog"; // 12 chars
+const char* Configuration::KEY_ACCEL_PROGRESSION = "ped_acc_prog"; // 12 chars
 
-// NEW: Storage keys - Transition timing
-const char* Configuration::KEY_REGEN_ENGAGE_TIME = "trans_regen_engage";
-const char* Configuration::KEY_REGEN_RELEASE_TIME = "trans_regen_release";
-const char* Configuration::KEY_POWER_ENGAGE_TIME = "trans_power_engage";
-const char* Configuration::KEY_POWER_RELEASE_TIME = "trans_power_release";
-const char* Configuration::KEY_CROSSOVER_TIME = "trans_crossover";
+// NEW: Storage keys - Transition timing (max 15 chars for NVS)
+const char* Configuration::KEY_REGEN_ENGAGE_TIME = "trn_reg_engage";  // 14 chars
+const char* Configuration::KEY_REGEN_RELEASE_TIME = "trn_reg_rel";    // 10 chars
+const char* Configuration::KEY_POWER_ENGAGE_TIME = "trn_pwr_engage";  // 14 chars
+const char* Configuration::KEY_POWER_RELEASE_TIME = "trn_pwr_rel";    // 10 chars
+const char* Configuration::KEY_CROSSOVER_TIME = "trn_crossover";      // 14 chars
 
 // Global configuration instance
 Configuration config;
@@ -44,8 +44,18 @@ Configuration config;
 void Configuration::begin() {
     // Set defaults first
     resetToDefaults();
-    
-    // Try to load stored settings
+
+    // Check if we need to migrate from old keys (cleanup after key shortening fix)
+    preferences.begin(NAMESPACE, false);
+    bool hasOldKeys = preferences.isKey("curtis_base_speed");  // Check for old key format
+    if (hasOldKeys) {
+        Serial.println("[Config] Detected old key format - clearing namespace for migration...");
+        preferences.clear();  // Clear all old keys
+        Serial.println("[Config] Namespace cleared - will use new short keys");
+    }
+    preferences.end();
+
+    // Try to load stored settings (will be defaults if we just cleared)
     load();
 }
 
@@ -75,7 +85,7 @@ void Configuration::resetToDefaults() {
 void Configuration::resetCurtisDefaults() {
     baseSpeed = 1000.0f;  // ✓ Already correct
     deltaSpeed = 500.0f;  // ✓ Already correct
-    nominalPower = 85.0f; // ✓ Keep as is
+    nominalPower = 100.0f; // ✓ Keep as is
     
     // Drive curve - all 100% (already correct)
     drivePowerLimits[0] = 100.0f;  // ✓ Already correct
@@ -115,39 +125,82 @@ void Configuration::resetTransitionDefaults() {
 
 /**
  * @brief Save current settings to flash
+ *
+ * IMPORTANT: ESP32 NVS key names must be ≤15 characters!
+ * Longer keys will fail with KEY_TOO_LONG error and save will fail.
  */
 bool Configuration::save() {
     bool success = true;
-    
+
+    Serial.printf("[Config] Saving configuration to flash...\n");
+    Serial.printf("[Config]   maxSOC: %d%%\n", maxSOC);
+    Serial.printf("[Config]   maxChargingCurrent: %d A\n", maxChargingCurrent);
+
     preferences.begin(NAMESPACE, false);
-    
+
     // Save basic parameters
-    success &= preferences.putUChar(KEY_DRIVE_MODE, static_cast<uint8_t>(driveMode));
-    success &= preferences.putInt(KEY_MAX_TORQUE, maxTorque);
-    success &= preferences.putUChar(KEY_MAX_SOC, maxSOC);
-    success &= preferences.putUChar(KEY_MAX_CHARGING_CURRENT, maxChargingCurrent);
-    
+    size_t written;
+    written = preferences.putUChar(KEY_DRIVE_MODE, static_cast<uint8_t>(driveMode));
+    if (written == 0) { Serial.printf("[Config] FAIL: drive_mode\n"); success = false; }
+
+    written = preferences.putInt(KEY_MAX_TORQUE, maxTorque);
+    if (written == 0) { Serial.printf("[Config] FAIL: max_torque\n"); success = false; }
+
+    written = preferences.putUChar(KEY_MAX_SOC, maxSOC);
+    if (written == 0) { Serial.printf("[Config] FAIL: max_soc\n"); success = false; }
+
+    written = preferences.putUChar(KEY_MAX_CHARGING_CURRENT, maxChargingCurrent);
+    if (written == 0) { Serial.printf("[Config] FAIL: max_ac_curr\n"); success = false; }
+
     // Save Curtis parameters
-    success &= preferences.putFloat(KEY_BASE_SPEED, baseSpeed);
-    success &= preferences.putFloat(KEY_DELTA_SPEED, deltaSpeed);
-    success &= preferences.putFloat(KEY_NOMINAL_POWER, nominalPower);
-    success &= preferences.putBytes(KEY_DRIVE_LIMITS, drivePowerLimits, sizeof(drivePowerLimits));
-    success &= preferences.putBytes(KEY_REGEN_LIMITS, regenPowerLimits, sizeof(regenPowerLimits));
-    
+    written = preferences.putFloat(KEY_BASE_SPEED, baseSpeed);
+    if (written == 0) { Serial.printf("[Config] FAIL: curt_base_spd\n"); success = false; }
+
+    written = preferences.putFloat(KEY_DELTA_SPEED, deltaSpeed);
+    if (written == 0) { Serial.printf("[Config] FAIL: curt_delta_spd\n"); success = false; }
+
+    written = preferences.putFloat(KEY_NOMINAL_POWER, nominalPower);
+    if (written == 0) { Serial.printf("[Config] FAIL: curt_nom_pwr\n"); success = false; }
+
+    written = preferences.putBytes(KEY_DRIVE_LIMITS, drivePowerLimits, sizeof(drivePowerLimits));
+    if (written == 0) { Serial.printf("[Config] FAIL: curt_drv_lim\n"); success = false; }
+
+    written = preferences.putBytes(KEY_REGEN_LIMITS, regenPowerLimits, sizeof(regenPowerLimits));
+    if (written == 0) { Serial.printf("[Config] FAIL: curt_reg_lim\n"); success = false; }
+
     // Save pedal zone parameters
-    success &= preferences.putFloat(KEY_REGEN_ZONE_END, regenZoneEnd);
-    success &= preferences.putFloat(KEY_COAST_ZONE_END, coastZoneEnd);
-    success &= preferences.putFloat(KEY_REGEN_PROGRESSION, regenProgression);
-    success &= preferences.putFloat(KEY_ACCEL_PROGRESSION, accelProgression);
-    
+    written = preferences.putFloat(KEY_REGEN_ZONE_END, regenZoneEnd);
+    if (written == 0) { Serial.printf("[Config] FAIL: ped_regen_end\n"); success = false; }
+
+    written = preferences.putFloat(KEY_COAST_ZONE_END, coastZoneEnd);
+    if (written == 0) { Serial.printf("[Config] FAIL: ped_coast_end\n"); success = false; }
+
+    written = preferences.putFloat(KEY_REGEN_PROGRESSION, regenProgression);
+    if (written == 0) { Serial.printf("[Config] FAIL: ped_reg_prog\n"); success = false; }
+
+    written = preferences.putFloat(KEY_ACCEL_PROGRESSION, accelProgression);
+    if (written == 0) { Serial.printf("[Config] FAIL: ped_acc_prog\n"); success = false; }
+
     // NEW: Save transition timing parameters
-    success &= preferences.putFloat(KEY_REGEN_ENGAGE_TIME, regenEngageTime);
-    success &= preferences.putFloat(KEY_REGEN_RELEASE_TIME, regenReleaseTime);
-    success &= preferences.putFloat(KEY_POWER_ENGAGE_TIME, powerEngageTime);
-    success &= preferences.putFloat(KEY_POWER_RELEASE_TIME, powerReleaseTime);
-    success &= preferences.putFloat(KEY_CROSSOVER_TIME, crossoverTime);
-    
+    written = preferences.putFloat(KEY_REGEN_ENGAGE_TIME, regenEngageTime);
+    if (written == 0) { Serial.printf("[Config] FAIL: trn_reg_engage\n"); success = false; }
+
+    written = preferences.putFloat(KEY_REGEN_RELEASE_TIME, regenReleaseTime);
+    if (written == 0) { Serial.printf("[Config] FAIL: trn_reg_rel\n"); success = false; }
+
+    written = preferences.putFloat(KEY_POWER_ENGAGE_TIME, powerEngageTime);
+    if (written == 0) { Serial.printf("[Config] FAIL: trn_pwr_engage\n"); success = false; }
+
+    written = preferences.putFloat(KEY_POWER_RELEASE_TIME, powerReleaseTime);
+    if (written == 0) { Serial.printf("[Config] FAIL: trn_pwr_rel\n"); success = false; }
+
+    written = preferences.putFloat(KEY_CROSSOVER_TIME, crossoverTime);
+    if (written == 0) { Serial.printf("[Config] FAIL: trn_crossover\n"); success = false; }
+
     preferences.end();
+
+    Serial.printf("[Config] Save %s\n", success ? "SUCCESSFUL" : "FAILED");
+
     return success;
 }
 
@@ -176,9 +229,16 @@ bool Configuration::load() {
     
     if (preferences.isKey(KEY_MAX_SOC)) {
         uint8_t soc = preferences.getUChar(KEY_MAX_SOC, maxSOC);
+        Serial.printf("[Config] Loading maxSOC from preferences: %d%%\n", soc);
         if (soc >= MIN_SOC_LIMIT && soc <= MAX_SOC_LIMIT) {
             maxSOC = soc;
+            Serial.printf("[Config] maxSOC loaded successfully: %d%%\n", maxSOC);
+        } else {
+            Serial.printf("[Config] maxSOC out of range (%d-%d), using default: %d%%\n",
+                         MIN_SOC_LIMIT, MAX_SOC_LIMIT, maxSOC);
         }
+    } else {
+        Serial.printf("[Config] maxSOC key not found, using default: %d%%\n", maxSOC);
     }
     
     if (preferences.isKey(KEY_MAX_CHARGING_CURRENT)) {

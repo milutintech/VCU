@@ -87,15 +87,17 @@ float VehicleControl::calculateImmediateTorqueFromPedal() {
     // Map using correct ADC values from config.h (0-100%)
     float rawThrottle = map(sampledPotiValue, ADC::MinValPot, ADC::MaxValPot, 0, 100);
     rawThrottle = constrain(rawThrottle, 0.0f, 100.0f);
+    throttlePercentage = rawThrottle;  // Store for web interface
     //Serial.printf("Raw Throttle: %.1f%%\n", rawThrottle);
-    // Update reverse light based on gear state
-    digitalWrite(Pins::BCKLIGHT, currentGear == GearState::REVERSE ? HIGH : LOW);
-    digitalWrite(19, currentGear == GearState::REVERSE ? HIGH : LOW);
+    // Update reverse signals based on gear state
+    // When in REVERSE: IO17 (BCKLIGHT) HIGH, IO46 LOW
+    // When in DRIVE or NEUTRAL: IO17 LOW, IO46 HIGH (inverted logic)
+    bool isReverse = (currentGear == GearState::REVERSE);
+    digitalWrite(Pins::BCKLIGHT, isReverse ? HIGH : LOW);  // IO17 - normal logic
+    digitalWrite(46, isReverse ? LOW : HIGH);              // IO46 - inverted logic
 
     // Handle neutral gear - always zero torque
     if (currentGear == GearState::NEUTRAL) {
-        digitalWrite(19, LOW);  
-        digitalWrite(Pins::BCKLIGHT, LOW);
         return 0.0f;
     }
     

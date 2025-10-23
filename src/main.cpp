@@ -23,6 +23,8 @@
 #include "error_monitor.h"            // New error monitoring
 #include "configuration.h"            // Extended configuration
 #include "can_monitoring.h"           // CAN monitoring extensions
+#include "wifi_manager.h"             // WiFi management
+#include "web_server.h"               // Web server
 
 // Global objects - Enhanced
 ADS1115 ads(0x48);
@@ -32,10 +34,13 @@ VehicleControl* vehicleControl = nullptr;
 EnhancedSerialConsole* serialConsole = nullptr;  // Fixed class name
 ErrorMonitor* errorMonitor = nullptr;             // New error monitor
 CANMonitor* canMonitor = nullptr;                 // New CAN monitor
+WiFiManager* wifiManager = nullptr;               // WiFi manager
+VCUWebServer* webServer = nullptr;                // Web server
 
 // Task handles
 TaskHandle_t canTaskHandle = nullptr;
 TaskHandle_t controlTaskHandle = nullptr;
+TaskHandle_t webTaskHandle = nullptr;
 
 // Interrupt handling (unchanged)
 volatile bool unlockInterruptTriggered = false;
@@ -142,40 +147,61 @@ void canTask(void* parameter) {
 void controlTask(void* parameter) {
     Serial.print("Enhanced Control Task running on core: ");
     Serial.println(xPortGetCoreID());
-    
+
     esp_task_wdt_init(5, true);
     errorMonitor->logInfo("Control task started successfully", "SYSTEM");
-    
+
     stateManager->handleWakeup();
-    
+
     unsigned long lastPerformanceUpdate = 0;
     const unsigned long PERFORMANCE_UPDATE_INTERVAL = 1000; // Update performance every second
-    
+
     for(;;) {
         esp_task_wdt_reset();
-        
+
         // Check for pending unlock interrupt
         checkAndHandleInterrupt();
-        
+
         // Update system state
         stateManager->update();
-        
-        // Process serial console commands
-        serialConsole->update();
-        
+
         // Update performance metrics periodically
         if (millis() - lastPerformanceUpdate >= PERFORMANCE_UPDATE_INTERVAL) {
             const MonitoringData& monData = errorMonitor->getMonitoringData();
             errorMonitor->updatePerformanceMetrics(monData);
             lastPerformanceUpdate = millis();
         }
-        
+
         // Check system health
         if (!errorMonitor->isSystemHealthy()) {
             errorMonitor->logWarning("System health check failed", "MONITOR");
         }
-        
+
         vTaskDelay(pdMS_TO_TICKS(50)); // 50ms cycle time
+    }
+}
+
+/**
+ * @brief Web Server Task - Handles WiFi and HTTP/WebSocket
+ */
+void webServerTask(void* parameter) {
+    Serial.print("Web Server Task running on core: ");
+    Serial.println(xPortGetCoreID());
+
+    errorMonitor->logInfo("Web server task started successfully", "SYSTEM");
+
+    for(;;) {
+        // Update WiFi connection status
+        if (wifiManager) {
+            wifiManager->update();
+        }
+
+        // Update web server (WebSocket broadcasts)
+        if (webServer) {
+            webServer->update();
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(10)); // 10ms cycle time
     }
 }
 
@@ -240,14 +266,41 @@ void setup() {
     }
     vehicleControl->setCanManager(canManager);
     
-    // Create enhanced serial console
-    serialConsole = new EnhancedSerialConsole(*canManager, *stateManager, *vehicleControl, *errorMonitor);
-    if (!serialConsole) {
-        errorMonitor->logCritical("Failed to create EnhancedSerialConsole", "SYSTEM");
+    // Initialize WiFi Manager
+    wifiManager = new WiFiManager();
+    if (!wifiManager) {
+        errorMonitor->logCritical("Failed to create WiFiManager", "SYSTEM");
         while(1);
     }
 
-    
+    // ====== WIFI CONFIGURATION OPTIONS ======
+    // Uncomment ONE of these options as needed:
+
+    // Option 1: Clear all WiFi settings (force AP mode)
+    //wifiManager->clearStationCredentials();
+
+    // Option 2: Set WiFi credentials to connect to your network
+    //wifiManager->setStationCredentials("YOUR_SSID", "YOUR_PASSWORD");
+    //wifiManager->saveConfig();
+
+    // Option 3: Do nothing - use saved settings or default to AP mode
+    // =========================================
+
+    wifiManager->begin();
+    errorMonitor->logInfo("WiFi Manager initialized", "NETWORK");
+
+    // Initialize Web Server
+    webServer = new VCUWebServer(&config, stateManager, vehicleControl, canManager, errorMonitor);
+    if (!webServer) {
+        errorMonitor->logCritical("Failed to create VCUWebServer", "SYSTEM");
+        while(1);
+    }
+    webServer->begin();
+    errorMonitor->logInfo("Web Server initialized", "NETWORK");
+
+    Serial.print("Web Interface: http://");
+    Serial.println(wifiManager->getIPAddress());
+
     // Apply current configuration to vehicle control
     vehicleControl->setDrivingMode(config.getDriveMode());    
     // NEW: Apply transition configuration to vehicle control
@@ -268,8 +321,7 @@ void setup() {
     SystemSetup::initializeGPIO();
     SystemSetup::initializeSleep();
     
-    // Print system information
-    WiFi.mode(WIFI_STA);
+    // Print system information (don't force WiFi mode - let WiFiManager handle it)
     Serial.print("Device MAC Address: ");
     Serial.println(WiFi.macAddress());
     
@@ -288,20 +340,28 @@ void setup() {
     BaseType_t controlTaskCreated = xTaskCreatePinnedToCore(
         controlTask, "Enhanced_Control_Task", 24000, NULL, 1, &controlTaskHandle, 1
     );
-    
+
     if (controlTaskCreated != pdPASS) {
         errorMonitor->logCritical("Failed to create Control task", "SYSTEM");
         while(1);
     }
-    
-    
+
+    BaseType_t webTaskCreated = xTaskCreatePinnedToCore(
+        webServerTask, "Web_Server_Task", 16000, NULL, 1, &webTaskHandle, 1
+    );
+
+    if (webTaskCreated != pdPASS) {
+        errorMonitor->logCritical("Failed to create Web Server task", "SYSTEM");
+        while(1);
+    }
+
     errorMonitor->logInfo("All tasks created successfully", "SYSTEM");
     Serial.println("Enhanced VCU initialization complete!");
     Serial.println("==========================================");
-    Serial.println("Available commands:");
-    Serial.println("  help - Show legacy commands");
-    Serial.println("  json_help - Show JSON API commands");
-    Serial.println("  {\"cmd\":\"help\"} - JSON command help");
+    Serial.print("Web Interface: http://");
+    Serial.println(wifiManager->getIPAddress());
+    Serial.print("WiFi SSID: ");
+    Serial.println(wifiManager->getSSID());
     Serial.println("==========================================");
 }
 

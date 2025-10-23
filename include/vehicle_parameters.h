@@ -42,7 +42,7 @@ namespace VehicleParams {
     struct Motor {
         static constexpr int MAX_TRQ = 850;         ///< Maximum motor torque (Nm)
         static constexpr int MAX_REQ_TRQ = 850;     ///< Maximum request torque (Nm)
-        static constexpr int MAX_REVERSE_TRQ = 200; ///< Maximum reverse torque (Nm)
+        static constexpr int MAX_REVERSE_TRQ = 450; ///< Maximum reverse torque (Nm)
         static constexpr int MAX_RPM = 6000;        ///< Maximum motor RPM
         static constexpr float DEADZONE_THRESHOLD = 0.5f; ///< Dead zone around zero (%)
     };

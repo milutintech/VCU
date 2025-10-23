@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VCU Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="header-title">🏎️ VCU Dashboard</h1>
+            <div class="header-status">
+                <span class="status-indicator" id="wsStatus">● Disconnected</span>
+                <span class="status-label">State: <span id="headerState">UNKNOWN</span></span>
+                <span class="status-label">Uptime: <span id="headerUptime">0h 0m 0s</span></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tabs">
+        <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="tab-btn" data-tab="charging">Charging</button>
+        <button class="tab-btn" data-tab="configuration">Configuration</button>
+        <button class="tab-btn" data-tab="can-monitor">CAN Monitor</button>
+        <button class="tab-btn" data-tab="system">System</button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="content">
+        <!-- DASHBOARD TAB -->
+        <div class="tab-content active" id="dashboard">
+            <div class="dashboard-grid">
+                <!-- Vehicle Status Card -->
+                <div class="card">
+                    <h2 class="card-title">Vehicle Status</h2>
+                    <div class="status-row">
+                        <span class="status-gear" id="currentGear">N</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Speed</span>
+                        <span class="data-value"><span id="vehicleSpeed">0</span> <span class="unit">km/h</span></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Power</span>
+                        <span class="data-value" id="vehiclePower">0.0 <span class="unit">kW</span></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Torque Demand</span>
+                        <span class="data-value"><span id="torqueDemand">0</span> <span class="unit">Nm</span></span>
+                    </div>
+                </div>
+
+                <!-- Battery Card -->
+                <div class="card">
+                    <h2 class="card-title">Battery</h2>
+                    <div class="data-row">
+                        <span class="data-label">State of Charge</span>
+                        <span class="data-value value-large"><span id="batterySoc">0</span> <span class="unit">%</span></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Voltage</span>
+                        <span class="data-value"><span id="batteryVoltage">0</span> <span class="unit">V</span></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Current</span>
+                        <span class="data-value" id="batteryCurrent">0.0 <span class="unit">A</span></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Min Cell</span>
+                        <span class="data-value"><span id="minCell">0.00</span> <span class="unit">V</span></span>
+                    </div>
+                </div>
+
+                <!-- Temperatures Card -->
+                <div class="card">
+                    <h2 class="card-title">Temperatures</h2>
+                    <div class="data-row">
+                        <span class="data-label">Motor</span>
+                        <span class="data-value"><span id="tempMotor">0</span> <span class="unit">°C</span></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Inverter</span>
+                        <span class="data-value"><span id="tempInverter">0</span> <span class="unit">°C</span></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Battery</span>
+                        <span class="data-value"><span id="tempBattery">0</span> <span class="unit">°C</span></span>
+                    </div>
+                </div>
+
+                <!-- Inputs Card -->
+                <div class="card">
+                    <h2 class="card-title">Inputs</h2>
+                    <div class="data-row">
+                        <span class="data-label">Throttle Position</span>
+                        <span class="data-value"><span id="inputThrottle">0</span> <span class="unit">%</span></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Torque Demand</span>
+                        <span class="data-value"><span id="inputTorque">0</span> <span class="unit">%</span></span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Connector Lock</span>
+                        <span class="data-value status-badge" id="inputConnectorLock">Unlocked</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Ignition</span>
+                        <span class="data-value status-badge" id="inputIgnition">Off</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-grid">
+                <div class="card chart-card">
+                    <h2 class="card-title">Speed Chart</h2>
+                    <canvas id="speedChart" class="chart-canvas"></canvas>
+                    <div class="chart-value" id="speedChartValue">0.0</div>
+                </div>
+
+                <div class="card chart-card">
+                    <h2 class="card-title">Power Chart</h2>
+                    <canvas id="powerChart" class="chart-canvas"></canvas>
+                    <div class="chart-value" id="powerChartValue">0.0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHARGING TAB -->
+        <div class="tab-content" id="charging">
+            <div class="config-section">
+                <h2>Charging Configuration</h2>
+                <div class="form-group">
+                    <label for="maxChargingCurrent">Maximum Charging Current (A)</label>
+                    <input type="range" id="maxChargingCurrent" min="6" max="32" value="32" class="slider">
+                    <span class="slider-value" id="maxChargingCurrentValue">32</span>
+                </div>
+                <div class="form-group">
+                    <label for="chargeTargetSOC">Target SOC (%)</label>
+                    <input type="range" id="chargeTargetSOC" min="50" max="100" value="100" class="slider">
+                    <span class="slider-value" id="chargeTargetSOCValue">100</span>
+                </div>
+                <button class="btn btn-primary" onclick="saveChargingConfig()">Save Configuration</button>
+            </div>
+
+            <div class="config-section">
+                <h2>Charging Status</h2>
+                <div class="status-grid">
+                    <div class="data-row">
+                        <span class="data-label">Charger State</span>
+                        <span class="data-value" id="chargerState">UNKNOWN</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">HV Current</span>
+                        <span class="data-value" id="chargerCurrent">0.0 A</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONFIGURATION TAB -->
+        <div class="tab-content" id="configuration">
+            <!-- Motor Configuration Section -->
+            <div class="config-section">
+                <h2>Motor Configuration</h2>
+                <div class="form-group">
+                    <label for="maxTorque">Maximum Torque (Nm)</label>
+                    <input type="range" id="maxTorque" min="100" max="850" value="400" class="slider">
+                    <span class="slider-value" id="maxTorqueValue">400</span>
+                </div>
+                <button class="btn btn-primary" onclick="saveMotorConfig()">Save Configuration</button>
+            </div>
+
+            <!-- Pedal Zones Section -->
+            <div class="config-section">
+                <h2>Pedal Zones</h2>
+                <div class="form-group">
+                    <label for="regenZoneEnd">Regen Zone End (%)</label>
+                    <input type="range" id="regenZoneEnd" min="10" max="50" step="0.1" value="16" class="slider">
+                    <span class="slider-value" id="regenZoneEndValue">16.0</span>
+                </div>
+                <div class="form-group">
+                    <label for="coastZoneEnd">Coast Zone End (%)</label>
+                    <input type="range" id="coastZoneEnd" min="15" max="60" step="0.1" value="17" class="slider">
+                    <span class="slider-value" id="coastZoneEndValue">17.0</span>
+                </div>
+                <div class="form-group">
+                    <label for="regenProgression">Regen Progression</label>
+                    <input type="range" id="regenProgression" min="1.0" max="3.0" step="0.1" value="1.5" class="slider">
+                    <span class="slider-value" id="regenProgressionValue">1.5</span>
+                </div>
+                <div class="form-group">
+                    <label for="accelProgression">Accel Progression</label>
+                    <input type="range" id="accelProgression" min="1.0" max="3.0" step="0.1" value="1.7" class="slider">
+                    <span class="slider-value" id="accelProgressionValue">1.7</span>
+                </div>
+                <button class="btn btn-primary" onclick="savePedalConfig()">Save Configuration</button>
+            </div>
+
+            <!-- Torque Transitions Section -->
+            <div class="config-section">
+                <h2>Torque Transitions</h2>
+                <div class="form-group">
+                    <label for="regenEngageTime">Regen Engage Time (ms)</label>
+                    <input type="range" id="regenEngageTime" min="0" max="1000" value="300" class="slider">
+                    <span class="slider-value" id="regenEngageTimeValue">300</span>
+                </div>
+                <div class="form-group">
+                    <label for="regenReleaseTime">Regen Release Time (ms)</label>
+                    <input type="range" id="regenReleaseTime" min="0" max="1000" value="150" class="slider">
+                    <span class="slider-value" id="regenReleaseTimeValue">150</span>
+                </div>
+                <div class="form-group">
+                    <label for="powerEngageTime">Power Engage Time (ms)</label>
+                    <input type="range" id="powerEngageTime" min="0" max="1000" value="200" class="slider">
+                    <span class="slider-value" id="powerEngageTimeValue">200</span>
+                </div>
+                <div class="form-group">
+                    <label for="powerReleaseTime">Power Release Time (ms)</label>
+                    <input type="range" id="powerReleaseTime" min="0" max="1000" value="100" class="slider">
+                    <span class="slider-value" id="powerReleaseTimeValue">100</span>
+                </div>
+                <div class="form-group">
+                    <label for="crossoverTime">Crossover Time (ms)</label>
+                    <input type="range" id="crossoverTime" min="0" max="1000" value="400" class="slider">
+                    <span class="slider-value" id="crossoverTimeValue">400</span>
+                </div>
+                <button class="btn btn-primary" onclick="saveTransitionConfig()">Save Configuration</button>
+            </div>
+        </div>
+
+        <!-- CAN MONITOR TAB -->
+        <div class="tab-content" id="can-monitor">
+            <div class="config-section">
+                <h2>CAN Bus Monitor</h2>
+                <div id="canMessages" class="can-messages">
+                    <div class="can-message">Loading CAN messages...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SYSTEM TAB -->
+        <div class="tab-content" id="system">
+            <div class="config-section">
+                <h2>System Information</h2>
+                <div id="systemInfo" class="system-info">
+                    <div class="data-row">
+                        <span class="data-label">Chip Model</span>
+                        <span class="data-value" id="chipModel">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Free Heap</span>
+                        <span class="data-value" id="sysInfoFreeHeap">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Uptime</span>
+                        <span class="data-value" id="sysInfoUptime">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h2>Debug Mode</h2>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="debugMode">
+                        Enable Debug Mode (Prevents Deep Sleep)
+                    </label>
+                </div>
+                <button class="btn btn-primary" onclick="saveDebugMode()">Save Debug Mode</button>
+            </div>
+
+            <div class="config-section">
+                <h2>System Actions</h2>
+                <button class="btn btn-secondary" onclick="exportConfig()">Export Configuration</button>
+                <button class="btn btn-secondary" onclick="importConfig()">Import Configuration</button>
+                <button class="btn btn-danger" onclick="resetConfig()">Factory Reset</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>
