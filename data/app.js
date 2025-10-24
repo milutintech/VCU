@@ -135,70 +135,93 @@ function updateConnectionStatus(connected) {
 async function loadConfiguration() {
     try {
         // Load limits config (for max torque)
-        const limitsRes = await fetch('/api/config/limits');
-        const limitsData = await limitsRes.json();
+        try {
+            const limitsRes = await fetch('/api/config/limits');
+            if (!limitsRes.ok) {
+                console.error('Failed to fetch limits config:', limitsRes.status, limitsRes.statusText);
+            } else {
+                const limitsData = await limitsRes.json();
+                console.log('Loading limits config:', limitsData);
 
-        if (document.getElementById('maxTorque')) {
-            document.getElementById('maxTorque').value = limitsData.maxTorque || 400;
-            document.getElementById('maxTorqueValue').textContent = limitsData.maxTorque || 400;
+                if (document.getElementById('maxTorque')) {
+                    const torqueValue = limitsData.maxTorque !== undefined ? limitsData.maxTorque : 400;
+                    document.getElementById('maxTorque').value = torqueValue;
+                    document.getElementById('maxTorqueValue').textContent = torqueValue;
+                    console.log('Setting maxTorque slider to:', torqueValue, '(from API:', limitsData.maxTorque, ')');
+                }
+            }
+        } catch (error) {
+            console.error('Error loading limits config:', error);
         }
 
         // Load charging config
-        const chargingRes = await fetch('/api/config/charging');
-        if (!chargingRes.ok) {
-            console.error('Failed to fetch charging config:', chargingRes.status, chargingRes.statusText);
-            return;
-        }
-        const chargingData = await chargingRes.json();
+        try {
+            const chargingRes = await fetch('/api/config/charging');
+            if (!chargingRes.ok) {
+                console.error('Failed to fetch charging config:', chargingRes.status, chargingRes.statusText);
+            } else {
+                const chargingData = await chargingRes.json();
 
-        console.log('Loading charging config:', chargingData);
+                console.log('Loading charging config:', chargingData);
 
-        const maxCurrentSlider = document.getElementById('maxChargingCurrent');
-        const maxCurrentValue = document.getElementById('maxChargingCurrentValue');
-        const targetSOCSlider = document.getElementById('chargeTargetSOC');
-        const targetSOCValue = document.getElementById('chargeTargetSOCValue');
+                const maxCurrentSlider = document.getElementById('maxChargingCurrent');
+                const maxCurrentValue = document.getElementById('maxChargingCurrentValue');
+                const targetSOCSlider = document.getElementById('chargeTargetSOC');
+                const targetSOCValue = document.getElementById('chargeTargetSOCValue');
 
-        if (maxCurrentSlider && maxCurrentValue) {
-            const currentValue = chargingData.maxChargingCurrent !== undefined ? chargingData.maxChargingCurrent : 32;
-            maxCurrentSlider.value = currentValue;
-            maxCurrentValue.textContent = currentValue;
-            console.log('Setting maxChargingCurrent slider to:', currentValue, '(from API:', chargingData.maxChargingCurrent, ')');
-        }
+                if (maxCurrentSlider && maxCurrentValue) {
+                    const currentValue = chargingData.maxChargingCurrent !== undefined ? chargingData.maxChargingCurrent : 32;
+                    maxCurrentSlider.value = currentValue;
+                    maxCurrentValue.textContent = currentValue;
+                    console.log('Setting maxChargingCurrent slider to:', currentValue, '(from API:', chargingData.maxChargingCurrent, ')');
+                }
 
-        if (targetSOCSlider && targetSOCValue) {
-            const socValue = chargingData.maxSOC !== undefined ? chargingData.maxSOC : 100;
-            targetSOCSlider.value = socValue;
-            targetSOCValue.textContent = socValue;
-            console.log('Setting maxSOC slider to:', socValue, '(from API:', chargingData.maxSOC, ')');
+                if (targetSOCSlider && targetSOCValue) {
+                    const socValue = chargingData.maxSOC !== undefined ? chargingData.maxSOC : 100;
+                    targetSOCSlider.value = socValue;
+                    targetSOCValue.textContent = socValue;
+                    console.log('Setting maxSOC slider to:', socValue, '(from API:', chargingData.maxSOC, ')');
+                }
+            }
+        } catch (error) {
+            console.error('Error loading charging config:', error);
         }
 
         // Load pedal config
-        const pedalRes = await fetch('/api/config/pedal');
-        const pedalData = await pedalRes.json();
+        try {
+            const pedalRes = await fetch('/api/config/pedal');
+            const pedalData = await pedalRes.json();
 
-        document.getElementById('regenZoneEnd').value = pedalData.regenZoneEnd || 16;
-        document.getElementById('regenZoneEndValue').textContent = (pedalData.regenZoneEnd || 16).toFixed(1);
-        document.getElementById('coastZoneEnd').value = pedalData.coastZoneEnd || 17;
-        document.getElementById('coastZoneEndValue').textContent = (pedalData.coastZoneEnd || 17).toFixed(1);
-        document.getElementById('regenProgression').value = pedalData.regenProgression || 1.5;
-        document.getElementById('regenProgressionValue').textContent = (pedalData.regenProgression || 1.5).toFixed(1);
-        document.getElementById('accelProgression').value = pedalData.accelProgression || 1.7;
-        document.getElementById('accelProgressionValue').textContent = (pedalData.accelProgression || 1.7).toFixed(1);
+            document.getElementById('regenZoneEnd').value = pedalData.regenZoneEnd || 16;
+            document.getElementById('regenZoneEndValue').textContent = (pedalData.regenZoneEnd || 16).toFixed(1);
+            document.getElementById('coastZoneEnd').value = pedalData.coastZoneEnd || 17;
+            document.getElementById('coastZoneEndValue').textContent = (pedalData.coastZoneEnd || 17).toFixed(1);
+            document.getElementById('regenProgression').value = pedalData.regenProgression || 1.5;
+            document.getElementById('regenProgressionValue').textContent = (pedalData.regenProgression || 1.5).toFixed(1);
+            document.getElementById('accelProgression').value = pedalData.accelProgression || 1.7;
+            document.getElementById('accelProgressionValue').textContent = (pedalData.accelProgression || 1.7).toFixed(1);
+        } catch (error) {
+            console.error('Error loading pedal config:', error);
+        }
 
         // Load transition config
-        const transitionRes = await fetch('/api/config/transition');
-        const transitionData = await transitionRes.json();
+        try {
+            const transitionRes = await fetch('/api/config/transition');
+            const transitionData = await transitionRes.json();
 
-        document.getElementById('regenEngageTime').value = transitionData.regenEngageTime || 300;
-        document.getElementById('regenEngageTimeValue').textContent = transitionData.regenEngageTime || 300;
-        document.getElementById('regenReleaseTime').value = transitionData.regenReleaseTime || 150;
-        document.getElementById('regenReleaseTimeValue').textContent = transitionData.regenReleaseTime || 150;
-        document.getElementById('powerEngageTime').value = transitionData.powerEngageTime || 200;
-        document.getElementById('powerEngageTimeValue').textContent = transitionData.powerEngageTime || 200;
-        document.getElementById('powerReleaseTime').value = transitionData.powerReleaseTime || 100;
-        document.getElementById('powerReleaseTimeValue').textContent = transitionData.powerReleaseTime || 100;
-        document.getElementById('crossoverTime').value = transitionData.crossoverTime || 400;
-        document.getElementById('crossoverTimeValue').textContent = transitionData.crossoverTime || 400;
+            document.getElementById('regenEngageTime').value = transitionData.regenEngageTime || 300;
+            document.getElementById('regenEngageTimeValue').textContent = transitionData.regenEngageTime || 300;
+            document.getElementById('regenReleaseTime').value = transitionData.regenReleaseTime || 150;
+            document.getElementById('regenReleaseTimeValue').textContent = transitionData.regenReleaseTime || 150;
+            document.getElementById('powerEngageTime').value = transitionData.powerEngageTime || 200;
+            document.getElementById('powerEngageTimeValue').textContent = transitionData.powerEngageTime || 200;
+            document.getElementById('powerReleaseTime').value = transitionData.powerReleaseTime || 100;
+            document.getElementById('powerReleaseTimeValue').textContent = transitionData.powerReleaseTime || 100;
+            document.getElementById('crossoverTime').value = transitionData.crossoverTime || 400;
+            document.getElementById('crossoverTimeValue').textContent = transitionData.crossoverTime || 400;
+        } catch (error) {
+            console.error('Error loading transition config:', error);
+        }
 
     } catch (error) {
         console.error('Error loading configuration:', error);

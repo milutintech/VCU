@@ -403,6 +403,7 @@ void VCUWebServer::handleGetChargingConfig(AsyncWebServerRequest* request) {
 void VCUWebServer::handleGetLimitsConfig(AsyncWebServerRequest* request) {
     JsonDocument doc;
 
+    doc["maxTorque"] = config->getMaxTorque();
     doc["baseSpeed"] = config->getBaseSpeed();
     doc["deltaSpeed"] = config->getDeltaSpeed();
     doc["nominalPower"] = config->getNominalPower();
@@ -516,6 +517,14 @@ void VCUWebServer::handleSetLimitsConfig(AsyncWebServerRequest* request, JsonVar
     JsonObject obj = json.as<JsonObject>();
     bool success = true;
 
+    Serial.println("[WebServer] Setting limits config...");
+
+    if (!obj["maxTorque"].isNull()) {
+        int torque = obj["maxTorque"].as<int>();
+        Serial.printf("[WebServer] Setting max torque: %d Nm\n", torque);
+        success &= config->setMaxTorque(torque);
+    }
+
     if (!obj["baseSpeed"].isNull()) {
         success &= config->setBaseSpeed(obj["baseSpeed"].as<float>());
     }
@@ -543,9 +552,15 @@ void VCUWebServer::handleSetLimitsConfig(AsyncWebServerRequest* request, JsonVar
     }
 
     if (success) {
-        config->save();
+        Serial.println("[WebServer] Saving config to flash...");
+        bool saved = config->save();
+        Serial.printf("[WebServer] Config save result: %s\n", saved ? "SUCCESS" : "FAILED");
+
+        Serial.printf("[WebServer] Verifying saved values - maxTorque: %d Nm\n", config->getMaxTorque());
+
         request->send(200, "application/json", "{\"success\":true}");
     } else {
+        Serial.println("[WebServer] Invalid parameters");
         request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid parameters\"}");
     }
 }
