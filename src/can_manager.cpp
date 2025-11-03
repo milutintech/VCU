@@ -840,7 +840,7 @@ void CANManager::setTorquePercentage(float torquePercent) {
     
     // Convert percentage to Nm
     float maxTorqueNm = config.getMaxTorque(); // User-configurable max torque
-    float torqueNm = (torquePercent / 100.0f) * maxTorqueNm;
+    float torqueNm = (torquePercent / 100.0f) * 850;//maxTorqueNm;
     
     // Limit to motor capabilities
     torqueNm = constrain(torqueNm, -VehicleParams::Motor::MAX_TRQ, VehicleParams::Motor::MAX_TRQ);
