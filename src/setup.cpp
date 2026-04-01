@@ -46,13 +46,13 @@ void SystemSetup::initializeGPIO() {
     pinMode(Pins::NLGKL15, OUTPUT);
     pinMode(Pins::DMCKL15, OUTPUT);
     pinMode(Pins::BSCKL15, OUTPUT);
-    pinMode(Pins::BCKLIGHT, OUTPUT);
+    pinMode(Pins::BCKLIGHT, OUTPUT);     // IO17 - Reverse signal
+    pinMode(46, OUTPUT);                  // IO46 - Reverse signal
     pinMode(Pins::PW1, OUTPUT);          // Now Contactor
     pinMode(Pins::LWP5, OUTPUT);
     pinMode(Pins::LWP6, OUTPUT);
     pinMode(Pins::LWP7, OUTPUT);         // Pump
     pinMode(Pins::UNLCKCON, INPUT);
-    pinMode(19, OUTPUT);
     
     setDefaultPinStates();
 }

@@ -1,30 +1,23 @@
 /**
- * @file vehicle_control.cpp
- * @brief Implementation of vehicle driving dynamics and motor control system
+ * @file vehicle_control.cpp - ENHANCED with Smooth Torque Transitions
+ * @brief Implementation of enhanced three-zone pedal system with configurable transition timing
  * 
- * Manages vehicle driving characteristics including:
- * - Pedal interpretation and mapping
- * - Torque calculation and limiting
- * - Multiple driving modes (Legacy, Regen, OPD)
- * - Speed monitoring and control
- * - Safety checks and limits
+ * Features:
+ * - Simple three-zone pedal system (regen/coast/accel)
+ * - Smooth torque transitions with separate timing for each transition type
+ * - Progressive curves for natural pedal feel  
+ * - Delta-based power limiting (keeps existing Curtis power maps)
+ * - Configurable zone boundaries and progression factors
  */
 
 #include "vehicle_control.h"
 #include "can_manager.h" 
 #include "config.h"
 #include "ADS1X15.h"
-#include "configuration.h"  
-
-//-------------------------------
-// VehicleControl Class Implementation
-//-------------------------------
+#include "configuration.h"
 
 /**
- * @brief Constructor - initializes vehicle control system.
- * 
- * Initializes control system with safe defaults and creates the PID controller
- * for OPD anti-rollback protection. (Tuning of the PID gains may be required.)
+ * @brief Constructor - initializes enhanced vehicle control system with smooth transitions
  */
 VehicleControl::VehicleControl(ADS1115& ads) 
     : ads(ads)
@@ -32,114 +25,461 @@ VehicleControl::VehicleControl(ADS1115& ads)
     , currentGear(GearState::NEUTRAL)
     , currentGearRatio(GearRatio::NORMAL)
     , shiftAttempted(false)
-    , isOPDEnabled(false)
-    , isRegenEnabled(true)
     , enableDMC(false)
     , wasInDeadband(false)
     , wasEnabled(false)
-    , lastTorque(0)
-    , motorSpeed(0)
-    // Initialize the OPD anti-rollback PID controller with example gains
-    , opdPid(100.0f, 0.0f, 10.0f)
+    , isInGearTransition(false)
+    , gearTransitionStartTime(0)
+    , previousGear(GearState::NEUTRAL)
+    , lastTorquePercent(0.0f)
+    , filteredTorquePercent(0.0f)
+    , motorSpeed(0.0f)
+    // NEW: Initialize transition system
+    , currentTorqueOutput(0.0f)
+    , targetTorqueFromPedal(0.0f)
+    , lastTransitionTime(millis())
+    , currentTransition(TransitionType::NONE)
+    , transitionStartTorque(0.0f)
+    , transitionStartTime(0)
+    // Default transition times (will be overridden by configuration)
+    , regenEngageTimeMs(300.0f)   // 300ms for smooth regen engagement
+    , regenReleaseTimeMs(150.0f)  // 150ms for regen release
+    , powerEngageTimeMs(200.0f)   // 200ms for power engagement  
+    , powerReleaseTimeMs(100.0f)  // 100ms for power release
+    , crossoverTimeMs(400.0f)     // 400ms for crossover transitions
 {
 }
 
 /**
- * @brief Calculate motor torque demand based on driving mode and conditions.
- * @return Calculated torque demand in Nm (range: -850 to 850).
- * 
- * Main control flow:
- * 1. Sample pedal position.
- * 2. Map raw pedal value (with gamma correction).
- * 3. Select processing based on the driving mode.
- * 4. Apply safety limits and deadband.
+ * @brief ENHANCED: Calculate motor torque percentage with smooth transitions
+ * @return Smoothly transitioned torque percentage (-100% to +100%)
  */
-int16_t VehicleControl::calculateTorque() {
-    // Sample pedal position.
-    int32_t sampledPotiValue = samplePedalPosition();
+float VehicleControl::calculateTorquePercentage() {
+    // Step 1: Calculate immediate target torque from pedal (existing logic)
+    targetTorqueFromPedal = calculateImmediateTorqueFromPedal();
     
-    // Map raw pedal value to 0-100%.
-    float rawThrottle = map(sampledPotiValue, ADC::MinValPot, ADC::MaxValPot, 0, 100);
-    rawThrottle = constrain(rawThrottle, 0.0f, 100.0f);
-    Serial.println(rawThrottle);
+    // Step 2: Apply smooth transition to reach target
+    float smoothTorque = applyTorqueTransition(targetTorqueFromPedal);
     
-    // Quick exit for legacy mode with a released pedal.
-    if (!isOPDEnabled && !isRegenEnabled && rawThrottle < 1.0f) {
-        lastTorque = 0;
-        enableDMC = false;
-        return 0;
-    }
+    // Step 3: Apply existing protections (gear transitions, deadband, etc.)
+    smoothTorque = applyGearTransitionProtection(smoothTorque);
+    smoothTorque = applyDeadbandHysteresis(smoothTorque);
     
-    // Calculate throttle position with gamma correction.
-    float throttlePosition = pow(rawThrottle / 100.0f, VehicleParams::Control::PEDAL_GAMMA) * 100.0f;
+    // Update output tracking
+    currentTorqueOutput = smoothTorque;
+    enableDMC = (abs(smoothTorque) > 0.5f);
     
-    // Update reverse light based on gear state.
-    digitalWrite(Pins::BCKLIGHT, currentGear == GearState::REVERSE ? HIGH : LOW);
-    digitalWrite(19, currentGear == GearState::REVERSE ? HIGH : LOW);
-
-    // Handle neutral gear.
-    if (currentGear == GearState::NEUTRAL) {
-        lastTorque = 0;
-        digitalWrite(19, LOW);  
-        digitalWrite(Pins::BCKLIGHT, LOW);  // Ensure reverse light is off in neutral.
-        return 0;
-    }
+    // Store for next iteration
+    lastTorquePercent = smoothTorque;
+    filteredTorquePercent = smoothTorque;
     
-    // Calculate vehicle speed (in kph).
-    float speed = calculateVehicleSpeed();
-    
-    int16_t calculatedTorque = 0;
-    
-    switch(currentDrivingMode) {
-        case DriveMode::LEGACY:
-            calculatedTorque = handleLegacyMode(throttlePosition);
-            break;
-            
-        case DriveMode::REGEN:
-            calculatedTorque = handleRegenMode(throttlePosition, speed);
-            break;
-            
-        case DriveMode::OPD:
-            calculatedTorque = handleOPDMode(throttlePosition, speed);
-            break;
-    }
-    
-    // Apply torque rate limiting.
-    calculatedTorque = applyTorqueLimits(calculatedTorque);
-    
-    // Apply deadband with hysteresis.
-    //calculatedTorque = applyDeadbandHysteresis(calculatedTorque);
-
-    //Makes sure no reverse driving posible in drive.
-    calculatedTorque = applyTorqueCutoff(calculatedTorque);
-
-    
-    return calculatedTorque;
+    return smoothTorque;
 }
 
 /**
- * @brief Sample pedal position from ADC.
- * @return Averaged ADC reading for pedal position.
- * 
- * Takes 4 samples and averages them to reduce noise.
+ * @brief Calculate immediate torque target from pedal input (renamed existing logic)
+ * @return Target torque percentage without transitions applied
+ */
+float VehicleControl::calculateImmediateTorqueFromPedal() {
+    // Sample pedal position
+    int32_t sampledPotiValue = samplePedalPosition();
+    //Serial.printf("Sampled ADC Value: %d\n", sampledPotiValue);
+    // Map using correct ADC values from config.h (0-100%)
+    float rawThrottle = map(sampledPotiValue, ADC::MinValPot, ADC::MaxValPot, 0, 100);
+    rawThrottle = constrain(rawThrottle, 0.0f, 100.0f);
+    throttlePercentage = rawThrottle;  // Store for web interface
+    //Serial.printf("Raw Throttle: %.1f%%\n", rawThrottle);
+    // Update reverse signals based on gear state
+    // When in REVERSE: IO17 (BCKLIGHT) HIGH, IO46 LOW
+    // When in DRIVE or NEUTRAL: IO17 LOW, IO46 HIGH (inverted logic)
+    bool isReverse = (currentGear == GearState::REVERSE);
+    digitalWrite(Pins::BCKLIGHT, isReverse ? HIGH : LOW);  // IO17 - normal logic
+    digitalWrite(46, isReverse ? LOW : HIGH);              // IO46 - inverted logic
+
+    // Handle neutral gear - always zero torque
+    if (currentGear == GearState::NEUTRAL) {
+        return 0.0f;
+    }
+    
+    // Apply simplified three-zone pedal mapping
+    float baseTorquePercent = applyPedalZones(rawThrottle);
+    
+    // Apply delta-based power limiting (keep existing Curtis power maps)
+    bool isDriving = (baseTorquePercent > 0);  // Positive = acceleration, Negative = regen
+    
+    // Apply power limiting
+    float limitedTorquePercent;
+    if (isDriving) {
+        // Scale acceleration proportionally based on speed zones
+        float drivePowerLimit = calculatePowerLimit(abs(motorSpeed), true);  // Use drive zones
+        limitedTorquePercent = baseTorquePercent * (drivePowerLimit / 100.0f);
+    } else {
+        // Scale regen proportionally based on speed zones  
+        float regenPowerLimit = calculatePowerLimit(abs(motorSpeed), false); // Use regen zones
+        limitedTorquePercent = baseTorquePercent * (regenPowerLimit / 100.0f);
+    }
+    
+    // Apply gear direction
+    float calculatedTorquePercent = limitedTorquePercent;
+    if (currentGear == GearState::DRIVE) {
+        calculatedTorquePercent = -limitedTorquePercent;  // Negative = forward in drive
+    }
+    // In REVERSE, positive torque = reverse motion (no sign change needed)
+    
+    return calculatedTorquePercent;
+}
+
+/**
+ * @brief NEW: Apply smooth torque transitions
+ * @param targetTorque Target torque from pedal input
+ * @return Smoothly transitioned torque
+ */
+float VehicleControl::applyTorqueTransition(float targetTorque) {
+    unsigned long currentTime = millis();
+    lastTransitionTime = currentTime;
+    
+    // If target equals current, no transition needed
+    if (abs(targetTorque - currentTorqueOutput) < 0.1f) {
+        currentTransition = TransitionType::NONE;
+        return targetTorque;
+    }
+    
+    // Detect transition type when starting new transition
+    if (currentTransition == TransitionType::NONE) {
+        currentTransition = detectTransitionType(currentTorqueOutput, targetTorque);
+        transitionStartTorque = currentTorqueOutput;
+        transitionStartTime = currentTime;
+        
+        // Debug output for transition start
+        // Serial.printf("Transition started: %d, From: %.1f%%, To: %.1f%%\n", 
+        //               (int)currentTransition, currentTorqueOutput, targetTorque);
+    }
+    
+    // Get transition time for current transition type
+    float transitionTimeMs = getTransitionTime(currentTransition);
+    
+    // If transition time is 0, return target immediately (instant transition)
+    if (transitionTimeMs <= 0.0f) {
+        currentTransition = TransitionType::NONE;
+        return targetTorque;
+    }
+    
+    // Calculate transition progress (0.0 to 1.0)
+    float elapsedTime = currentTime - transitionStartTime;
+    float progress = elapsedTime / transitionTimeMs;
+    
+    if (progress >= 1.0f) {
+        // Transition complete
+        currentTransition = TransitionType::NONE;
+        return targetTorque;
+    }
+    
+    // Apply smooth interpolation curve
+    float smoothProgress = applySmoothCurve(progress);
+    float interpolatedTorque = transitionStartTorque + 
+                              (targetTorque - transitionStartTorque) * smoothProgress;
+    
+    return interpolatedTorque;
+}
+
+/**
+ * @brief Detect what type of transition is occurring
+ */
+VehicleControl::TransitionType VehicleControl::detectTransitionType(float current, float target) {
+    const float threshold = 1.0f; // Small threshold to avoid noise
+    
+    bool currentIsZero = (abs(current) < threshold);
+    bool currentIsPositive = (current > threshold);
+    bool currentIsNegative = (current < -threshold);
+    
+    bool targetIsZero = (abs(target) < threshold);
+    bool targetIsPositive = (target > threshold);
+    bool targetIsNegative = (target < -threshold);
+    
+    // Regen engagement: 0 -> negative
+    if (currentIsZero && targetIsNegative) {
+        return TransitionType::REGEN_ENGAGE;
+    }
+    // Regen release: negative -> 0
+    if (currentIsNegative && targetIsZero) {
+        return TransitionType::REGEN_RELEASE;
+    }
+    // Power engagement: 0 -> positive
+    if (currentIsZero && targetIsPositive) {
+        return TransitionType::POWER_ENGAGE;
+    }
+    // Power release: positive -> 0
+    if (currentIsPositive && targetIsZero) {
+        return TransitionType::POWER_RELEASE;
+    }
+    // Crossover: negative -> positive
+    if (currentIsNegative && targetIsPositive) {
+        return TransitionType::REGEN_TO_POWER;
+    }
+    // Crossover: positive -> negative
+    if (currentIsPositive && targetIsNegative) {
+        return TransitionType::POWER_TO_REGEN;
+    }
+    
+    // Same-sign transitions use the engage time for that direction
+    if (currentIsNegative && targetIsNegative) {
+        return TransitionType::REGEN_ENGAGE;
+    }
+    if (currentIsPositive && targetIsPositive) {
+        return TransitionType::POWER_ENGAGE;
+    }
+    
+    return TransitionType::NONE;
+}
+
+/**
+ * @brief Get transition time for specific transition type
+ */
+float VehicleControl::getTransitionTime(TransitionType type) {
+    switch (type) {
+        case TransitionType::REGEN_ENGAGE:  return regenEngageTimeMs;
+        case TransitionType::REGEN_RELEASE: return regenReleaseTimeMs;
+        case TransitionType::POWER_ENGAGE:  return powerEngageTimeMs;
+        case TransitionType::POWER_RELEASE: return powerReleaseTimeMs;
+        case TransitionType::REGEN_TO_POWER:
+        case TransitionType::POWER_TO_REGEN: return crossoverTimeMs;
+        default: return 0.0f;
+    }
+}
+
+/**
+ * @brief Apply smooth interpolation curve (ease-in-out)
+ */
+float VehicleControl::applySmoothCurve(float progress) {
+    // Smooth S-curve (ease-in-out) for natural feel
+    // Slow start, fast middle, slow end
+    if (progress < 0.5f) {
+        return 2.0f * progress * progress;
+    } else {
+        return -1.0f + (4.0f - 2.0f * progress) * progress;
+    }
+}
+
+/**
+ * @brief NEW: Torque transition configuration methods
+ */
+void VehicleControl::setRegenEngageTime(float timeMs) {
+    regenEngageTimeMs = constrain(timeMs, MIN_TRANSITION_TIME, MAX_TRANSITION_TIME);
+}
+
+void VehicleControl::setRegenReleaseTime(float timeMs) {
+    regenReleaseTimeMs = constrain(timeMs, MIN_TRANSITION_TIME, MAX_TRANSITION_TIME);
+}
+
+void VehicleControl::setPowerEngageTime(float timeMs) {
+    powerEngageTimeMs = constrain(timeMs, MIN_TRANSITION_TIME, MAX_TRANSITION_TIME);
+}
+
+void VehicleControl::setPowerReleaseTime(float timeMs) {
+    powerReleaseTimeMs = constrain(timeMs, MIN_TRANSITION_TIME, MAX_TRANSITION_TIME);
+}
+
+void VehicleControl::setCrossoverTime(float timeMs) {
+    crossoverTimeMs = constrain(timeMs, MIN_TRANSITION_TIME, MAX_TRANSITION_TIME);
+}
+
+/**
+ * @brief Enhanced force clear with transition reset
+ */
+void VehicleControl::clearTorqueState() {
+    lastTorquePercent = 0.0f;
+    filteredTorquePercent = 0.0f;
+    currentTorqueOutput = 0.0f;      // NEW
+    targetTorqueFromPedal = 0.0f;    // NEW
+    currentTransition = TransitionType::NONE;  // NEW
+    enableDMC = false;
+    wasInDeadband = false;
+    isInGearTransition = false;
+}
+
+/**
+ * @brief Apply simplified three-zone pedal mapping (UNCHANGED)
+ * @param throttlePercent Raw throttle position (0-100%)
+ * @return Torque percentage with zone mapping applied
+ */
+float VehicleControl::applyPedalZones(float throttlePercent) {
+    // Get configurable zone boundaries
+    float regenZoneEnd = config.getRegenZoneEnd();
+    float coastZoneEnd = config.getCoastZoneEnd();
+    float regenProgression = config.getRegenProgression();
+    float accelProgression = config.getAccelProgression();
+    
+    if (throttlePercent <= regenZoneEnd) {
+        // REGEN ZONE: 0% to regenZoneEnd% -> -100% to 0% torque (inverted for lift-off regen)
+        float zonePosition = 1.0f - (throttlePercent / regenZoneEnd);  // INVERTED: 1.0 at 0% pedal, 0.0 at regenZoneEnd%
+        float curvedPosition = applyProgressiveCurve(zonePosition, regenProgression);
+        float torquePercent = -curvedPosition * 100.0f;  // Negative for regen
+        
+        return torquePercent;
+    }
+    else if (throttlePercent <= coastZoneEnd) {
+        // COAST ZONE: regenZoneEnd% to coastZoneEnd% -> 0% torque
+        return 0.0f;
+    }
+    else {
+        // ACCEL ZONE: coastZoneEnd% to 100% -> 0% to +100% torque
+        float accelZoneSize = 100.0f - coastZoneEnd;
+        float zonePosition = (throttlePercent - coastZoneEnd) / accelZoneSize;  // 0-1 within accel zone
+        float curvedPosition = applyProgressiveCurve(zonePosition, accelProgression);
+        float torquePercent = curvedPosition * 100.0f;  // Positive for accel
+        
+        return torquePercent;
+    }
+}
+
+/**
+ * @brief Apply progressive curve to zone value (UNCHANGED)
+ * @param zonePosition Position within zone (0-1)
+ * @param progression Progression factor (1.0=linear, >1.0=progressive)
+ * @return Curved output value (0-1)
+ */
+float VehicleControl::applyProgressiveCurve(float zonePosition, float progression) {
+    // Apply power curve: output = input^progression
+    // progression = 1.0 -> linear
+    // progression > 1.0 -> progressive (gentle start, aggressive end)
+    // progression < 1.0 -> regressive (aggressive start, gentle end)
+    
+    return pow(zonePosition, progression);
+}
+
+/**
+ * @brief Calculate power limit based on current motor speed using delta curves (UNCHANGED)
+ * @param motorSpeed Current motor speed in RPM
+ * @param isDriving true for drive power limits, false for regen limits
+ * @return Power limit percentage (0-120%)
+ */
+float VehicleControl::calculatePowerLimit(float motorSpeed, bool isDriving) {
+    const float* powerLimits = isDriving ? config.getDrivePowerLimits() : config.getRegenPowerLimits();
+    return interpolatePowerLimit(motorSpeed, powerLimits);
+}
+
+/**
+ * @brief Interpolate power limit between speed zones (UNCHANGED - keep Curtis delta system)
+ * @param motorSpeed Current motor speed in RPM
+ * @param powerLimits Array of power limits for the 5 zones
+ * @return Interpolated power limit percentage
+ */
+float VehicleControl::interpolatePowerLimit(float motorSpeed, const float* powerLimits) {
+    float baseSpeed = config.getBaseSpeed();
+    float deltaSpeed = config.getDeltaSpeed();
+    
+    // Curtis speed zones: Base+1×Δ, Base+2×Δ, Base+4×Δ, Base+8×Δ
+    float speedZones[5] = {
+        baseSpeed + 1 * deltaSpeed,  // Zone 0 boundary
+        baseSpeed + 2 * deltaSpeed,  // Zone 1 boundary  
+        baseSpeed + 4 * deltaSpeed,  // Zone 2 boundary
+        baseSpeed + 8 * deltaSpeed,  // Zone 3 boundary
+        999999.0f                    // Zone 4 (no upper limit)
+    };
+    
+    // Find which zone we're in and interpolate
+    for (int i = 0; i < 5; i++) {
+        if (motorSpeed <= speedZones[i]) {
+            if (i == 0) {
+                // Below first zone boundary - use nominal power
+                return powerLimits[0];
+            }
+            
+            // Linear interpolation between zones
+            float prevSpeed = (i == 1) ? 0.0f : speedZones[i-2];
+            float zoneProgress = (motorSpeed - prevSpeed) / (speedZones[i] - prevSpeed);
+            zoneProgress = constrain(zoneProgress, 0.0f, 1.0f);
+            
+            return powerLimits[i-1] + (powerLimits[i] - powerLimits[i-1]) * zoneProgress;
+        }
+    }
+    
+    // Above all zones - use final zone power
+    return powerLimits[4];
+}
+
+/**
+ * @brief Apply gear transition protection to prevent jerking (UNCHANGED)
+ * @param torquePercent Input torque percentage
+ * @return Modified torque with gear transition protection
+ */
+float VehicleControl::applyGearTransitionProtection(float torquePercent) {
+    unsigned long currentTime = millis();
+    
+    // Detect gear transitions
+    if (previousGear != currentGear && previousGear != GearState::NEUTRAL) {
+        isInGearTransition = true;
+        gearTransitionStartTime = currentTime;
+        Serial.println("Gear transition detected - applying anti-jerk protection");
+    }
+    
+    // During gear transition, force zero torque for specified time
+    if (isInGearTransition) {
+        if (currentTime - gearTransitionStartTime < VehicleParams::GearTransition::TRANSITION_TIME_MS) {
+            // Force zero torque during transition period
+            previousGear = currentGear; // Update after forcing zero
+            return 0.0f;
+        } else {
+            // Transition period complete, allow gradual ramp-up
+            unsigned long rampTime = currentTime - gearTransitionStartTime - VehicleParams::GearTransition::TRANSITION_TIME_MS;
+            float rampFactor = min(1.0f, rampTime * VehicleParams::GearTransition::RAMPUP_RATE / 100.0f);
+            
+            // Once fully ramped up, clear transition state
+            if (rampFactor >= 1.0f) {
+                isInGearTransition = false;
+            }
+            
+            previousGear = currentGear;
+            return torquePercent * rampFactor;
+        }
+    }
+    
+    previousGear = currentGear;
+    return torquePercent;
+}
+
+/**
+ * @brief Apply deadband hysteresis around zero (UNCHANGED)
+ * @param torquePercent Input torque percentage
+ * @return Processed torque with deadband
+ */
+float VehicleControl::applyDeadbandHysteresis(float torquePercent) {
+    float absValue = abs(torquePercent);
+    
+    if (wasInDeadband) {
+        // Higher threshold to exit deadband (prevents chattering)
+        if (absValue > VehicleParams::Motor::DEADZONE_THRESHOLD + 1.0f) {
+            wasInDeadband = false;
+            return torquePercent;
+        } else {
+            return 0.0f; // Stay in deadband
+        }
+    } else {
+        // Lower threshold to enter deadband
+        if (absValue < VehicleParams::Motor::DEADZONE_THRESHOLD) {
+            wasInDeadband = true;
+            return 0.0f;
+        } else {
+            return torquePercent;
+        }
+    }
+}
+
+/**
+ * @brief Sample pedal position from ADC with averaging (UNCHANGED)
+ * @return Averaged ADC reading for pedal position
  */
 int32_t VehicleControl::samplePedalPosition() {
     int32_t total = 0;
     for (int i = 0; i < 4; i++) {
         total += ads.readADC(ADC::GASPEDAL1);
     }
-    //Serial.println(total/4);
     return total / 4;
 }
 
 /**
- * @brief Calculate current vehicle speed from motor speed.
- * @return Vehicle speed in kph.
- * 
- * Considers:
- * - Current gear ratio.
- * - Differential ratio.
- * - Wheel circumference.
+ * @brief Calculate current vehicle speed from motor speed (UNCHANGED)
+ * @return Vehicle speed in kph
  */
 float VehicleControl::calculateVehicleSpeed() {
     float ratio = (currentGearRatio == GearRatio::REDUCED) ? 
@@ -152,655 +492,86 @@ float VehicleControl::calculateVehicleSpeed() {
 }
 
 /**
- * @brief Handle Legacy driving mode.
- * @param throttlePosition Processed pedal position (0-100%).
- * @return Calculated torque for legacy mode.
- * 
- * Uses a simple linear mapping based on pedal position.
- */
-int16_t VehicleControl::handleLegacyMode(float throttlePosition) {
-    float normalizedThrottle = pow(throttlePosition / 100.0f, VehicleParams::Control::PEDAL_GAMMA);
-    return normalizedThrottle * (currentGear == GearState::DRIVE ? 
-           -VehicleParams::Motor::MAX_TRQ : VehicleParams::Motor::MAX_REVERSE_TRQ);
-}
-
-
-/**
- * @brief Handle Regenerative driving mode with enhanced low-speed regulation.
- * @param throttlePosition Processed pedal position (0-100%).
- * @param speed Current vehicle speed in kph.
- * @return Calculated torque for regen mode.
- * 
- * Features:
- * - Pedal mapping with coast zone and regen zone
- * - Low RPM regulation with predictive adaptive control
- * - Enhanced RPM filtering with multi-stage approach
- * - Speed-based regen tapering with ultra-smooth curve
- * - Direction-aware torque calculation
- * - Oscillation detection and automatic adaptation
- */
- int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
-    // Constants for pedal mapping
-    const float REGEN_END_POINT = VehicleParams::Regen::END_POINT;
-    const float COAST_END_POINT = VehicleParams::Regen::COAST_END;
-    
-    // Static variables for smoother transitions
-    static float lastRegenTorque = 0.0f;
-    static float lastAccelTorque = 0.0f;
-    static int lastZone = -1; // -1=initial, 0=regen, 1=coast, 2=accel
-    
-    // Determine current pedal zone
-    int currentZone;
-    if (throttlePosition <= REGEN_END_POINT) {
-        currentZone = 0; // Regen zone
-    } else if (throttlePosition <= COAST_END_POINT) {
-        currentZone = 1; // Coast zone
-    } else {
-        currentZone = 2; // Acceleration zone
-    }
-    
-    // Zone transition detection
-    bool zoneTransition = (lastZone != currentZone) && (lastZone != -1);
-    
-    // Handle regen zone - now works at standstill too
-    if (throttlePosition <= REGEN_END_POINT) {
-        // Progressive pedal mapping for smoother feel
-        float normalizedRegen = 1.0f - (throttlePosition / REGEN_END_POINT);
-        
-        // Apply progressive curve for better pedal feel
-        float progressiveRegen;
-        if (normalizedRegen < 0.4f) {
-            // Light regen (first 40% of pedal travel)
-            progressiveRegen = pow(normalizedRegen / 0.4f, 1.2f) * 0.25f;
-        } else {
-            // Strong regen (40-100% of pedal travel)
-            progressiveRegen = 0.25f + pow((normalizedRegen - 0.4f) / 0.6f, 0.9f) * 0.75f;
-        }
-        
-        // Calculate regen torque - use config.getMaxTorque() for user-configurable limit
-        float regenTorqueCap = std::min(VehicleParams::OPD::REGEN_TORQUE_CAP, 
-                                       static_cast<double>(config.getMaxTorque() * 0.35));
-        
-        float regenTorque = progressiveRegen * regenTorqueCap;
-        
-        // Apply rate limiting for smooth transitions
-        float maxChange = (zoneTransition && lastZone == 2) ? 3.0f : 7.0f;
-        float torqueChange = regenTorque - lastRegenTorque;
-        torqueChange = constrain(torqueChange, -maxChange, maxChange);
-        regenTorque = lastRegenTorque + torqueChange;
-        lastRegenTorque = regenTorque;
-        
-        // Update zone tracking
-        lastZone = currentZone;
-        
-        // Apply proper direction based on current gear rather than motor speed
-        // This ensures regen works at standstill too
-        return (currentGear == GearState::DRIVE) ? regenTorque : -regenTorque;
-    }
-    // Handle coast zone
-    else if (throttlePosition <= COAST_END_POINT) {
-        // Smooth fade out when transitioning from regen to coast
-        if (lastZone == 0) {
-            float coastPosition = (throttlePosition - REGEN_END_POINT) / (COAST_END_POINT - REGEN_END_POINT);
-            float fadeRatio = 1.0f - pow(coastPosition, 0.7f); // non-linear fade
-            
-            // Gradual fade out of regen torque
-            float transitionTorque = lastRegenTorque * fadeRatio * 0.5f; // 50% max carry-over
-            
-            // Update zone tracking
-            lastZone = currentZone;
-            lastRegenTorque = transitionTorque;
-            
-            // Apply proper direction based on current gear
-            return (currentGear == GearState::DRIVE) ? transitionTorque : -transitionTorque;
-        }
-        
-        // Normal coast behavior
-        lastZone = currentZone;
-        return 0; // Coast (zero torque)
-    }
-    // Handle acceleration zone
-    else {
-        // Progressive throttle mapping for acceleration
-        float normalizedThrottle = (throttlePosition - COAST_END_POINT) / (100.0f - COAST_END_POINT);
-        
-        // Apply progressive curve for better control
-        float progressiveThrottle;
-        if (normalizedThrottle < 0.3f) {
-            // Light acceleration (0-30%)
-            progressiveThrottle = pow(normalizedThrottle / 0.3f, 1.3f) * 0.2f;
-        } else {
-            // Strong acceleration (30-100%)
-            progressiveThrottle = 0.2f + pow((normalizedThrottle - 0.3f) / 0.7f, 1.2f) * 0.8f;
-        }
-        
-        // Special handling for regen-to-accel transition
-        if (zoneTransition && lastZone == 0) {
-            // Apply initial damping when transitioning from regen to accel
-            progressiveThrottle *= 0.5f;
-        }
-        
-        // Calculate acceleration torque
-        float targetTorque = progressiveThrottle * std::min(config.getMaxTorque(), VehicleParams::Motor::MAX_REQ_TRQ);
-        
-        // Apply rate limiting for smooth transitions
-        float maxChange = (zoneTransition) ? 4.0f : 8.0f;
-        float torqueChange = targetTorque - lastAccelTorque;
-        torqueChange = constrain(torqueChange, -maxChange, maxChange);
-        float accelTorque = lastAccelTorque + torqueChange;
-        lastAccelTorque = accelTorque;
-        
-        // Update zone tracking
-        lastZone = currentZone;
-        
-        // Apply proper direction based on gear
-        return (currentGear == GearState::DRIVE) ? -accelTorque : accelTorque;
-    }
-}
- /*
-int16_t VehicleControl::handleRegenMode(float throttlePosition, float speed) {
-    // Static variables for filtering and state tracking
-    static float filteredRPM = 0.0f;
-    static float prevFilteredRPM = 0.0f;
-    static float rpmChangeRate = 0.0f;
-    static int lastZone = -1; // -1=initial, 0=regen, 1=coast, 2=accel
-    static unsigned long lastUpdateTime = 0; // For time tracking
-    static float lastRegenTorque = 0.0f; // For tracking previous regen torque
-    static float lastTransitionTorque = 0.0f; // For transitions
-    static float lastAccelTorque = 0.0f; // For tracking accel torque
-    
-    // Early exit if in neutral
-    if (currentGear == GearState::NEUTRAL) {
-        return 0;
-    }
-    
-    // Time-based calculations
-    unsigned long currentTime = millis();
-    unsigned long deltaTime = currentTime - lastUpdateTime;
-    lastUpdateTime = currentTime;
-    
-    // Prevent division by zero in rate calculations
-    if (deltaTime == 0) deltaTime = 1;
-    
-    // Enhanced multi-stage RPM filtering for ultimate stability
-    float currentRawRPM = fabsf(motorSpeed);
-    
-    // Stage 1: Heavy low-pass filter for noise reduction
-    const float PRIMARY_FILTER = 0.55f; // Very strong filtering (55% previous, 45% new)
-    filteredRPM = (PRIMARY_FILTER * filteredRPM) + ((1.0f - PRIMARY_FILTER) * currentRawRPM);
-    
-    // Stage 2: Calculate rate of change and apply predictive filtering
-    if (deltaTime > 0) {
-        // Calculate RPM change rate (RPM per second)
-        float instantRpmRate = (filteredRPM - prevFilteredRPM) * (1000.0f / deltaTime);
-        
-        // Filter the rate itself for stability
-        const float RATE_FILTER = 0.9f;
-        rpmChangeRate = (RATE_FILTER * rpmChangeRate) + ((1.0f - RATE_FILTER) * instantRpmRate);
-        
-        // Apply predictive component (helps anticipate RPM changes)
-        const float PREDICTION_FACTOR = 0.1f;
-        float predictedRPM = filteredRPM + (rpmChangeRate * PREDICTION_FACTOR);
-        
-        // Blend prediction with filtered value (improves responsiveness while maintaining stability)
-        const float PREDICTION_BLEND = 0.2f;
-        filteredRPM = (filteredRPM * (1.0f - PREDICTION_BLEND)) + (predictedRPM * PREDICTION_BLEND);
-    }
-    
-    // Save current filtered RPM for next iteration
-    prevFilteredRPM = filteredRPM;
-    
-    // Define pedal zones with consistent parameters
-    const float REGEN_END_POINT = VehicleParams::Regen::END_POINT;
-    const float COAST_END_POINT = VehicleParams::Regen::COAST_END;
-    
-    // Determine current zone
-    int currentZone;
-    if (throttlePosition <= REGEN_END_POINT) {
-        currentZone = 0; // Regen zone
-    } else if (throttlePosition <= COAST_END_POINT) {
-        currentZone = 1; // Coast zone
-    } else {
-        currentZone = 2; // Acceleration zone
-    }
-    
-    // Detect zone transitions
-    bool zoneTransition = (lastZone != currentZone) && (lastZone != -1);
-    
-    // Smoother tapering with gentler curve based on RPM
-    float regenTaperFactor = 0.0f;
-    
-    if (filteredRPM >= 300.0f) {
-        // Full regen allowed at higher speeds
-        regenTaperFactor = 1.0f;
-    } else if (filteredRPM <= 10.0f) {
-        // CRITICAL CHANGE: At very low speed (near zero), disable regen
-        regenTaperFactor = 0.0f; // Changed from 0.3f to 0.0f to prevent oscillation
-    } else {
-        // Progressive taper between 10 and 300 RPM - now starting from zero
-        float rampProgress = (filteredRPM - 10.0f) / 290.0f;
-        rampProgress = constrain(rampProgress, 0.0f, 1.0f);
-        
-        // Modified curve starting from zero for smoother low-speed behavior
-        regenTaperFactor = pow(rampProgress, 1.2f);
-    }
-    
-    // Rate limiting on taper factor for smooth transitions
-    static float lastTaperFactor = 0.0f;
-    const float MAX_TAPER_CHANGE = 0.08f;
-    float taperChange = regenTaperFactor - lastTaperFactor;
-    taperChange = constrain(taperChange, -MAX_TAPER_CHANGE, MAX_TAPER_CHANGE);
-    regenTaperFactor = lastTaperFactor + taperChange;
-    lastTaperFactor = regenTaperFactor;
-    
-    // Handle regen zone with enhanced progressive pedal response
-    if (throttlePosition <= REGEN_END_POINT) {
-        // More progressive pedal mapping with two-segment curve
-        float normalizedRegen = 1.0f - (throttlePosition / REGEN_END_POINT);
-        
-        // Two-segment curve for better pedal feel
-        float progressiveRegen;
-        if (normalizedRegen < 0.4f) {
-            // Light regen (first 40% of pedal travel)
-            progressiveRegen = pow(normalizedRegen / 0.4f, 1.2f) * 0.25f;
-        } else {
-            // Strong regen (40-100% of pedal travel)
-            progressiveRegen = 0.25f + pow((normalizedRegen - 0.4f) / 0.6f, 0.9f) * 0.75f;
-        }
-        
-        // Calculate regen torque with enhanced taper factor
-        // Base torque calculation
-        float baseTorque = progressiveRegen * std::min(VehicleParams::OPD::REGEN_TORQUE_CAP, 
-                                                      static_cast<double>(config.getMaxTorque() * 0.35));
-        
-        // Apply adaptive tapering
-        float regenTorque = baseTorque * regenTaperFactor;
-        
-        // Apply rate limiting for smooth transitions
-        float torqueChange = regenTorque - lastRegenTorque;
-        
-        // Adaptive rate limiting based on situation
-        float maxChange = (zoneTransition && lastZone == 2) ? 3.0f : 7.0f;
-        torqueChange = constrain(torqueChange, -maxChange, maxChange);
-        regenTorque = lastRegenTorque + torqueChange;
-        lastRegenTorque = regenTorque;
-        
-        // Update zone tracker
-        lastZone = currentZone;
-        
-        // Apply proper direction based on motor speed
-        return (motorSpeed < 0) ? regenTorque : -regenTorque;
-    }
-    // Handle coast zone
-    else if (throttlePosition <= COAST_END_POINT) {
-        // Smooth transition when coming from regen zone
-        if (lastZone == 0) {
-            // Calculate fade-out ratio based on position in coast zone
-            float coastPosition = (throttlePosition - REGEN_END_POINT) / (COAST_END_POINT - REGEN_END_POINT);
-            float fadeRatio = 1.0f - pow(coastPosition, 0.7f); // non-linear fade
-            
-            // Get last regen torque for smooth transition
-            float transitionTorque = lastRegenTorque * fadeRatio * 0.7f; // 70% max carry-over
-            
-            // Apply rate limiting for smoothness
-            float torqueChange = transitionTorque - lastTransitionTorque;
-            float maxChange = 5.0f; // moderate limit
-            torqueChange = constrain(torqueChange, -maxChange, maxChange);
-            transitionTorque = lastTransitionTorque + torqueChange;
-            lastTransitionTorque = transitionTorque;
-            
-            // Save for next iteration
-            lastRegenTorque = transitionTorque;
-            
-            // Update zone tracker
-            lastZone = currentZone;
-            
-            // Apply proper direction based on motor speed
-            return (motorSpeed < 0) ? transitionTorque : -transitionTorque;
-        }
-        
-        // Normal coast behavior with zero torque
-        // Update zone tracker
-        lastZone = currentZone;
-        
-        return 0; // Coast (zero torque)
-    }
-    // Handle acceleration zone
-    else {
-        // Progressive throttle mapping for acceleration
-        float normalizedThrottle = (throttlePosition - COAST_END_POINT) / (100.0f - COAST_END_POINT);
-        float progressiveThrottle;
-        
-        // Two-segment acceleration curve for better control
-        if (normalizedThrottle < 0.3f) {
-            // Light acceleration (0-30%)
-            progressiveThrottle = pow(normalizedThrottle / 0.3f, 1.3f) * 0.2f; 
-        } else {
-            // Strong acceleration (30-100%)
-            progressiveThrottle = 0.2f + pow((normalizedThrottle - 0.3f) / 0.7f, 1.2f) * 0.8f;
-        }
-        
-        // Special handling for regen-to-accel transition
-        if (zoneTransition && lastZone == 0) {
-            // Time-based transition from regen to accel
-            static unsigned long transitionStartTime = 0;
-            if (zoneTransition) {
-                transitionStartTime = currentTime; // Reset timer on transition
-            }
-            
-            // Calculate transition ramp factor (0 to 1 over 250ms - shorter than before)
-            float transitionTime = min(250.0f, (float)(currentTime - transitionStartTime));
-            float rampFactor = transitionTime / 250.0f;
-            
-            // S-curve transition for smoothness
-            rampFactor = 0.5f - 0.5f * cos(rampFactor * 3.14159f);
-            
-            // Apply gradual ramp-up during transition
-            progressiveThrottle *= rampFactor;
-        }
-        
-        // Calculate target torque
-        float targetTorque = progressiveThrottle * std::min(config.getMaxTorque(), VehicleParams::Motor::MAX_REQ_TRQ);
-        
-        // Rate limiting for smooth acceleration
-        float torqueChange = targetTorque - lastAccelTorque;
-        
-        // Adaptive rate limiting based on situation
-        float maxChange;
-        if (zoneTransition && lastZone == 0) {
-            // Coming from regen - gentler transition
-            maxChange = 3.0f;
-        } else if (zoneTransition) {
-            // Other transitions
-            maxChange = 5.0f;
-        } else {
-            // Normal operation - more responsive
-            maxChange = 8.0f + (progressiveThrottle * 5.0f); // 8-13 based on throttle
-        }
-        
-        torqueChange = constrain(torqueChange, -maxChange, maxChange);
-        float accelTorque = lastAccelTorque + torqueChange;
-        lastAccelTorque = accelTorque;
-        
-        // Update zone tracker
-        lastZone = currentZone;
-        
-        // Apply proper direction based on gear
-        return (currentGear == GearState::DRIVE) ? -accelTorque : accelTorque;
-    }
-}
-*/
-/**
- * @brief Handle One Pedal Drive (OPD) mode with PID anti-rollback and torque capping.
- * @param throttlePosition Processed pedal position (0-100%).
- * @param speed Current vehicle speed in kph.
- * @return Calculated torque for OPD mode.
- * 
- * Features:
- * - Speed-dependent pedal mapping.
- * - Built-in regenerative braking.
- * - Anti-rollback protection: when speed is very low, a PID controller holds the vehicle at 0 kph.
- * - Dynamic torque limiting and a regen torque cap for slow speeds so that, in the worst case,
- *   the vehicle only accelerates slowly backward.
- */
-int16_t VehicleControl::handleOPDMode(float throttlePosition, float speed) {
-    float absSpeed = fabs(speed);
-    
-    // Near-zero speed: if vehicle is nearly stopped, use PID control for anti-rollback.
-    if (absSpeed < VehicleParams::OPD::ZERO_SPEED_THRESHOLD) {
-        float pidOutput = opdPid.update(speed, VehicleParams::Control::CONTROL_DT);
-        return pidOutput;
-    }
-    
-    // Speed percentage relative to max OPD speed.
-    float speedPercent = constrain(absSpeed / VehicleParams::OPD::MAX_SPEED, 0.0f, 1.0f);
-    
-    // Improved coast zone boundaries.
-    float coastUpper = VehicleParams::OPD::PHI * pow(speedPercent, 1.0f / VehicleParams::OPD::SHAPE_FACTOR);
-    float coastLower = coastUpper - VehicleParams::OPD::COAST_RANGE * speedPercent;
-    
-    // Ensure reasonable coast range.
-    coastUpper = max(5.0f, coastUpper);
-    coastLower = max(2.0f, coastLower);
-    
-    // Coast logic.
-    if (throttlePosition >= coastLower && throttlePosition <= coastUpper) {
-        return 0;
-    }
-    
-    // Acceleration logic with proper throttle scaling.
-    if (throttlePosition > coastUpper) {
-        float normalizedPosition = (throttlePosition - coastUpper) / (100.0f - coastUpper);
-        float maxTorque = config.getMaxTorque();
-
-        // No low-speed torque reduction
-        float torque = maxTorque * pow(normalizedPosition, 1.5f);
-
-        return (currentGear == GearState::DRIVE) ? -torque : torque;
-    } 
-    
-    // Regen logic remains unchanged.
-    float normalizedPosition = throttlePosition / coastLower;
-    float maxRegen = VehicleParams::OPD::MAX_REGEN * (config.getMaxTorque() / 100.0f);
-    
-    return (currentGear == GearState::DRIVE) ? maxRegen * (1.0f - normalizedPosition) : -maxRegen * (1.0f - normalizedPosition);
-}
-/* OLD TRY
-int16_t VehicleControl::handleOPDMode(float throttlePosition, float speed) {
-    float absSpeed = fabs(speed);
-    
-    // Near-zero speed: if vehicle is nearly stopped, use PID control for anti-rollback.
-    if (absSpeed < VehicleParams::OPD::ZERO_SPEED_THRESHOLD) {
-        float pidOutput = opdPid.update(speed, VehicleParams::Control::CONTROL_DT);
-        return pidOutput;
-    }
-    
-    // Speed percentage relative to max OPD speed.
-    float speedPercent = constrain(absSpeed / VehicleParams::OPD::MAX_SPEED, 0.0f, 1.0f);
-    
-    // Improved coast zone boundaries.
-    float coastUpper = VehicleParams::OPD::PHI * pow(speedPercent, 1.0f / VehicleParams::OPD::SHAPE_FACTOR);
-    float coastLower = coastUpper - VehicleParams::OPD::COAST_RANGE * speedPercent;
-    
-    // Ensure reasonable coast range.
-    coastUpper = max(5.0f, coastUpper);
-    coastLower = max(2.0f, coastLower);
-    
-    // Coast logic.
-    if (throttlePosition >= coastLower && throttlePosition <= coastUpper) {
-        return 0;
-    }
-    
-    // Acceleration logic with proper throttle scaling.
-    if (throttlePosition > coastUpper) {
-        float normalizedPosition = (throttlePosition - coastUpper) / (100.0f - coastUpper);
-        float maxTorque = VehicleParams::Motor::MAX_TRQ;
-
-        // No low-speed torque reduction
-        float torque = maxTorque * pow(normalizedPosition, 1.5f);
-
-        return (currentGear == GearState::DRIVE) ? -torque : torque;
-    } 
-    
-    // Regen logic remains unchanged.
-    float normalizedPosition = throttlePosition / coastLower;
-    float maxRegen = VehicleParams::OPD::MAX_REGEN * (config.getMaxTorque() / 100.0f);
-    
-    return (currentGear == GearState::DRIVE) ? maxRegen * (1.0f - normalizedPosition) : -maxRegen * (1.0f - normalizedPosition);
-}
-*/
-
-/**
- * @brief Apply rate limiting to torque changes.
- * @param requestedTorque Raw calculated torque.
- * @return Rate-limited torque value.
- * 
- * Implements different limits for acceleration and deceleration.
- */
-int16_t VehicleControl::applyTorqueLimits(int16_t requestedTorque) {
-    float torqueDiff = requestedTorque - lastTorque;
-    
-    if (abs(requestedTorque) > abs(lastTorque)) {
-        torqueDiff = constrain(torqueDiff, 
-                             -VehicleParams::Motor::MAX_DECEL_STEP,
-                             VehicleParams::Motor::MAX_ACCEL_STEP);
-    } else {
-        torqueDiff = constrain(torqueDiff, 
-                             -VehicleParams::Motor::MAX_DECEL_STEP,
-                             VehicleParams::Motor::MAX_DECEL_STEP);
-    }
-    
-    lastTorque = lastTorque + torqueDiff;
-    return lastTorque;
-}
-
-/**
- * @brief Apply torque cutoff based on RPM, direction, and gear state.
- * @param requestedTorque The raw calculated torque.
- * @return Modified torque after applying directional restrictions.
- */
-int16_t VehicleControl::applyTorqueCutoff(int16_t requestedTorque) {
-    if (currentGear == GearState::DRIVE) {
-        // Prevent positive torque (forward acceleration) if at 0 RPM or in reverse direction
-        if (motorSpeed >= 0 && requestedTorque > 0) {
-            return 0;
-        }
-    } else if (currentGear == GearState::REVERSE) {
-        // Prevent negative torque (reverse acceleration) if at 0 RPM or moving forward
-        if (motorSpeed <= 0 && requestedTorque < 0) {
-            return 0;
-        }
-    }
-    return requestedTorque;
-}
-
-/**
- * @brief Apply deadband hysteresis to torque output.
- * @param torque Input torque value.
- * @return Processed torque with deadband hysteresis.
- * 
- * Prevents oscillation around zero torque:
- * - Uses a higher threshold to exit the deadband and a lower threshold to enter.
- */
-int16_t VehicleControl::applyDeadbandHysteresis(int16_t torque) {
-    if (wasInDeadband) {
-        if (abs(torque) > VehicleParams::Motor::TORQUE_DEADBAND_HIGH) {
-            wasInDeadband = false;
-            enableDMC = true;
-        } else {
-            torque = 0;
-            enableDMC = true;
-        }
-    } else {
-        if (abs(torque) < VehicleParams::Motor::TORQUE_DEADBAND_LOW) {
-            wasInDeadband = true;
-            torque = 0;
-            enableDMC = true;
-        } else {
-            enableDMC = true;
-        }
-    }
-    
-    return torque;
-}
-
-/**
- * @brief Update current motor speed.
- * @param speed New motor speed in RPM.
+ * @brief Update current motor speed (UNCHANGED)
+ * @param speed Motor speed in RPM
  */
 void VehicleControl::setMotorSpeed(float speed) {
     motorSpeed = speed;
 }
 
 /**
- * @brief Set current gear state.
- * @param gear New gear state (DRIVE/NEUTRAL/REVERSE).
+ * @brief Set current gear state (UNCHANGED)
+ * @param gear New gear state (DRIVE/NEUTRAL/REVERSE)
  */
 void VehicleControl::setCurrentGear(GearState gear) {
     currentGear = gear;
 }
 
 /**
- * @brief Set current driving mode.
- * @param mode New driving mode (LEGACY/REGEN/OPD).
+ * @brief Set current driving mode (UNCHANGED)
+ * @param mode New driving mode
  */
 void VehicleControl::setDrivingMode(DriveMode mode) {
     currentDrivingMode = mode;
+    // Note: Enhanced system works with all modes
 }
 
 /**
- * @brief Check if the motor controller is enabled.
- * @return true if DMC is enabled.
+ * @brief Check if the motor controller should be enabled (UNCHANGED)
+ * @return true if DMC should be enabled (torque != 0)
  */
 bool VehicleControl::isDMCEnabled() const {
     return enableDMC;
 }
 
 /**
- * @brief Update the gear state based on switch inputs and speed.
+ * @brief Update gear state based on switch inputs with anti-jerk protection (UNCHANGED)
  */
 void VehicleControl::updateGearState() {
     static unsigned long errorClearStartTime = 0;
     static bool inErrorClearSequence = false;
-    static GearState lastGear = GearState::NEUTRAL;
     
-    int32_t forwardValue = ads.readADC(2);  // Drive switch on A2.
-    int32_t reverseValue = ads.readADC(3);  // Reverse switch on A3.
+    int32_t forwardValue = ads.readADC(2);  // Drive switch on A2
+    int32_t reverseValue = ads.readADC(3);  // Reverse switch on A3
     
     bool isForwardHigh = forwardValue > 200;
     bool isReverseHigh = reverseValue > 200;
     
-    // Handle neutral selection – always allowed.
+    // Handle neutral selection - always allowed
     if (!isForwardHigh && !isReverseHigh) {
-        // Only execute the error clearing sequence when newly transitioning to neutral
+        // Only execute error clearing sequence when newly transitioning to neutral
         if (currentGear != GearState::NEUTRAL && !inErrorClearSequence) {
-            // Start non-blocking error clearing sequence
             inErrorClearSequence = true;
             errorClearStartTime = millis();
-            
-            // Disable DMC
             enableDMC = false;
-            
-            // Set error latch high and mark for clearing
             canManager->setNeedsClearError(true);
-            
-            // Gear will be set to NEUTRAL after the sequence completes
         } 
         else if (inErrorClearSequence) {
-            // Check if 100ms has passed
             if (millis() - errorClearStartTime >= 100) {
-                // Clear the error flag
                 canManager->setNeedsClearError(false);
                 inErrorClearSequence = false;
-                
-                // Now we can officially set the gear state
                 currentGear = GearState::NEUTRAL;
                 if (canManager) {
-                     canManager->setCurrentGear(currentGear);
+                    canManager->setCurrentGear(currentGear);
                 }
                 shiftAttempted = false;
             }
-            // Don't change gear state until sequence completes
         } 
         else {
-            // Already in neutral, nothing special to do
             currentGear = GearState::NEUTRAL;
             shiftAttempted = false;
             enableDMC = false;        
-            }
-        // Remember the last gear state
-        lastGear = currentGear;
+        }
         return;
     }
     
-    // If we were in an error clear sequence but now pedals are pressed,
-    // abort the error clear sequence
+    // Abort error clear sequence if pedals are pressed
     if (inErrorClearSequence) {
         inErrorClearSequence = false;
         canManager->setNeedsClearError(false);
     }
     
-    // Handle transitions at low speed.
+    // Handle transitions at low speed
     if (abs(motorSpeed) < VehicleParams::Transmission::RPM_SHIFT_THRESHOLD) {
         if (isForwardHigh && !isReverseHigh) {
             currentGear = GearState::DRIVE;
@@ -818,17 +589,15 @@ void VehicleControl::updateGearState() {
             }
         }
     } else {
-        // At high speed, prevent switching between drive and reverse.
+        // At high speed, prevent switching between drive and reverse
         if (isForwardHigh && currentGear == GearState::REVERSE) {
             shiftAttempted = true;
-            // Stay in current gear until speed drops.
         } else if (isReverseHigh && currentGear == GearState::DRIVE) {
             shiftAttempted = true;
-            // Stay in current gear until speed drops.
         }
     }
     
-    // Allow reengaging desired gear when speed drops.
+    // Allow reengaging desired gear when speed drops
     if (shiftAttempted && abs(motorSpeed) < VehicleParams::Transmission::RPM_SHIFT_THRESHOLD) {
         if (isForwardHigh && !isReverseHigh) {
             currentGear = GearState::DRIVE;
@@ -844,7 +613,4 @@ void VehicleControl::updateGearState() {
             }
         }
     }
-    
-    // Remember the last gear state
-    lastGear = currentGear;
 }

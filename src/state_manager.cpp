@@ -248,22 +248,31 @@ void StateManager::updateDriveMode(DriveMode mode) {
  * @note Transitions to STANDBY if ignition is turned off
  */
 void StateManager::handleRunState() {
+    // Check if ignition is off
     if (!digitalRead(Pins::IGNITION)) {
         transitionToStandby();
         return;
     }
-    
+
+    // Check if charger is connected - transition to CHARGING
+    // NLG_HW_Wakeup pin HIGH indicates charger is connected
+    if (digitalRead(Pins::NLG_HW_Wakeup) == HIGH) {
+        Serial.println("[STATE] Charger detected during RUN state, transitioning to CHARGING");
+        transitionToCharging();
+        return;
+    }
+
     armCoolingSys(true);
     armBattery(true);
-    
+
     // Only enable DMC if HV system is ready
-    if (batteryArmed && hasPreCharged && 
+    if (batteryArmed && hasPreCharged &&
         hvVoltageActual >= VehicleParams::Battery::MIN_VOLTAGE) {
         digitalWrite(Pins::DMCKL15, HIGH);
     } else {
         digitalWrite(Pins::DMCKL15, LOW);  // Keep DMC off until HV is ready
     }
-    
+
     digitalWrite(Pins::DMCKL15, HIGH);
     digitalWrite(Pins::BSCKL15, HIGH);
 }
@@ -280,13 +289,22 @@ void StateManager::handleRunState() {
 void StateManager::handleChargingState() {
     digitalWrite(Pins::NLGKL15, HIGH);
     digitalWrite(Pins::BSCKL15, HIGH);
-    
+
+    // CRITICAL: CHARGING state should NEVER transition to RUN, even if ignition is on
+    // User must unplug charger first, which will transition to SLEEP/STANDBY
+    // Then turning on ignition will go SLEEP -> RUN
+    if (digitalRead(Pins::IGNITION) == HIGH) {
+        Serial.println("[STATE] WARNING: Ignition turned on during CHARGING - staying in CHARGING state");
+        Serial.println("[STATE] Unplug charger first, then turn on ignition to drive");
+        // Do NOT transition to RUN - this is intentional safety behavior
+    }
+
     if(conUlockInterrupt) {
         Serial.println("Connector unlock interrupt detected");
         handleConnectorUnlock();
         //conUlockInterrupt = false; // Clear the interrupt flag after handling
     }
-    
+
     armCoolingSys(true);
     chargeManage();
     canManager.setNLGStateDemand(chargerStateDemand);

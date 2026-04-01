@@ -17,6 +17,7 @@
 #include "config.h"
 #include <algorithm>
 #include "configuration.h"
+#include "can_monitoring.h"
 /**
  * @brief Constructs the CAN manager
  * @param cs_pin SPI chip select pin for CAN controller
@@ -152,7 +153,7 @@ void CANManager::update() {
 }
 
 /**
- * @brief Check for and process incoming CAN messages
+ * @brief Check for and process incoming CAN messages - FIXED pointer access
  */
 void CANManager::checkAndProcessMessages() {
     uint8_t len;
@@ -160,6 +161,15 @@ void CANManager::checkAndProcessMessages() {
     while (CAN_MSGAVAIL == CAN.checkReceive()) {
         if (CAN.readMsgBuf(&len, buf) == CAN_OK) {
             uint32_t id = CAN.getCanId();
+            
+            // FIXED: Use pointer access with null checks
+            if (canMonitor && canMonitor->isLoggingEnabled()) {
+                canMonitor->logMessage(id, buf, len, false);  // false = received
+                if (systemMonitor) {
+                    systemMonitor->logCANMessage(id, buf, len, false, canMonitor->getMessageDescription(id));
+                }
+            }
+            
             switch(id) {
                 case 0x010:  // BMS message
                     processBMSMessage(buf);
@@ -200,6 +210,7 @@ void CANManager::processBMSMessage(uint8_t* buf) {
     bmsData.current = (buf[4] | (buf[3] << 8));
     bmsData.maxDischarge = (buf[6] | (buf[5] << 8));
     bmsData.maxCharge = buf[7] * 2;
+    //Serial.println("BMS Data - SOC: " + String(bmsData.soc) + "%, Voltage: " + String(bmsData.voltage) + "V, Current: " + String(bmsData.current) + "A, Max Discharge: " + String(bmsData.maxDischarge) + "A, Max Charge: " + String(bmsData.maxCharge) + "A");;
 
     lastBMSUpdate = millis(); // Update timestamp on valid message
 }
@@ -283,7 +294,7 @@ void CANManager::processNLGMessage(uint32_t id, uint8_t* buf) {
 }
 
 /**
- * @brief Send BSC control messages
+ * @brief Enhanced sendBSC() method with CAN logging - REPLACE EXISTING
  */
 void CANManager::sendBSC() {
     uint8_t lvVoltageScale = static_cast<uint8_t>(VehicleParams::Battery::MIN_LVVOLTAGE * 10);
@@ -302,51 +313,40 @@ void CANManager::sendBSC() {
     limitBufferBSC[4] = VehicleParams::Power::BSC_LV_BOOST;
     limitBufferBSC[5] = static_cast<uint8_t>(VehicleParams::Battery::PRECHARGE_CURRENT * 10);
     
+    // Send BSC Control message with logging
     CAN.sendMsgBuf(CANIds::BSC_COMM, 0, 3, controlBufferBSC);
+    if (canMonitor && canMonitor->isLoggingEnabled()) {
+        canMonitor->logMessage(CANIds::BSC_COMM, controlBufferBSC, 3, true);
+        
+        String description = "BSC Control - Enable:" + String(enableBSC ? "Y" : "N") +
+                           " Mode:" + String(modeBSC ? "BOOST" : "BUCK") +
+                           " HV:" + String(hvVoltage) + "V";
+        
+        if (systemMonitor) {
+            systemMonitor->logCANMessage(CANIds::BSC_COMM, controlBufferBSC, 3, true, description);
+        }
+    }
+    
+    // Send BSC Limits message with logging
     CAN.sendMsgBuf(CANIds::BSC_LIM, 0, 6, limitBufferBSC);
+    if (canMonitor && canMonitor->isLoggingEnabled()) {
+        canMonitor->logMessage(CANIds::BSC_LIM, limitBufferBSC, 6, true);
+        
+        String description = "BSC Limits - MinV:" + String(VehicleParams::Battery::MIN_VOLTAGE) + "V" +
+                           " Buck:" + String(VehicleParams::Power::BSC_LV_BUCK) + "A" +
+                           " Boost:" + String(VehicleParams::Power::BSC_LV_BOOST) + "A";
+        
+        if (systemMonitor) {
+            systemMonitor->logCANMessage(CANIds::BSC_LIM, limitBufferBSC, 6, true, description);
+        }
+    }
 }
 
-
 /**
- * @brief Send DMC control messages
- * Transmits motor control parameters and limits based on current state
+ * @brief Enhanced sendDMC() method with CAN logging - REPLACE EXISTING 
+ * REMOVE THE DUPLICATE sendDMC() method and replace with this single version
  */
 void CANManager::sendDMC() {
-   /* // If torque demand is zero and we're in neutral, or transitioning, send safe message
-    if (currentGear == GearState::NEUTRAL || abs(torqueDemand) < 1.0f) {
-        // Send a "safe" DMC message with zero torque and disabled state
-        memset(controlBufferDMC, 0, 8);
-        controlBufferDMC[0] = 0; // All enables off, no error clear
-        
-        // Speed limit (16-bit signed value in RPM) - still send reasonable limits
-        int16_t speedLimit = VehicleParams::Motor::MAX_RPM;
-        controlBufferDMC[2] = speedLimit >> 8;
-        controlBufferDMC[3] = speedLimit & 0xFF;
-        
-        // Torque request - explicitly zero
-        controlBufferDMC[4] = 0;
-        controlBufferDMC[5] = 0;
-        
-        // Still send limits message
-        int dcVoltLimMotor = VehicleParams::Battery::MIN_VOLTAGE * 10;
-        int dcVoltLimGen = (VehicleParams::Battery::MAX_VOLTAGE + 4) * 10;
-        int dcCurrLimMotor = VehicleParams::Battery::MAX_DMC_CURRENT * 10;
-        int dcCurrLimGen = VehicleParams::Power::DMC_DC_GEN * 10;
-        
-        limitBufferDMC[0] = dcVoltLimMotor >> 8;
-        limitBufferDMC[1] = dcVoltLimMotor & 0xFF;
-        limitBufferDMC[2] = dcVoltLimGen >> 8;
-        limitBufferDMC[3] = dcVoltLimGen & 0xFF;
-        limitBufferDMC[4] = dcCurrLimMotor >> 8;
-        limitBufferDMC[5] = dcCurrLimMotor & 0xFF;
-        limitBufferDMC[6] = dcCurrLimGen >> 8;
-        limitBufferDMC[7] = dcCurrLimGen & 0xFF;
-        
-        CAN.sendMsgBuf(CANIds::DMCCTRL, 0, 8, controlBufferDMC);
-        CAN.sendMsgBuf(CANIds::DMCLIM, 0, 8, limitBufferDMC);
-        return;
-    }
-    */
     int16_t scaledTorque = static_cast<int16_t>(torqueDemand * 10);  // 0.01Nm/bit according to DBC
     
     // Set direction control bits based on current gear
@@ -372,7 +372,6 @@ void CANManager::sendDMC() {
             // In NEUTRAL, disable both directions for safety
             enablePosSpeed = false;
             enableNegSpeed = false;
-            // This should be caught above, but safety first
             scaledTorque = 0;
             break;
     }
@@ -425,82 +424,193 @@ void CANManager::sendDMC() {
     limitBufferDMC[6] = dcCurrLimGen >> 8;
     limitBufferDMC[7] = dcCurrLimGen & 0xFF;
     
+    // Send DMC Control message with logging
     CAN.sendMsgBuf(CANIds::DMCCTRL, 0, 8, controlBufferDMC);
+    if (canMonitor && canMonitor->isLoggingEnabled()) {
+        canMonitor->logMessage(CANIds::DMCCTRL, controlBufferDMC, 8, true);
+        
+        String description = "DMC Control - Enable:" + String(enableDMC ? "Y" : "N") + 
+                           " Torque:" + String(scaledTorque * 0.01f) + "Nm" +
+                           " Gear:" + String(currentGear == GearState::DRIVE ? "D" : 
+                                           (currentGear == GearState::REVERSE ? "R" : "N")) +
+                           " ErrorClr:" + String(needsClearError ? "Y" : "N");
+                           
+        if (systemMonitor) {
+            systemMonitor->logCANMessage(CANIds::DMCCTRL, controlBufferDMC, 8, true, description);
+        }
+    }
+    
+    // Send DMC Limits message with logging
     CAN.sendMsgBuf(CANIds::DMCLIM, 0, 8, limitBufferDMC);
+    if (canMonitor && canMonitor->isLoggingEnabled()) {
+        canMonitor->logMessage(CANIds::DMCLIM, limitBufferDMC, 8, true);
+        
+        String description = "DMC Limits - VoltMot:" + String(dcVoltLimMotor * 0.1f) + "V" +
+                           " VoltGen:" + String(dcVoltLimGen * 0.1f) + "V" +
+                           " CurrMot:" + String(dcCurrLimMotor * 0.1f) + "A" +
+                           " CurrGen:" + String(dcCurrLimGen * 0.1f) + "A";
+                           
+        if (systemMonitor) {
+            systemMonitor->logCANMessage(CANIds::DMCLIM, limitBufferDMC, 8, true, description);
+        }
+    }
+    
+    // Log significant torque changes for debugging
+    static float lastLoggedTorque = 0.0f;
+    float currentTorqueNm = scaledTorque * 0.01f;
+    if (abs(currentTorqueNm - lastLoggedTorque) > 5.0f) {  // Log changes > 5Nm
+        if (systemMonitor) {
+            systemMonitor->logInfo("DMC Torque change: " + String(lastLoggedTorque) + 
+                                 "Nm -> " + String(currentTorqueNm) + "Nm", "DMC");
+        }
+        lastLoggedTorque = currentTorqueNm;
+    }
 }
 
+
 /**
- * @brief Calculate the current limit with SOC-based tapering
- * @return Current limit in Amperes
- * 
- * Implements current tapering between 20-25% SOC:
- * - Above 25% SOC: Uses maximum DMC current (450A)
- * - Below 20% SOC: Uses BMS-reported current limit
- * - Between 20-25% SOC: Linearly tapers between max DMC current and BMS current
- */
-int CANManager::calculateTaperedDMCCurrent() {
-    // Get current SOC from BMS
-    uint8_t currentSOC = bmsData.soc;
-    
-    // Get maximum current allowed by BMS
-    int bmsCurrent = bmsData.maxDischarge;
-    
-    // Maximum DMC current from parameters
-    int maxDMCCurrent = VehicleParams::Battery::MAX_DMC_CURRENT;
-    
-    // Debug output
-    Serial.printf("SOC: %d%%, BMS Current: %dA, Max DMC: %dA\n", 
-                 currentSOC, bmsCurrent, maxDMCCurrent);
-    
-    // If SOC is above 25%, use maximum DMC current
-    if (currentSOC >= 25) {
-        return maxDMCCurrent;
-    }
-    // If SOC is below 20%, use BMS current
-    else if (currentSOC <= 20) {
-        return bmsCurrent;
-    }
-    // Between 20-25%, taper linearly from max DMC current to BMS current
-    else {
-        float taperFactor = (currentSOC - 20.0f) / 5.0f; // 0.0 at 20%, 1.0 at 25%
-        int taperedCurrent = bmsCurrent + taperFactor * (maxDMCCurrent - bmsCurrent);
-        
-        Serial.printf("Taper factor: %.2f, Tapered current: %dA\n", 
-                     taperFactor, taperedCurrent);
-        
-        return taperedCurrent;
-    }
-}
-/**
- * @brief Send NLG control messages
+ * @brief Enhanced sendNLG() method with CAN logging - REPLACE EXISTING
  */
 void CANManager::sendNLG() {
     int nlgVoltageScale = static_cast<int>(VehicleParams::Battery::MAX_VOLTAGE * 10);
+    Serial.println(bmsData.maxCharge);
     // Check if BMS timeout has occurred
+    // Note: You need to update lastBMSUpdate in your processBMSMessage() method
     if (millis() - lastBMSUpdate > VehicleParams::Timing::BMS_TIMEOUT_MS) {
         bmsData.maxCharge = 0;  // Set max charge current to 0 if timeout occurs
     }
+    static unsigned long lastBMSUpdate = 0; // Track BMS messages
 
     // Use the configuration value for maximum charging current
     uint8_t maxNlgCurrentAC = config.getMaxChargingCurrent();
     
     // Limit charging current by smaller of max charger current and BMS max charge
-    float limitedCurrentDC = std::min(static_cast<int>(VehicleParams::Battery::MAX_NLG_CURRENT), static_cast<int>(bmsData.maxCharge));
-    if (bmsData.voltage < VehicleParams::Battery::MIN_VOLTAGE && bmsData.maxCharge == 0) {
-        Serial.println("Recovery mode active, charging at 35A");
-        limitedCurrentDC = 35;  // Force 10A in recovery mode
-    }
-    int nlgCurrentScaleDC = static_cast<int>((limitedCurrentDC + 102.4) * 10);
-    int nlgCurrentScaleAC = static_cast<int>((maxNlgCurrentAC  + 102.4) * 10);
+    float limitedCurrentDC = std::min(static_cast<int>(VehicleParams::Battery::MAX_NLG_CURRENT), 
+                                    static_cast<int>(bmsData.maxCharge));
+    // Recovery mode for low voltage
+   /* if (bmsData.voltage < VehicleParams::Battery::MIN_VOLTAGE && bmsData.maxCharge == 0) {
+        limitedCurrentDC = 5;  // Force 5A in recovery mode
+    }*/
     
-    controlBufferNLG[0] = (false << 7) | (nlgData.unlockRequest << 6) | (false << 5) | ((nlgVoltageScale >> 8) & 0x1F);
+    int nlgCurrentScaleDC = static_cast<int>((limitedCurrentDC + 102.4) * 10);
+    int nlgCurrentScaleAC = static_cast<int>((maxNlgCurrentAC + 102.4) * 10);
+    
+    // Prepare NLG control message buffer
+    controlBufferNLG[0] = (false << 7) | (nlgData.unlockRequest << 6) | (false << 5) | 
+                         ((nlgVoltageScale >> 8) & 0x1F);
     controlBufferNLG[1] = nlgVoltageScale & 0xFF;
     controlBufferNLG[2] = (nlgData.stateDemand << 5) | ((nlgCurrentScaleDC >> 8) & 0x07);
     controlBufferNLG[3] = nlgCurrentScaleDC & 0xFF;
     controlBufferNLG[4] = (nlgData.ledDemand << 4) | ((nlgCurrentScaleAC >> 8) & 0x07);
     controlBufferNLG[5] = nlgCurrentScaleAC & 0xFF;
+    controlBufferNLG[6] = 0; // Reserved
+    controlBufferNLG[7] = 0; // Reserved
     
+    // Send NLG Control message with logging
     CAN.sendMsgBuf(CANIds::NLG_DEM_LIM, 0, 8, controlBufferNLG);
+    if (canMonitor && canMonitor->isLoggingEnabled()) {
+        canMonitor->logMessage(CANIds::NLG_DEM_LIM, controlBufferNLG, 8, true);
+        
+        // Create detailed description for this NLG message
+        String chargerStateStr;
+        switch(nlgData.stateDemand) {
+            case ChargerStates::NLG_DEM_STANDBY: chargerStateStr = "STANDBY"; break;
+            case ChargerStates::NLG_DEM_CHARGE: chargerStateStr = "CHARGE"; break;
+            case ChargerStates::NLG_DEM_SLEEP: chargerStateStr = "SLEEP"; break;
+            default: chargerStateStr = "UNKNOWN"; break;
+        }
+        
+        String ledStateStr;
+        switch(nlgData.ledDemand) {
+            case 0: ledStateStr = "OFF"; break;
+            case 1: ledStateStr = "ON"; break;
+            case 3: ledStateStr = "READY"; break;
+            case 4: ledStateStr = "CHARGING"; break;
+            default: ledStateStr = "OTHER"; break;
+        }
+        
+        String description = "NLG Control - State:" + chargerStateStr +
+                           " Unlock:" + String(nlgData.unlockRequest ? "Y" : "N") +
+                           " LED:" + ledStateStr +
+                           " VoltTgt:" + String(nlgVoltageScale * 0.1f) + "V" +
+                           " CurrDC:" + String(limitedCurrentDC) + "A" +
+                           " CurrAC:" + String(maxNlgCurrentAC) + "A";
+                           
+        if (systemMonitor) {
+            systemMonitor->logCANMessage(CANIds::NLG_DEM_LIM, controlBufferNLG, 8, true, description);
+        }
+    }
+    
+    // Log charging state changes
+    static uint8_t lastChargerState = 255; // Initialize to invalid state
+    if (nlgData.stateDemand != lastChargerState) {
+        String stateChangeMsg = "Charger state change: ";
+        
+        // Previous state
+        switch(lastChargerState) {
+            case ChargerStates::NLG_DEM_STANDBY: stateChangeMsg += "STANDBY"; break;
+            case ChargerStates::NLG_DEM_CHARGE: stateChangeMsg += "CHARGE"; break;
+            case ChargerStates::NLG_DEM_SLEEP: stateChangeMsg += "SLEEP"; break;
+            case 255: stateChangeMsg += "INIT"; break;
+            default: stateChangeMsg += "UNKNOWN"; break;
+        }
+        
+        stateChangeMsg += " -> ";
+        
+        // New state
+        switch(nlgData.stateDemand) {
+            case ChargerStates::NLG_DEM_STANDBY: stateChangeMsg += "STANDBY"; break;
+            case ChargerStates::NLG_DEM_CHARGE: stateChangeMsg += "CHARGE"; break;
+            case ChargerStates::NLG_DEM_SLEEP: stateChangeMsg += "SLEEP"; break;
+            default: stateChangeMsg += "UNKNOWN"; break;
+        }
+        
+        if (systemMonitor) {
+            systemMonitor->logInfo(stateChangeMsg, "NLG");
+        }
+        
+        lastChargerState = nlgData.stateDemand;
+    }
+    
+    // Log current limiting events
+    static bool wasLimited = false;
+    if (limitedCurrentDC < VehicleParams::Battery::MAX_NLG_CURRENT) {
+        if (!wasLimited) {
+            String limitMsg = "Charging current limited by BMS: " + 
+                            String(VehicleParams::Battery::MAX_NLG_CURRENT) + "A -> " + 
+                            String(limitedCurrentDC) + "A (SOC: " + String(bmsData.soc) + "%)";
+            if (systemMonitor) {
+                systemMonitor->logWarning(limitMsg, "NLG");
+            }
+            wasLimited = true;
+        }
+    } else {
+        if (wasLimited) {
+            if (systemMonitor) {
+                systemMonitor->logInfo("Charging current limit removed", "NLG");
+            }
+            wasLimited = false;
+        }
+    }
+    
+    // Log recovery mode activation
+    static bool inRecoveryMode = false;
+    if (limitedCurrentDC == 5 && bmsData.voltage < VehicleParams::Battery::MIN_VOLTAGE) {
+        if (!inRecoveryMode) {
+            if (systemMonitor) {
+                systemMonitor->logWarning("Recovery charging mode activated - Low voltage: " + 
+                                        String(bmsData.voltage) + "V", "NLG");
+            }
+            inRecoveryMode = true;
+        }
+    } else {
+        if (inRecoveryMode) {
+            if (systemMonitor) {
+                systemMonitor->logInfo("Recovery charging mode deactivated", "NLG");
+            }
+            inRecoveryMode = false;
+        }
+    }
 }
 /**
  * @brief Process external configuration message
@@ -713,45 +823,34 @@ void CANManager::sendBMSDataESPNOW() {
     }
 }
 
+
 /**
- * @brief Send DMC temperature data via ESP-NOW
- * Transmits motor temperature data to receiver
+ * @brief Set torque demand as percentage and convert to Nm
+ * @param torquePercent Torque percentage (-100% to +100%)
+ * 
+ * Conversion logic:
+ * - Percentage is converted to Nm based on configured maximum torque
+ * - Sign convention maintained: 
+ *   - DRIVE: Negative % = forward accel, Positive % = regen
+ *   - REVERSE: Positive % = reverse accel, Negative % = regen
  */
-void CANManager::sendDMCTempESPNOW() {
-    if (!espNowInitialized) {
-        return; // Not initialized
+void CANManager::setTorquePercentage(float torquePercent) {
+    // Store percentage for reference
+    torquePercentage = torquePercent;
+    
+    // Convert percentage to Nm
+    float maxTorqueNm = config.getMaxTorque(); // User-configurable max torque
+    float torqueNm = (torquePercent / 100.0f) * 850;//maxTorqueNm;
+    
+    // Limit to motor capabilities
+    torqueNm = constrain(torqueNm, -VehicleParams::Motor::MAX_TRQ, VehicleParams::Motor::MAX_TRQ);
+    
+    // For reverse, limit to reverse torque capability
+    if (currentGear == GearState::REVERSE) {
+        torqueNm = constrain(torqueNm, -VehicleParams::Motor::MAX_REVERSE_TRQ, VehicleParams::Motor::MAX_REVERSE_TRQ);
     }
     
-    // Create a message buffer for DMC temperature data
-    uint8_t buffer[5]; // Buffer size: 1 (msgType) + 2 (invTemp) + 2 (motorTemp)
-    
-    // Prepare the message buffer
-    buffer[0] = MSG_TYPE_DMC_TEMP;  // Message type
-    
-    // Convert temperatures to integers (multiply by 10 to preserve 1 decimal place)
-    uint16_t invTempInt = (uint16_t)(dmcData.tempInverter * 10.0);
-    buffer[1] = (invTempInt >> 8) & 0xFF;  // high byte
-    buffer[2] = invTempInt & 0xFF;         // low byte
-    
-    uint16_t motorTempInt = (uint16_t)(dmcData.tempMotor * 10.0);
-    buffer[3] = (motorTempInt >> 8) & 0xFF;  // high byte
-    buffer[4] = motorTempInt & 0xFF;         // low byte
-    /*
-    // Debug print
-    Serial.printf("Sending DMC temp data: Inverter=%.1f°C, Motor=%.1f°C\n", 
-                  dmcData.tempInverter, dmcData.tempMotor);
-    
-    // Debug raw data
-    Serial.print("Raw data: ");
-    for (int i = 0; i < 5; i++) {
-        Serial.printf("%02X ", buffer[i]);
-    }
-    Serial.println();
-    */
-    // Send the message
-    esp_err_t result = esp_now_send(receiverMacAddress, buffer, 5);
-    
-    if (result != ESP_OK) {
-        Serial.println("Error sending DMC temp message via ESP-NOW");
-    }
+    // Set the converted torque demand
+    torqueDemand = torqueNm;
+
 }

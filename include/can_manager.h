@@ -8,6 +8,11 @@
 #include <WiFi.h>
 #include <esp_now.h>
 
+// Forward declarations
+class StateManager;
+class CANMonitor;
+class ErrorMonitor;
+
 /**
  * @brief Battery Management System data structure
  * Contains battery state information from BMS
@@ -17,7 +22,7 @@ struct BMSData {
     uint16_t voltage;         ///< Battery voltage (V)
     int16_t current;         ///< Battery current (A)
     uint16_t maxDischarge;    ///< Maximum discharge current (A)
-    uint8_t maxCharge;       ///< Maximum charge current (A)
+    uint16_t maxCharge;       ///< Maximum charge current (A)
 };
 
 /**
@@ -72,8 +77,6 @@ struct NLGData {
 #define MSG_TYPE_BMS 0x01
 #define MSG_TYPE_DMC_TEMP 0x02
 
-class StateManager; // Forward declaration
-
 /**
  * @brief CAN Communication Manager Class
  * 
@@ -89,6 +92,13 @@ public:
     explicit CANManager(uint8_t cs_pin);
     ~CANManager();
     
+    /**
+     * @brief Set torque demand as percentage (-100% to +100%)
+     * @param torquePercent Torque percentage where negative = forward/regen, positive = reverse/regen
+     * Automatically converts percentage to Nm based on current gear and configuration
+     */
+    void setTorquePercentage(float torquePercent);
+
     /**
      * @brief Set the State Manager after initialization
      * @param sm Pointer to the state manager instance
@@ -177,6 +187,13 @@ public:
             }
         }
     }
+
+    // CAN Monitoring methods - FIXED
+    void setCANMonitor(CANMonitor* monitor) { canMonitor = monitor; }
+    void setSystemMonitor(ErrorMonitor* monitor) { systemMonitor = monitor; }
+    void enableCANLogging(bool enable);
+    String getCANStatistics();
+    void resetCANStatistics();
         
 private:
 
@@ -258,6 +275,7 @@ private:
 
     // Control parameters
     float torqueDemand;      ///< Requested motor torque
+    float torquePercentage;  ///< Current torque demand as percentage (-100 to +100)
     int16_t speedDemand;     ///< Requested motor speed
     bool enableDMC;          ///< Motor controller enable flag
     bool enableBSC;          ///< DC-DC converter enable flag
@@ -276,4 +294,8 @@ private:
     unsigned long lastSlowCycle;   ///< Last slow update cycle timestamp
     unsigned long lastBMSSendTime; ///< Last BMS data send timestamp
     unsigned long lastDMCSendTime; ///< Last DMC data send timestamp
+
+    // CAN Monitoring - FIXED: Use pointers instead of direct objects
+    CANMonitor* canMonitor = nullptr;      ///< CAN bus monitor instance
+    ErrorMonitor* systemMonitor = nullptr; ///< System error monitor instance
 };

@@ -1,13 +1,13 @@
 /**
- * @file vehicle_control.h
- * @brief Vehicle Control System for Electric Vehicle
+ * @file vehicle_control.h - ENHANCED with Smooth Torque Transitions
+ * @brief Vehicle Control System with Configurable Transition Timing and Three-Zone Pedal System
  * 
- * This class manages the core vehicle control logic including:
- * - Pedal interpretation and torque calculation
- * - Driving modes (Legacy, Regenerative, OPD)
- * - Motor control and gear management
- * - Vehicle speed and acceleration control
- * - Smooth gear transitions without jerking
+ * This class manages the enhanced vehicle control logic including:
+ * - Three-zone pedal system (regen/coast/accel)
+ * - Smooth torque transitions with configurable timing
+ * - Progressive curves for natural feel
+ * - Delta-based power limiting with configurable curves
+ * - Advanced gear transition protection
  */
 
 #pragma once
@@ -20,52 +20,30 @@
 
 class CANManager;
 
-// Simple PID controller for OPD anti-rollback protection.
-// (This class can be moved to a separate file if desired.)
-class PIDController {
-public:
-    PIDController(float kp, float ki, float kd)
-        : kp_(kp), ki_(ki), kd_(kd), integral_(0.0f), prevError_(0.0f), setpoint_(0.0f) {}
-
-    /**
-     * @brief Update the PID controller.
-     * @param measurement Current measurement (e.g. vehicle speed in kph).
-     * @param dt Time step in seconds.
-     * @return PID output used as a torque command.
-     */
-    float update(float measurement, float dt) {
-        float error = setpoint_ - measurement;
-        integral_ += error * dt;
-        float derivative = (error - prevError_) / dt;
-        prevError_ = error;
-        return kp_ * error + ki_ * integral_ + kd_ * derivative;
-    }
-    
-    void setSetpoint(float sp) { setpoint_ = sp; }
-    
-private:
-    float kp_, ki_, kd_;
-    float integral_, prevError_;
-    float setpoint_;
-};
-
 class VehicleControl {
 public:
     /**
-     * @brief Constructs the vehicle control system
+     * @brief Constructs the enhanced vehicle control system
      * @param ads Reference to ADS1115 ADC for pedal position reading
      */
     explicit VehicleControl(ADS1115& ads);
     
     /**
-     * @brief Calculates motor torque based on current driving mode and conditions
-     * @return Calculated torque demand in Nm (-850 to 850)
+     * @brief Calculate motor torque percentage with smooth transitions
+     * @return Smoothly transitioned torque percentage (-100% to +100%)
+     * 
+     * Features:
+     * - Three-zone pedal system (regen/coast/accel)
+     * - Configurable smooth transitions for all torque changes
+     * - Progressive curves for natural pedal feel
+     * - Delta-based power limiting by motor speed
+     * - Separate timing for regen/power engage/release
      */
-    int16_t calculateTorque();
+    float calculateTorquePercentage();
 
     /**
-     * @brief Updates gear state based on switch inputs and speed
-     * Handles gear selection with safety checks and smooth transitions
+     * @brief Updates gear state based on switch inputs with anti-jerk protection
+     * Handles gear selection with anti-jerk protection
      */
     void updateGearState();
 
@@ -88,8 +66,8 @@ public:
     void setDrivingMode(DriveMode mode);
 
     /**
-     * @brief Checks if DMC (motor controller) is enabled
-     * @return true if DMC is enabled
+     * @brief Checks if DMC (motor controller) should be enabled
+     * @return true if DMC should be enabled (torque != 0)
      */
     bool isDMCEnabled() const;
     
@@ -103,88 +81,228 @@ public:
      * @brief Force clear all torque and reset control state
      * Useful for emergency stops or when aborting operations
      */
-    void clearTorqueState() {
-        lastTorque = 0;
-        enableDMC = false;
-        wasInDeadband = false;
-        isInGearTransition = false;
-    }
+    void clearTorqueState();
     
     // Configuration methods
     void setCanManager(CANManager* canMgr) { canManager = canMgr; }
-    void setOPDEnabled(bool enabled) { isOPDEnabled = enabled; }
-    void setRegenEnabled(bool enabled) { isRegenEnabled = enabled; }
     void setGearRatio(GearRatio ratio) { currentGearRatio = ratio; }
     
+    // NEW: Torque transition configuration methods
+    /**
+     * @brief Set regen engagement transition time
+     * @param timeMs Time in milliseconds (0-1000ms)
+     */
+    void setRegenEngageTime(float timeMs);
+    
+    /**
+     * @brief Set regen release transition time
+     * @param timeMs Time in milliseconds (0-1000ms)
+     */
+    void setRegenReleaseTime(float timeMs);
+    
+    /**
+     * @brief Set power engagement transition time
+     * @param timeMs Time in milliseconds (0-1000ms)
+     */
+    void setPowerEngageTime(float timeMs);
+    
+    /**
+     * @brief Set power release transition time
+     * @param timeMs Time in milliseconds (0-1000ms)
+     */
+    void setPowerReleaseTime(float timeMs);
+    
+    /**
+     * @brief Set crossover transition time (regen <-> power)
+     * @param timeMs Time in milliseconds (0-1000ms)
+     */
+    void setCrossoverTime(float timeMs);
+    
+    /**
+     * @brief Get current torque output (for monitoring/debugging)
+     * @return Current smoothed torque output percentage
+     */
+    float getCurrentTorqueOutput() const { return currentTorqueOutput; }
+    
+    /**
+     * @brief Get target torque from pedal (for monitoring/debugging)
+     * @return Target torque percentage from pedal input
+     */
+    float getTargetTorqueFromPedal() const { return targetTorqueFromPedal; }
+    
+    /**
+     * @brief Check if currently in a torque transition
+     * @return true if transition is active
+     */
+    bool isInTorqueTransition() const { return currentTransition != TransitionType::NONE; }
+
+    // Getters for web interface
+    /**
+     * @brief Get throttle percentage (normalized pedal position)
+     * @return Throttle percentage 0-100%
+     */
+    float getThrottlePercentage() const { return throttlePercentage; }
+
+    /**
+     * @brief Get torque percentage demand
+     * @return Torque percentage -100% to +100%
+     */
+    float getTorquePercentage() const { return lastTorquePercent; }
+
+    /**
+     * @brief Get current gear state
+     * @return Current gear (DRIVE/NEUTRAL/REVERSE)
+     */
+    GearState getCurrentGear() const { return currentGear; }
+
     static constexpr float MAX_VEHICLE_SPEED = 120.0f;  // kph
 
 private:
     /**
-     * @brief Samples pedal position from ADC
+     * @brief Transition types for smooth torque control
+     */
+    enum class TransitionType {
+        NONE,
+        REGEN_ENGAGE,      ///< 0 -> negative torque (lift-off regen)
+        REGEN_RELEASE,     ///< negative -> 0 torque (regen release)
+        POWER_ENGAGE,      ///< 0 -> positive torque (acceleration)
+        POWER_RELEASE,     ///< positive -> 0 torque (deceleration)
+        REGEN_TO_POWER,    ///< negative -> positive (regen to accel)
+        POWER_TO_REGEN     ///< positive -> negative (accel to regen)
+    };
+
+    /**
+     * @brief Sample pedal position from ADC with averaging
      * @return Raw ADC value averaged over 4 samples
      */
     int32_t samplePedalPosition();
 
     /**
-     * @brief Calculates current vehicle speed based on motor RPM and gear ratios
+     * @brief Calculate current vehicle speed based on motor RPM and gear ratios
      * @return Vehicle speed in kph
      */
     float calculateVehicleSpeed();
     
-    // Driving mode handlers
-    int16_t handleLegacyMode(float throttlePosition);
-    int16_t handleRegenMode(float throttlePosition, float speed);
-    int16_t handleOPDMode(float throttlePosition, float speed);
-    
-    // (Optional) Additional functions for OPD calculations.
-    float calculateCoastUpperBound(float speed);
-    float calculateCoastLowerBound(float speed);
-    float calculateMaxRegenerativeTorque(float speed);
-    float calculateMaxDriveTorque(float speed);
+    /**
+     * @brief Calculate immediate torque target from pedal input
+     * @return Target torque percentage without transitions applied
+     */
+    float calculateImmediateTorqueFromPedal();
     
     /**
-     * @brief Applies rate limiting and maximum torque constraints
-     * @param requestedTorque Raw calculated torque
-     * @return Limited torque value
+     * @brief Apply smooth torque transitions
+     * @param targetTorque Target torque from pedal input
+     * @return Smoothly transitioned torque
      */
-    int16_t applyTorqueLimits(int16_t requestedTorque);
+    float applyTorqueTransition(float targetTorque);
+    
+    /**
+     * @brief Detect what type of transition is occurring
+     * @param current Current torque output
+     * @param target Target torque from pedal
+     * @return Detected transition type
+     */
+    TransitionType detectTransitionType(float current, float target);
+    
+    /**
+     * @brief Get transition time for specific transition type
+     * @param type Transition type
+     * @return Transition time in milliseconds
+     */
+    float getTransitionTime(TransitionType type);
+    
+    /**
+     * @brief Apply smooth interpolation curve (ease-in-out)
+     * @param progress Transition progress (0.0 to 1.0)
+     * @return Curved progress value
+     */
+    float applySmoothCurve(float progress);
+    
+    /**
+     * @brief Calculate power limit based on current motor speed using delta curves
+     * @param motorSpeed Current motor speed in RPM
+     * @param isDriving true for drive power limits, false for regen limits
+     * @return Power limit percentage (0-120%)
+     */
+    float calculatePowerLimit(float motorSpeed, bool isDriving = true);
+    
+    /**
+     * @brief Interpolate power limit between speed zones
+     * @param motorSpeed Current motor speed in RPM
+     * @param powerLimits Array of power limits for the 5 zones
+     * @return Interpolated power limit percentage
+     */
+    float interpolatePowerLimit(float motorSpeed, const float* powerLimits);
+    
+    /**
+     * @brief Apply simplified three-zone pedal mapping
+     * @param throttlePercent Raw throttle position (0-100%)
+     * @return Torque percentage with zone mapping applied
+     */
+    float applyPedalZones(float throttlePercent);
+    
+    /**
+     * @brief Apply progressive curve to zone value
+     * @param zonePosition Position within zone (0-1)
+     * @param progression Progression factor (1.0=linear, >1.0=progressive)
+     * @return Curved output value (0-1)
+     */
+    float applyProgressiveCurve(float zonePosition, float progression);
 
     /**
-     * @brief Applies deadband hysteresis to prevent torque oscillation
-     * @param torque Input torque value
-     * @return Processed torque with hysteresis
+     * @brief Apply gear transition protection to prevent jerking
+     * @param torquePercent Input torque percentage
+     * @return Modified torque with gear transition protection
      */
-    int16_t applyDeadbandHysteresis(int16_t torque);
+    float applyGearTransitionProtection(float torquePercent);
 
     /**
-    * @brief Apply torque cutoff based on RPM, direction, and gear state.
-    * @param requestedTorque The raw calculated torque.
-    * @return Modified torque after applying directional restrictions.
-    */
-    int16_t applyTorqueCutoff(int16_t requestedTorque);
+     * @brief Apply deadband hysteresis around zero
+     * @param torquePercent Input torque percentage
+     * @return Processed torque with deadband
+     */
+    float applyDeadbandHysteresis(float torquePercent);
     
-    // Member variables
-    ADS1115& ads;                    // Reference to ADC
-    DriveMode currentDrivingMode;    // Current driving mode
-    GearState currentGear;           // Current gear state
-    GearRatio currentGearRatio;      // Current gear ratio
-    bool shiftAttempted;             // Track shift attempts at high speed
+    // Core member variables
+    ADS1115& ads;                    ///< Reference to ADC
+    DriveMode currentDrivingMode;    ///< Current driving mode
+    GearState currentGear;           ///< Current gear state
+    GearRatio currentGearRatio;      ///< Current gear ratio
+    bool shiftAttempted;             ///< Track shift attempts at high speed
     
-    bool isOPDEnabled;               // OPD mode flag
-    bool isRegenEnabled;             // Regeneration enabled flag
-    bool enableDMC;                  // DMC enable flag
-    bool wasInDeadband;              // Deadband hysteresis state
-    bool wasEnabled;                 // Previous enable state
+    bool enableDMC;                  ///< DMC enable flag
+    bool wasInDeadband;              ///< Deadband hysteresis state
+    bool wasEnabled;                 ///< Previous enable state
     
     // Gear transition state management
-    bool isInGearTransition;         // Flag indicating gear change in progress
-    unsigned long gearTransitionStartTime; // Timestamp for gear transition timing
+    bool isInGearTransition;         ///< Flag indicating gear change in progress
+    unsigned long gearTransitionStartTime; ///< Timestamp for gear transition timing
+    GearState previousGear;          ///< Track previous gear for transition detection
     
-    float lastTorque;                // Last calculated torque
-    float motorSpeed;                // Current motor speed
+    // Basic torque tracking
+    float lastTorquePercent;         ///< Last calculated torque percentage
+    float filteredTorquePercent;     ///< Filtered torque percentage
+    float motorSpeed;                ///< Current motor speed
     CANManager* canManager = nullptr; 
     
-    // PID controller for OPD anti-rollback protection.
-    // This member is used to hold the vehicle when speed is near zero.
-    PIDController opdPid;
+    // NEW: Smooth torque transition system
+    float currentTorqueOutput;       ///< Actual torque being output
+    float targetTorqueFromPedal;     ///< Target torque from pedal input
+    float throttlePercentage;        ///< Raw throttle position 0-100%
+    unsigned long lastTransitionTime; ///< Last transition update time
+    
+    TransitionType currentTransition; ///< Current transition type
+    float transitionStartTorque;     ///< Torque value when transition started
+    unsigned long transitionStartTime; ///< Timestamp when transition started
+    
+    // Configurable transition times (milliseconds)
+    float regenEngageTimeMs;         ///< Regen engagement time (0 -> negative torque)
+    float regenReleaseTimeMs;        ///< Regen release time (negative -> 0 torque)
+    float powerEngageTimeMs;         ///< Power engagement time (0 -> positive torque)
+    float powerReleaseTimeMs;        ///< Power release time (positive -> 0 torque)
+    float crossoverTimeMs;           ///< Crossover transition time (regen <-> power)
+    
+    // Validation constants
+    static constexpr float MIN_TRANSITION_TIME = 0.0f;   ///< Minimum transition time
+    static constexpr float MAX_TRANSITION_TIME = 1000.0f; ///< Maximum transition time
 };
