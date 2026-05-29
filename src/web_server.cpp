@@ -175,6 +175,14 @@ void VCUWebServer::setupRoutes() {
         handleGetTransitionConfig(request);
     });
 
+    server.on("/api/config/throttle", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetThrottleConfig(request);
+    });
+
+    server.on("/api/throttle/raw", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetRawThrottle(request);
+    });
+
     // Generic config endpoint - MUST be last to avoid catching specific routes
     server.on("/api/config", HTTP_GET, [this](AsyncWebServerRequest* request) {
         handleGetConfig(request);
@@ -262,6 +270,22 @@ void VCUWebServer::setupRoutes() {
         }
     });
     server.addHandler(transitionHandler);
+
+    AsyncCallbackWebHandler* throttleHandler = new AsyncCallbackWebHandler();
+    throttleHandler->setUri("/api/config/throttle");
+    throttleHandler->setMethod(HTTP_POST);
+    throttleHandler->onRequest([](AsyncWebServerRequest* request) {});
+    throttleHandler->onBody([this](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, data, len);
+        if (!error) {
+            JsonVariant json = doc.as<JsonVariant>();
+            handleSetThrottleConfig(request, json);
+        } else {
+            request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid JSON\"}");
+        }
+    });
+    server.addHandler(throttleHandler);
 
     // System endpoints
     server.on("/api/system/save", HTTP_POST, [this](AsyncWebServerRequest* request) {
@@ -446,6 +470,27 @@ void VCUWebServer::handleGetTransitionConfig(AsyncWebServerRequest* request) {
     doc["powerEngageTime"] = config->getPowerEngageTime();
     doc["powerReleaseTime"] = config->getPowerReleaseTime();
     doc["crossoverTime"] = config->getCrossoverTime();
+
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+}
+
+void VCUWebServer::handleGetThrottleConfig(AsyncWebServerRequest* request) {
+    JsonDocument doc;
+
+    doc["throttleMinADC"] = config->getThrottleMinADC();
+    doc["throttleMaxADC"] = config->getThrottleMaxADC();
+
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+}
+
+void VCUWebServer::handleGetRawThrottle(AsyncWebServerRequest* request) {
+    JsonDocument doc;
+
+    doc["rawADC"] = vehicleControl->getRawThrottleADC();
 
     String response;
     serializeJson(doc, response);
@@ -643,6 +688,28 @@ void VCUWebServer::handleSetTransitionConfig(AsyncWebServerRequest* request, Jso
     }
 }
 
+void VCUWebServer::handleSetThrottleConfig(AsyncWebServerRequest* request, JsonVariant& json) {
+    JsonObject obj = json.as<JsonObject>();
+    bool success = true;
+
+    if (!obj["throttleMinADC"].isNull()) {
+        int value = obj["throttleMinADC"].as<int>();
+        success &= config->setThrottleMinADC(value);
+    }
+
+    if (!obj["throttleMaxADC"].isNull()) {
+        int value = obj["throttleMaxADC"].as<int>();
+        success &= config->setThrottleMaxADC(value);
+    }
+
+    if (success) {
+        config->save();
+        request->send(200, "application/json", "{\"success\":true}");
+    } else {
+        request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid parameters\"}");
+    }
+}
+
 // ===== SYSTEM ENDPOINTS =====
 
 void VCUWebServer::handleSaveConfig(AsyncWebServerRequest* request) {
@@ -786,8 +853,13 @@ String VCUWebServer::createLiveDataJSON() {
 
     inputs["throttle"] = throttlePercent;
     inputs["torque"] = torquePercent;
+    inputs["rawThrottleADC"] = vehicleControl ? vehicleControl->getRawThrottleADC() : 0;
     inputs["connectorLock"] = stateManager->isConnectorLocked();
     inputs["ignition"] = digitalRead(Pins::IGNITION) == HIGH;
+
+    // Safety status
+    JsonObject safety = doc["safety"].to<JsonObject>();
+    safety["throttleBlockingShift"] = vehicleControl ? vehicleControl->isThrottleBlockingShift() : false;
 
     // Temperatures
     JsonObject temps = doc["temperatures"].to<JsonObject>();

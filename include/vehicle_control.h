@@ -18,6 +18,9 @@
 #include "vehicle_parameters.h"
 #include "ADS1X15.h"
 
+// Forward declarations
+class ErrorMonitor;
+
 class CANManager;
 
 class VehicleControl {
@@ -155,6 +158,24 @@ public:
      */
     GearState getCurrentGear() const { return currentGear; }
 
+    /**
+     * @brief Check if throttle is blocking gear shift
+     * @return true if throttle position is blocking shift from neutral
+     */
+    bool isThrottleBlockingShift() const { return throttleBlockingShift; }
+
+    /**
+     * @brief Set error monitor reference for logging
+     * @param monitor Pointer to ErrorMonitor instance
+     */
+    void setErrorMonitor(ErrorMonitor* monitor) { errorMonitor = monitor; }
+
+    /**
+     * @brief Get raw throttle ADC value (for calibration wizard)
+     * @return Raw ADC value from pedal position sensor
+     */
+    int getRawThrottleADC() const { return rawThrottleADC; }
+
     static constexpr float MAX_VEHICLE_SPEED = 120.0f;  // kph
 
 private:
@@ -283,8 +304,16 @@ private:
     float lastTorquePercent;         ///< Last calculated torque percentage
     float filteredTorquePercent;     ///< Filtered torque percentage
     float motorSpeed;                ///< Current motor speed
-    CANManager* canManager = nullptr; 
-    
+    CANManager* canManager = nullptr;
+
+    // Throttle safety for gear shifts
+    bool throttleBlockingShift = false;           ///< Flag indicating shift blocked by throttle
+    unsigned long lastThrottleBlockTime = 0;      ///< Last time throttle blocked a shift
+    ErrorMonitor* errorMonitor = nullptr;         ///< Reference to error monitor
+    static constexpr float THROTTLE_SHIFT_THRESHOLD = 10.0f; ///< Throttle % threshold for shifts
+
+    int rawThrottleADC;              ///< Raw throttle ADC value (for calibration display)
+
     // NEW: Smooth torque transition system
     float currentTorqueOutput;       ///< Actual torque being output
     float targetTorqueFromPedal;     ///< Target torque from pedal input

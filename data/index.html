@@ -51,6 +51,10 @@
                         <span class="data-label">Torque Demand</span>
                         <span class="data-value"><span id="torqueDemand">0</span> <span class="unit">Nm</span></span>
                     </div>
+                    <div class="data-row error-banner" id="throttleShiftError" style="display: none;">
+                        <span class="error-icon">⚠️</span>
+                        <span class="error-text">Shift blocked - Release throttle to shift</span>
+                    </div>
                 </div>
 
                 <!-- Battery Card -->
@@ -229,6 +233,141 @@
                     <span class="slider-value" id="crossoverTimeValue">400</span>
                 </div>
                 <button class="btn btn-primary" onclick="saveTransitionConfig()">Save Configuration</button>
+            </div>
+
+            <!-- Throttle Calibration Section -->
+            <div class="config-section">
+                <h2>Throttle Calibration</h2>
+
+                <!-- Current Calibration Display -->
+                <div class="calibration-current">
+                    <div class="data-row">
+                        <span class="data-label">Minimum ADC</span>
+                        <span class="data-value" id="currentMinADC">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Maximum ADC</span>
+                        <span class="data-value" id="currentMaxADC">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Live ADC Value</span>
+                        <span class="data-value calibration-live" id="liveADC">-</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="startCalibrationWizard()">Start Calibration Wizard</button>
+
+                <!-- Calibration Wizard Modal -->
+                <div class="wizard-modal" id="calibrationWizard" style="display: none;">
+                    <div class="wizard-content">
+                        <!-- Step 1: Preparation -->
+                        <div class="wizard-step" id="wizardStep1">
+                            <h3>Throttle Calibration - Step 1 of 5</h3>
+                            <p class="wizard-instruction">This wizard will help you calibrate your throttle pedal for optimal performance.</p>
+                            <p class="wizard-instruction"><strong>Before starting:</strong></p>
+                            <ul class="wizard-list">
+                                <li>Ensure the vehicle is in a safe location</li>
+                                <li>Make sure the pedal is easily accessible</li>
+                                <li>You will need to fully press and release the throttle pedal</li>
+                            </ul>
+                            <div class="wizard-buttons">
+                                <button class="btn btn-secondary" onclick="cancelCalibration()">Cancel</button>
+                                <button class="btn btn-primary" onclick="showWizardStep(2)">Start Calibration</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Calibrate Minimum -->
+                        <div class="wizard-step" id="wizardStep2" style="display: none;">
+                            <h3>Throttle Calibration - Step 2 of 5</h3>
+                            <p class="wizard-instruction"><strong>Calibrate Minimum (Pedal Released)</strong></p>
+                            <p class="wizard-instruction">Fully release the throttle pedal and wait for the value to stabilize.</p>
+                            <div class="calibration-display">
+                                <div class="calibration-live-large">
+                                    <span class="calibration-label">Current ADC Value:</span>
+                                    <span class="calibration-value" id="wizardLiveADC">-</span>
+                                </div>
+                            </div>
+                            <div class="wizard-buttons">
+                                <button class="btn btn-secondary" onclick="cancelCalibration()">Cancel</button>
+                                <button class="btn btn-primary" onclick="calibrateMin()">Set Minimum</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Calibrate Maximum -->
+                        <div class="wizard-step" id="wizardStep3" style="display: none;">
+                            <h3>Throttle Calibration - Step 3 of 5</h3>
+                            <p class="wizard-instruction"><strong>Calibrate Maximum (Pedal Fully Pressed)</strong></p>
+                            <p class="wizard-instruction">Fully press the throttle pedal and wait for the value to stabilize.</p>
+                            <div class="calibration-display">
+                                <div class="calibration-live-large">
+                                    <span class="calibration-label">Current ADC Value:</span>
+                                    <span class="calibration-value" id="wizardLiveADC2">-</span>
+                                </div>
+                                <div class="calibration-captured">
+                                    <span class="calibration-label">Minimum Set To:</span>
+                                    <span class="calibration-value" id="capturedMin">-</span>
+                                </div>
+                            </div>
+                            <div class="wizard-buttons">
+                                <button class="btn btn-secondary" onclick="cancelCalibration()">Cancel</button>
+                                <button class="btn btn-primary" onclick="calibrateMax()">Set Maximum</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Review and Test -->
+                        <div class="wizard-step" id="wizardStep4" style="display: none;">
+                            <h3>Throttle Calibration - Step 4 of 5</h3>
+                            <p class="wizard-instruction"><strong>Review Calibration</strong></p>
+                            <p class="wizard-instruction">Please review your calibration values and test the pedal.</p>
+                            <div class="calibration-display">
+                                <div class="calibration-review">
+                                    <div class="data-row">
+                                        <span class="data-label">Minimum ADC:</span>
+                                        <span class="data-value" id="reviewMin">-</span>
+                                    </div>
+                                    <div class="data-row">
+                                        <span class="data-label">Maximum ADC:</span>
+                                        <span class="data-value" id="reviewMax">-</span>
+                                    </div>
+                                    <div class="data-row">
+                                        <span class="data-label">Range:</span>
+                                        <span class="data-value" id="reviewRange">-</span>
+                                    </div>
+                                </div>
+                                <div class="calibration-live-large">
+                                    <span class="calibration-label">Live Test:</span>
+                                    <span class="calibration-value" id="wizardLiveADC3">-</span>
+                                </div>
+                            </div>
+                            <div class="wizard-buttons">
+                                <button class="btn btn-secondary" onclick="retryCalibration()">Start Over</button>
+                                <button class="btn btn-primary" onclick="saveCalibration()">Save Calibration</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 5: Success -->
+                        <div class="wizard-step" id="wizardStep5" style="display: none;">
+                            <h3>Throttle Calibration - Complete!</h3>
+                            <p class="wizard-instruction wizard-success">✓ Calibration saved successfully!</p>
+                            <div class="calibration-display">
+                                <div class="calibration-review">
+                                    <div class="data-row">
+                                        <span class="data-label">Minimum ADC:</span>
+                                        <span class="data-value" id="successMin">-</span>
+                                    </div>
+                                    <div class="data-row">
+                                        <span class="data-label">Maximum ADC:</span>
+                                        <span class="data-value" id="successMax">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="wizard-instruction">Your throttle pedal is now calibrated. The values have been saved to non-volatile memory.</p>
+                            <div class="wizard-buttons">
+                                <button class="btn btn-primary" onclick="closeCalibrationWizard()">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

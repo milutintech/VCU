@@ -87,7 +87,15 @@ public:
     bool setPowerReleaseTime(float timeMs);
     bool setCrossoverTime(float timeMs);
     void resetTransitionDefaults();
-    
+
+    // === THROTTLE CALIBRATION ===
+    int getThrottleMinADC() const { return throttleMinADC; }
+    int getThrottleMaxADC() const { return throttleMaxADC; }
+
+    bool setThrottleMinADC(int value);
+    bool setThrottleMaxADC(int value);
+    void resetThrottleDefaults();
+
     // === JSON INTERFACE ===
     String toJSON();
     bool fromJSON(const String& json);
@@ -124,7 +132,11 @@ private:
     float powerEngageTime;     ///< Power engagement time (0 -> positive torque)
     float powerReleaseTime;    ///< Power release time (positive -> 0 torque)
     float crossoverTime;       ///< Crossover transition time (regen <-> power)
-    
+
+    // Throttle calibration (raw ADC values)
+    int throttleMinADC;        ///< Minimum throttle ADC value (pedal released)
+    int throttleMaxADC;        ///< Maximum throttle ADC value (pedal pressed)
+
     // Storage keys - Basic
     static const char* KEY_DRIVE_MODE;
     static const char* KEY_MAX_TORQUE;
@@ -150,7 +162,11 @@ private:
     static const char* KEY_POWER_ENGAGE_TIME;
     static const char* KEY_POWER_RELEASE_TIME;
     static const char* KEY_CROSSOVER_TIME;
-    
+
+    // Storage keys - Throttle calibration (max 15 chars for NVS)
+    static const char* KEY_THROTTLE_MIN;
+    static const char* KEY_THROTTLE_MAX;
+
     // Validation limits - Basic
     static constexpr int MIN_TORQUE_LIMIT = 100;
     static constexpr int MAX_TORQUE_LIMIT = 850;
@@ -173,16 +189,22 @@ private:
     // NEW: Validation limits - Transition timing
     static constexpr float MIN_TRANSITION_TIME = 0.0f;
     static constexpr float MAX_TRANSITION_TIME = 1000.0f;
-    
+
+    // Validation limits - Throttle calibration
+    static constexpr int MIN_THROTTLE_ADC = 0;
+    static constexpr int MAX_THROTTLE_ADC = 32767;  // 15-bit ADC range
+
     // Helper methods
     JsonDocument createDrivingJSON();
     JsonDocument createCurtisJSON();
     JsonDocument createPedalJSON();
-    JsonDocument createTransitionJSON();  // NEW
-    
+    JsonDocument createThrottleJSON();
+
     bool parseDrivingJSON(const JsonObject& obj);
     bool parseCurtisJSON(const JsonObject& obj);
     bool parsePedalJSON(const JsonObject& obj);
+    bool parseThrottleJSON(const JsonObject& obj);
+    JsonDocument createTransitionJSON();  // NEW
     bool parseTransitionJSON(const JsonObject& obj);  // NEW
 };
 

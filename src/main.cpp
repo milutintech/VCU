@@ -265,6 +265,7 @@ void setup() {
         stateManager->setVehicleControl(vehicleControl);
     }
     vehicleControl->setCanManager(canManager);
+    vehicleControl->setErrorMonitor(errorMonitor);
     
     // Initialize WiFi Manager
     wifiManager = new WiFiManager();

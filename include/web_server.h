@@ -64,6 +64,9 @@ private:
     void handleSetPedalConfig(AsyncWebServerRequest* request, JsonVariant& json);
     void handleGetTransitionConfig(AsyncWebServerRequest* request);
     void handleSetTransitionConfig(AsyncWebServerRequest* request, JsonVariant& json);
+    void handleGetThrottleConfig(AsyncWebServerRequest* request);
+    void handleSetThrottleConfig(AsyncWebServerRequest* request, JsonVariant& json);
+    void handleGetRawThrottle(AsyncWebServerRequest* request);
 
     // API Endpoints - System
     void handleSaveConfig(AsyncWebServerRequest* request);

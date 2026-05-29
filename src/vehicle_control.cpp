@@ -11,10 +11,11 @@
  */
 
 #include "vehicle_control.h"
-#include "can_manager.h" 
+#include "can_manager.h"
 #include "config.h"
 #include "ADS1X15.h"
 #include "configuration.h"
+#include "error_monitor.h"
 
 /**
  * @brief Constructor - initializes enhanced vehicle control system with smooth transitions
@@ -34,6 +35,7 @@ VehicleControl::VehicleControl(ADS1115& ads)
     , lastTorquePercent(0.0f)
     , filteredTorquePercent(0.0f)
     , motorSpeed(0.0f)
+    , rawThrottleADC(0)
     // NEW: Initialize transition system
     , currentTorqueOutput(0.0f)
     , targetTorqueFromPedal(0.0f)
@@ -83,9 +85,10 @@ float VehicleControl::calculateTorquePercentage() {
 float VehicleControl::calculateImmediateTorqueFromPedal() {
     // Sample pedal position
     int32_t sampledPotiValue = samplePedalPosition();
+    rawThrottleADC = sampledPotiValue;  // Store for calibration display
     //Serial.printf("Sampled ADC Value: %d\n", sampledPotiValue);
-    // Map using correct ADC values from config.h (0-100%)
-    float rawThrottle = map(sampledPotiValue, ADC::MinValPot, ADC::MaxValPot, 0, 100);
+    // Map using calibrated ADC values from configuration
+    float rawThrottle = map(sampledPotiValue, config.getThrottleMinADC(), config.getThrottleMaxADC(), 0, 100);
     rawThrottle = constrain(rawThrottle, 0.0f, 100.0f);
     throttlePercentage = rawThrottle;  // Store for web interface
     //Serial.printf("Raw Throttle: %.1f%%\n", rawThrottle);
@@ -573,6 +576,32 @@ void VehicleControl::updateGearState() {
     
     // Handle transitions at low speed
     if (abs(motorSpeed) < VehicleParams::Transmission::RPM_SHIFT_THRESHOLD) {
+        // Throttle safety check when shifting out of neutral
+        bool attemptingShiftFromNeutral = (currentGear == GearState::NEUTRAL) &&
+                                          (isForwardHigh || isReverseHigh);
+
+        if (attemptingShiftFromNeutral && throttlePercentage >= THROTTLE_SHIFT_THRESHOLD) {
+            // Block the shift - throttle is too high
+            throttleBlockingShift = true;
+
+            // Log warning (debounced to 1 per second)
+            if (errorMonitor && (millis() - lastThrottleBlockTime > 1000)) {
+                errorMonitor->logWarning(
+                    String("Shift blocked - throttle at ") + String(throttlePercentage, 1) + "%",
+                    "VEHICLE_CONTROL"
+                );
+                lastThrottleBlockTime = millis();
+            }
+
+            // Stay in neutral, do not enable DMC
+            return;
+        }
+
+        // Clear blocking flag if throttle is safe or already shifted
+        if (!attemptingShiftFromNeutral || throttlePercentage < THROTTLE_SHIFT_THRESHOLD) {
+            throttleBlockingShift = false;
+        }
+
         if (isForwardHigh && !isReverseHigh) {
             currentGear = GearState::DRIVE;
             shiftAttempted = false;
@@ -599,6 +628,21 @@ void VehicleControl::updateGearState() {
     
     // Allow reengaging desired gear when speed drops
     if (shiftAttempted && abs(motorSpeed) < VehicleParams::Transmission::RPM_SHIFT_THRESHOLD) {
+        // Throttle safety check
+        if (throttlePercentage >= THROTTLE_SHIFT_THRESHOLD) {
+            throttleBlockingShift = true;
+            if (errorMonitor && (millis() - lastThrottleBlockTime > 1000)) {
+                errorMonitor->logWarning(
+                    String("Shift blocked - throttle at ") + String(throttlePercentage, 1) + "%",
+                    "VEHICLE_CONTROL"
+                );
+                lastThrottleBlockTime = millis();
+            }
+            return;
+        }
+
+        throttleBlockingShift = false;
+
         if (isForwardHigh && !isReverseHigh) {
             currentGear = GearState::DRIVE;
             shiftAttempted = false;

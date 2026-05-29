@@ -35,6 +35,10 @@ const char* Configuration::KEY_POWER_ENGAGE_TIME = "trn_pwr_engage";  // 14 char
 const char* Configuration::KEY_POWER_RELEASE_TIME = "trn_pwr_rel";    // 10 chars
 const char* Configuration::KEY_CROSSOVER_TIME = "trn_crossover";      // 14 chars
 
+// Storage keys - Throttle calibration
+const char* Configuration::KEY_THROTTLE_MIN = "throt_min_adc";  // 14 chars
+const char* Configuration::KEY_THROTTLE_MAX = "throt_max_adc";  // 14 chars
+
 // Global configuration instance
 Configuration config;
 
@@ -74,9 +78,12 @@ void Configuration::resetToDefaults() {
     
     // Pedal zone defaults
     resetPedalDefaults();
-    
+
     // NEW: Transition timing defaults
     resetTransitionDefaults();
+
+    // Throttle calibration defaults
+    resetThrottleDefaults();
 }
 
 /**
@@ -121,6 +128,14 @@ void Configuration::resetTransitionDefaults() {
     powerEngageTime = 200.0f;   // 200ms - gentle power engagement (acceleration)
     powerReleaseTime = 100.0f;  // 100ms - quick power release (lift throttle)
     crossoverTime = 400.0f;     // 400ms - slow regen<->power crossover for comfort
+}
+
+/**
+ * @brief Reset throttle calibration to defaults
+ */
+void Configuration::resetThrottleDefaults() {
+    throttleMinADC = 7140;   // Match ADC::MinValPot from config.h
+    throttleMaxADC = 23910;  // Match ADC::MaxValPot from config.h
 }
 
 /**
@@ -196,6 +211,13 @@ bool Configuration::save() {
 
     written = preferences.putFloat(KEY_CROSSOVER_TIME, crossoverTime);
     if (written == 0) { Serial.printf("[Config] FAIL: trn_crossover\n"); success = false; }
+
+    // Save throttle calibration
+    written = preferences.putInt(KEY_THROTTLE_MIN, throttleMinADC);
+    if (written == 0) { Serial.printf("[Config] FAIL: throt_min_adc\n"); success = false; }
+
+    written = preferences.putInt(KEY_THROTTLE_MAX, throttleMaxADC);
+    if (written == 0) { Serial.printf("[Config] FAIL: throt_max_adc\n"); success = false; }
 
     preferences.end();
 
@@ -354,7 +376,22 @@ bool Configuration::load() {
             crossoverTime = time;
         }
     }
-    
+
+    // Load throttle calibration
+    if (preferences.isKey(KEY_THROTTLE_MIN)) {
+        int value = preferences.getInt(KEY_THROTTLE_MIN, throttleMinADC);
+        if (value >= MIN_THROTTLE_ADC && value <= MAX_THROTTLE_ADC && value < throttleMaxADC) {
+            throttleMinADC = value;
+        }
+    }
+
+    if (preferences.isKey(KEY_THROTTLE_MAX)) {
+        int value = preferences.getInt(KEY_THROTTLE_MAX, throttleMaxADC);
+        if (value >= MIN_THROTTLE_ADC && value <= MAX_THROTTLE_ADC && value > throttleMinADC) {
+            throttleMaxADC = value;
+        }
+    }
+
     preferences.end();
     return success;
 }
@@ -395,6 +432,23 @@ bool Configuration::setPowerReleaseTime(float timeMs) {
 bool Configuration::setCrossoverTime(float timeMs) {
     if (timeMs >= MIN_TRANSITION_TIME && timeMs <= MAX_TRANSITION_TIME) {
         crossoverTime = timeMs;
+        return true;
+    }
+    return false;
+}
+
+// === THROTTLE CALIBRATION SETTERS ===
+bool Configuration::setThrottleMinADC(int value) {
+    if (value >= MIN_THROTTLE_ADC && value <= MAX_THROTTLE_ADC && value < throttleMaxADC) {
+        throttleMinADC = value;
+        return true;
+    }
+    return false;
+}
+
+bool Configuration::setThrottleMaxADC(int value) {
+    if (value >= MIN_THROTTLE_ADC && value <= MAX_THROTTLE_ADC && value > throttleMinADC) {
+        throttleMaxADC = value;
         return true;
     }
     return false;
@@ -589,7 +643,12 @@ String Configuration::toJSON() {
     transitions["powerEngageTime"] = powerEngageTime;
     transitions["powerReleaseTime"] = powerReleaseTime;
     transitions["crossoverTime"] = crossoverTime;
-    
+
+    // Throttle calibration config
+    JsonObject throttle = doc["throttle"].to<JsonObject>();
+    throttle["throttleMinADC"] = throttleMinADC;
+    throttle["throttleMaxADC"] = throttleMaxADC;
+
     String result;
     serializeJson(doc, result);
     return result;
@@ -620,7 +679,12 @@ bool Configuration::fromJSON(const String& json) {
     if (doc["transitions"].is<JsonObject>()) {
         parseTransitionJSON(doc["transitions"]);
     }
-    
+
+    // Parse throttle calibration
+    if (doc["throttle"].is<JsonObject>()) {
+        parseThrottleJSON(doc["throttle"]);
+    }
+
     return true;
 }
 
@@ -645,8 +709,13 @@ String Configuration::getCategoryJSON(const String& category) {
         String result;
         serializeJson(doc, result);
         return result;
+    } else if (category == "throttle") {
+        JsonDocument doc = createThrottleJSON();
+        String result;
+        serializeJson(doc, result);
+        return result;
     }
-    
+
     return "{}";
 }
 
@@ -666,8 +735,10 @@ bool Configuration::setCategoryJSON(const String& category, const String& json) 
         return parsePedalJSON(doc.as<JsonObject>());
     } else if (category == "transitions") {  // NEW
         return parseTransitionJSON(doc.as<JsonObject>());
+    } else if (category == "throttle") {
+        return parseThrottleJSON(doc.as<JsonObject>());
     }
-    
+
     return false;
 }
 
@@ -712,6 +783,13 @@ JsonDocument Configuration::createTransitionJSON() {
     doc["powerEngageTime"] = powerEngageTime;
     doc["powerReleaseTime"] = powerReleaseTime;
     doc["crossoverTime"] = crossoverTime;
+    return doc;
+}
+
+JsonDocument Configuration::createThrottleJSON() {
+    JsonDocument doc;
+    doc["throttleMinADC"] = throttleMinADC;
+    doc["throttleMaxADC"] = throttleMaxADC;
     return doc;
 }
 
@@ -786,22 +864,36 @@ bool Configuration::parseTransitionJSON(const JsonObject& obj) {
     if (obj["regenEngageTime"].is<float>()) {
         setRegenEngageTime(obj["regenEngageTime"]);
     }
-    
+
     if (obj["regenReleaseTime"].is<float>()) {
         setRegenReleaseTime(obj["regenReleaseTime"]);
     }
-    
+
     if (obj["powerEngageTime"].is<float>()) {
         setPowerEngageTime(obj["powerEngageTime"]);
     }
-    
+
     if (obj["powerReleaseTime"].is<float>()) {
         setPowerReleaseTime(obj["powerReleaseTime"]);
     }
-    
+
     if (obj["crossoverTime"].is<float>()) {
         setCrossoverTime(obj["crossoverTime"]);
     }
-    
+
     return true;
+}
+
+bool Configuration::parseThrottleJSON(const JsonObject& obj) {
+    bool success = true;
+
+    if (obj["throttleMinADC"].is<int>()) {
+        success &= setThrottleMinADC(obj["throttleMinADC"]);
+    }
+
+    if (obj["throttleMaxADC"].is<int>()) {
+        success &= setThrottleMaxADC(obj["throttleMaxADC"]);
+    }
+
+    return success;
 }

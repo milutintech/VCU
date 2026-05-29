@@ -21,6 +21,14 @@ document.addEventListener('DOMContentLoaded', function() {
             fetchCANMessages();
         }
     }, 500);
+
+    // Update live throttle ADC every 100ms if on configuration tab (and not in wizard)
+    setInterval(() => {
+        const activeTab = document.querySelector('.tab-content.active');
+        if (activeTab && activeTab.id === 'configuration' && !calibrationState.active) {
+            updateLiveADC();
+        }
+    }, 100);
 });
 
 // ===== TAB MANAGEMENT =====
@@ -222,6 +230,9 @@ async function loadConfiguration() {
         } catch (error) {
             console.error('Error loading transition config:', error);
         }
+
+        // Load throttle calibration config
+        loadThrottleConfig();
 
     } catch (error) {
         console.error('Error loading configuration:', error);
@@ -493,4 +504,208 @@ function formatUptime(seconds) {
     } else {
         return `${minutes}m ${secs}s`;
     }
+}
+
+// ===== THROTTLE CALIBRATION WIZARD =====
+let calibrationState = {
+    active: false,
+    currentStep: 1,
+    minADC: 0,
+    maxADC: 0,
+    liveUpdateInterval: null
+};
+
+// Load throttle config on page load (add to loadConfiguration)
+async function loadThrottleConfig() {
+    try {
+        const res = await fetch('/api/config/throttle');
+        const data = await res.json();
+
+        document.getElementById('currentMinADC').textContent = data.throttleMinADC || '-';
+        document.getElementById('currentMaxADC').textContent = data.throttleMaxADC || '-';
+    } catch (error) {
+        console.error('Error loading throttle config:', error);
+    }
+}
+
+// Update live ADC value
+async function updateLiveADC() {
+    try {
+        const res = await fetch('/api/throttle/raw');
+        const data = await res.json();
+
+        // Update all live ADC displays
+        const liveElements = [
+            'liveADC',
+            'wizardLiveADC',
+            'wizardLiveADC2',
+            'wizardLiveADC3'
+        ];
+
+        liveElements.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = data.rawADC || '-';
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching raw throttle ADC:', error);
+    }
+}
+
+// Start calibration wizard
+function startCalibrationWizard() {
+    calibrationState.active = true;
+    calibrationState.currentStep = 1;
+    calibrationState.minADC = 0;
+    calibrationState.maxADC = 0;
+
+    // Show wizard modal
+    document.getElementById('calibrationWizard').style.display = 'flex';
+
+    // Show step 1
+    showWizardStep(1);
+
+    // Start live ADC updates (every 100ms)
+    calibrationState.liveUpdateInterval = setInterval(updateLiveADC, 100);
+}
+
+// Navigate between wizard steps
+function showWizardStep(step) {
+    // Hide all steps
+    for (let i = 1; i <= 5; i++) {
+        const stepEl = document.getElementById('wizardStep' + i);
+        if (stepEl) {
+            stepEl.style.display = 'none';
+        }
+    }
+
+    // Show current step
+    const currentStepEl = document.getElementById('wizardStep' + step);
+    if (currentStepEl) {
+        currentStepEl.style.display = 'block';
+    }
+
+    calibrationState.currentStep = step;
+}
+
+// Calibrate minimum (Step 2)
+async function calibrateMin() {
+    try {
+        const res = await fetch('/api/throttle/raw');
+        const data = await res.json();
+
+        calibrationState.minADC = data.rawADC;
+
+        // Update captured min display
+        document.getElementById('capturedMin').textContent = calibrationState.minADC;
+
+        // Move to step 3
+        showWizardStep(3);
+    } catch (error) {
+        console.error('Error calibrating minimum:', error);
+        alert('Failed to capture minimum value');
+    }
+}
+
+// Calibrate maximum (Step 3)
+async function calibrateMax() {
+    try {
+        const res = await fetch('/api/throttle/raw');
+        const data = await res.json();
+
+        calibrationState.maxADC = data.rawADC;
+
+        // Validate: max must be greater than min
+        if (calibrationState.maxADC <= calibrationState.minADC) {
+            alert('Error: Maximum value must be greater than minimum value. Please try again.');
+            return;
+        }
+
+        // Validate: range should be at least 1000 ADC units
+        const range = calibrationState.maxADC - calibrationState.minADC;
+        if (range < 1000) {
+            if (!confirm('Warning: Calibration range is quite narrow (' + range + ' ADC units). This may result in poor throttle resolution. Continue anyway?')) {
+                return;
+            }
+        }
+
+        // Update review displays
+        document.getElementById('reviewMin').textContent = calibrationState.minADC;
+        document.getElementById('reviewMax').textContent = calibrationState.maxADC;
+        document.getElementById('reviewRange').textContent = range + ' ADC units';
+
+        // Move to step 4 (review)
+        showWizardStep(4);
+    } catch (error) {
+        console.error('Error calibrating maximum:', error);
+        alert('Failed to capture maximum value');
+    }
+}
+
+// Save calibration (Step 4 -> Step 5)
+async function saveCalibration() {
+    try {
+        const config = {
+            throttleMinADC: calibrationState.minADC,
+            throttleMaxADC: calibrationState.maxADC
+        };
+
+        const res = await fetch('/api/config/throttle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+
+        const result = await res.json();
+
+        if (result.success) {
+            // Update success screen
+            document.getElementById('successMin').textContent = calibrationState.minADC;
+            document.getElementById('successMax').textContent = calibrationState.maxADC;
+
+            // Show success step
+            showWizardStep(5);
+
+            // Reload throttle config to update current values display
+            loadThrottleConfig();
+        } else {
+            alert('Error saving calibration: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error saving calibration:', error);
+        alert('Failed to save calibration');
+    }
+}
+
+// Retry calibration (start over)
+function retryCalibration() {
+    calibrationState.minADC = 0;
+    calibrationState.maxADC = 0;
+    showWizardStep(2);
+}
+
+// Cancel calibration
+function cancelCalibration() {
+    if (confirm('Are you sure you want to cancel calibration? Any captured values will be lost.')) {
+        closeCalibrationWizard();
+    }
+}
+
+// Close calibration wizard
+function closeCalibrationWizard() {
+    // Stop live updates
+    if (calibrationState.liveUpdateInterval) {
+        clearInterval(calibrationState.liveUpdateInterval);
+        calibrationState.liveUpdateInterval = null;
+    }
+
+    // Hide wizard
+    document.getElementById('calibrationWizard').style.display = 'none';
+
+    // Reset state
+    calibrationState.active = false;
+    calibrationState.currentStep = 1;
+    calibrationState.minADC = 0;
+    calibrationState.maxADC = 0;
 }

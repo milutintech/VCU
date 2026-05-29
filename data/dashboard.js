@@ -202,6 +202,13 @@ function updateDashboard(data) {
             (data.inputs.ignition ? 'value-positive' : 'value-neutral');
     }
 
+    // Update safety warnings
+    if (data.safety && data.safety.throttleBlockingShift) {
+        document.getElementById('throttleShiftError').style.display = 'flex';
+    } else {
+        document.getElementById('throttleShiftError').style.display = 'none';
+    }
+
     // Update charging status (if elements exist on charging tab)
     if (data.charging) {
         const chargerStateEl = document.getElementById('chargerState');
