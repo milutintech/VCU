@@ -106,7 +106,7 @@ void canTask(void* parameter) {
             vehicleControl->updateGearState();
             float torquePercentage = vehicleControl->calculateTorquePercentage();
             canManager->setTorquePercentage(torquePercentage);
-            canManager->setEnableDMC(vehicleControl->isDMCEnabled());
+            canManager->setEnableDMC(stateManager->isPreCharged() && vehicleControl->isDMCEnabled());
             
             // Log significant torque changes
             static float lastLoggedTorque = 0.0f;

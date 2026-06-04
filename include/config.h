@@ -13,7 +13,7 @@ namespace Pins {
     constexpr uint8_t SCL = 2;
     
     // Relay Pins
-    constexpr uint8_t PUMP = 38;         // Cooling Pump PW0
+    constexpr uint8_t FAN = 38;           // Cooling Fan PW0
     constexpr uint8_t PW1 = 39;
     
     constexpr uint8_t CONTACTOR = 11;    // HV Battery LPW0
@@ -23,7 +23,7 @@ namespace Pins {
     constexpr uint8_t BCKLIGHT = 17;     // Reverse Signal LWP4
     constexpr uint8_t LWP5 = 18;
     constexpr uint8_t LWP6 = 21;
-    constexpr uint8_t LWP7 = 16;
+    constexpr uint8_t PUMP = 16;
     
     // Input Pins
     constexpr uint8_t NLG_HW_Wakeup = 7;

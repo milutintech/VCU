@@ -41,7 +41,7 @@ void SystemSetup::initializeGPIO() {
     pinMode(Pins::UNLCKCON, INPUT);
     
     // Configure output pins
-    pinMode(Pins::PUMP, OUTPUT);         // Now Fan (PW0)
+    pinMode(Pins::FAN, OUTPUT);         // Now Fan (PW0)
     pinMode(Pins::CONTACTOR, OUTPUT);
     pinMode(Pins::NLGKL15, OUTPUT);
     pinMode(Pins::DMCKL15, OUTPUT);
@@ -51,7 +51,7 @@ void SystemSetup::initializeGPIO() {
     pinMode(Pins::PW1, OUTPUT);          // Now Contactor
     pinMode(Pins::LWP5, OUTPUT);
     pinMode(Pins::LWP6, OUTPUT);
-    pinMode(Pins::LWP7, OUTPUT);         // Pump
+    pinMode(Pins::PUMP, OUTPUT);         // Pump
     pinMode(Pins::UNLCKCON, INPUT);
     
     setDefaultPinStates();
@@ -111,7 +111,7 @@ void SystemSetup::initializeSleep() {
  * state management system.
  */
 void SystemSetup::setDefaultPinStates() {
-    digitalWrite(Pins::PUMP, LOW);       // Fan off (will be controlled by PWM)
+    digitalWrite(Pins::FAN, LOW);       // Fan off (will be controlled by PWM)
     digitalWrite(Pins::CONTACTOR, LOW);
     digitalWrite(Pins::NLGKL15, LOW);
     digitalWrite(Pins::DMCKL15, LOW);
@@ -120,6 +120,6 @@ void SystemSetup::setDefaultPinStates() {
     digitalWrite(Pins::PW1, LOW);        // Contactor open
     digitalWrite(Pins::LWP5, LOW);
     digitalWrite(Pins::LWP6, LOW);
-    digitalWrite(Pins::LWP7, LOW);       // Pump off
+    digitalWrite(Pins::PUMP, LOW);       // Pump off
     digitalWrite(19, LOW);
 }
