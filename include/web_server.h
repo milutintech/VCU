@@ -2,7 +2,6 @@
 #define WEB_SERVER_H
 
 #include <ESPAsyncWebServer.h>
-#include <LittleFS.h>
 #include <ArduinoJson.h>
 #include "config.h"
 #include "configuration.h"

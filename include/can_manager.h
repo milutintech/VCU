@@ -7,7 +7,6 @@
 #include "state_manager.h"
 #include "bms_cells.h"
 #include <WiFi.h>
-#include <esp_now.h>
 
 // Forward declarations
 class StateManager;
@@ -74,10 +73,6 @@ struct NLGData {
     uint8_t ledDemand;        ///< Charge LED state request
 };
 
-// Define ESP-NOW message types
-#define MSG_TYPE_BMS 0x01
-#define MSG_TYPE_DMC_TEMP 0x02
-
 /**
  * @brief CAN Communication Manager Class
  * 
@@ -136,25 +131,6 @@ public:
      * Transmits charging control parameters
      */
     void sendNLG();
-    
-    /**
-     * @brief Initialize ESP-NOW communication
-     * Sets up ESP-NOW for peer-to-peer data transmission
-     * @param macAddress Target receiver MAC address
-     */
-    void beginESPNOW(uint8_t* macAddress);
-    
-    /**
-     * @brief Send BMS data via ESP-NOW
-     * Transmits battery management system data to receiver
-     */
-    void sendBMSDataESPNOW();
-
-    /**
-     * @brief Send DMC temperature data via ESP-NOW
-     * Transmits motor temperature data to receiver
-     */
-    void sendDMCTempESPNOW();
     
     // Data access methods
     const BMSData& getBMSData() const { return bmsData; }
@@ -243,13 +219,6 @@ private:
      */
     void checkAndProcessMessages();
     
-    /**
-     * @brief Callback function for ESP-NOW send status
-     * @param mac_addr MAC address of the receiver
-     * @param status Send status (success or failure)
-     */
-    static void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
-    
     bool needsClearError = false;  // Flag to indicate error clearing needed
     unsigned long errorClearStartTime = 0;  // Timestamp for error clearing
     bool inErrorClearSequence = false;  // Track if we're in the middle of error clearing
@@ -286,17 +255,9 @@ private:
     uint16_t lvVoltage;      ///< Low voltage system voltage
     uint16_t hvVoltage;      ///< High voltage system voltage
     
-    // ESP-NOW variables
-    uint8_t receiverMacAddress[6]; ///< MAC address of the ESP-NOW receiver
-    bool espNowInitialized = false; ///< Flag to indicate if ESP-NOW is initialized
-    static uint32_t messagesSent;   ///< Counter for successful messages
-    static uint32_t messagesFailed; ///< Counter for failed messages
-    
     // Timing management
     unsigned long lastFastCycle;   ///< Last fast update cycle timestamp
     unsigned long lastSlowCycle;   ///< Last slow update cycle timestamp
-    unsigned long lastBMSSendTime; ///< Last BMS data send timestamp
-    unsigned long lastDMCSendTime; ///< Last DMC data send timestamp
 
     // CAN Monitoring - FIXED: Use pointers instead of direct objects
     CANMonitor* canMonitor = nullptr;      ///< CAN bus monitor instance

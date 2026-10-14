@@ -38,37 +38,6 @@ void VCUWebServer::begin() {
     Serial.println("    Initializing Web Server...");
     Serial.println("========================================");
 
-    // Initialize LittleFS
-    Serial.print("[WebServer] Mounting LittleFS... ");
-    if (!LittleFS.begin(true)) {
-        Serial.println("FAILED!");
-        Serial.println("[WebServer] ERROR: LittleFS Mount Failed");
-        Serial.println("[WebServer] Web interface files may not be available");
-        Serial.println("[WebServer] Run: pio run --target uploadfs");
-        // Continue anyway - API will still work
-    } else {
-        Serial.println("OK");
-        Serial.println("[WebServer] LittleFS Mounted Successfully");
-
-        // List files in LittleFS for debugging
-        Serial.println("[WebServer] Files in LittleFS:");
-        File root = LittleFS.open("/");
-        File file = root.openNextFile();
-        int fileCount = 0;
-        while (file) {
-            Serial.print("  - ");
-            Serial.print(file.name());
-            Serial.print(" (");
-            Serial.print(file.size());
-            Serial.println(" bytes)");
-            file = root.openNextFile();
-            fileCount++;
-        }
-        if (fileCount == 0) {
-            Serial.println("  (No files found - run: pio run --target uploadfs)");
-        }
-    }
-
     // Setup routes and handlers
     Serial.print("[WebServer] Setting up routes... ");
     setupRoutes();
@@ -112,32 +81,9 @@ void VCUWebServer::setupRoutes() {
     // Register API routes first (they take priority over static files)
     // This ensures /api/* requests go to handlers, not filesystem
 
-    // Add fallback root handler in case LittleFS is empty
-    server.on("/", HTTP_GET, [this](AsyncWebServerRequest* request) {
-        // Try to serve from LittleFS first
-        if (LittleFS.exists("/index.html")) {
-            request->send(LittleFS, "/index.html", "text/html");
-            return;
-        }
-
-        // If no index.html, serve a simple fallback page
-        String html = "<!DOCTYPE html><html><head><title>VCU Web Server</title></head><body>";
-        html += "<h1>VCU Web Server Running!</h1>";
-        html += "<p>The web server is operational, but web interface files are not uploaded.</p>";
-        html += "<h2>System Status</h2>";
-        html += "<p>State: " + stateToString(stateManager->getCurrentState()) + "</p>";
-        html += "<p>Battery SOC: " + String(canManager->getBMSData().soc) + "%</p>";
-        html += "<p>Battery Voltage: " + String(canManager->getBMSData().voltage / 10.0f) + "V</p>";
-        html += "<h2>How to upload web interface:</h2>";
-        html += "<pre>pio run --target uploadfs</pre>";
-        html += "<h2>Available API Endpoints:</h2>";
-        html += "<ul>";
-        html += "<li><a href='/api/status'>/api/status</a> - Full system status</li>";
-        html += "<li><a href='/api/status/live'>/api/status/live</a> - Live data</li>";
-        html += "<li><a href='/api/config'>/api/config</a> - Configuration</li>";
-        html += "</ul>";
-        html += "</body></html>";
-        request->send(200, "text/html", html);
+    // The UI lives in LIVI; the root only says what this is.
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+        request->send(200, "text/plain", "VCU API. Use LIVI to configure and monitor.");
     });
 
     // Status endpoints
@@ -368,10 +314,6 @@ void VCUWebServer::setupRoutes() {
     server.on("/api/can/messages", HTTP_GET, [this](AsyncWebServerRequest* request) {
         handleGetCANMessages(request);
     });
-
-    // Serve static files from LittleFS (AFTER all API routes)
-    // API routes registered above take priority, so this won't interfere
-    server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
 
     // 404 handler
     server.onNotFound([](AsyncWebServerRequest* request) {
