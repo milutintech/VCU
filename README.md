@@ -294,3 +294,8 @@ Applied in `canTask` (`main.cpp`) in RUN state; the fault reaction is the minimu
 | `BSC_TIMEOUT`, `NLG_TIMEOUT` | log/report only |
 
 Reactions are not latched: they release automatically once the fault clears. `isSystemHealthy()` now reports unhealthy while a CRITICAL fault is active (instead of whenever any critical line was ever logged). `/api/status/faults` output shape is unchanged. CAN IDs and task timing are unchanged.
+
+- `GET /api/system/limits` → the limits LIVI uses for gauges and slider ranges: `maxRpm`
+  (`VehicleParams::Motor::MAX_RPM`, the one applied in `CANManager`), `maxTorque`, `maxSoc`,
+  `chargeCurrent` (min/max), `motorTemp`/`inverterTemp` (`derate`, `cutoff`),
+  `packVoltage` (min/max), `chargerTempMax`.

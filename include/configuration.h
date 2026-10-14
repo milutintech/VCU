@@ -102,6 +102,14 @@ public:
     String getCategoryJSON(const String& category);
     bool setCategoryJSON(const String& category, const String& json);
     
+    // === VALIDATION RANGES (read-only, reported to LIVI via /api/system/limits) ===
+    static constexpr int minTorqueLimit() { return MIN_TORQUE_LIMIT; }
+    static constexpr int maxTorqueLimit() { return MAX_TORQUE_LIMIT; }
+    static constexpr int minSocLimit() { return MIN_SOC_LIMIT; }
+    static constexpr int maxSocLimit() { return MAX_SOC_LIMIT; }
+    static constexpr int minChargingCurrent() { return MIN_CHARGING_CURRENT; }
+    static constexpr int maxChargingCurrent() { return MAX_CHARGING_CURRENT; }
+
 private:
     Preferences preferences;
     static const char* NAMESPACE;

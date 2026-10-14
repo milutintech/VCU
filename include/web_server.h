@@ -77,6 +77,7 @@ private:
     void handleExportConfig(AsyncWebServerRequest* request);
     void handleImportConfig(AsyncWebServerRequest* request, JsonVariant& json);
     void handleSystemInfo(AsyncWebServerRequest* request);
+    void handleGetLimits(AsyncWebServerRequest* request);
     void handleSetDebugMode(AsyncWebServerRequest* request, JsonVariant& json);
 
     // API Endpoints - CAN Monitor

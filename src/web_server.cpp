@@ -1,4 +1,6 @@
 #include "web_server.h"
+#include "fault_handler.h"
+#include "vehicle_parameters.h"
 
 // Helper functions for state/gear conversion
 static String stateToString(VehicleState state) {
@@ -292,6 +294,10 @@ void VCUWebServer::setupRoutes() {
 
     server.on("/api/system/info", HTTP_GET, [this](AsyncWebServerRequest* request) {
         handleSystemInfo(request);
+    });
+
+    server.on("/api/system/limits", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetLimits(request);
     });
 
     AsyncCallbackWebHandler* debugHandler = new AsyncCallbackWebHandler();
@@ -742,6 +748,46 @@ void VCUWebServer::handleImportConfig(AsyncWebServerRequest* request, JsonVarian
     } else {
         request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid configuration\"}");
     }
+}
+
+/**
+ * @brief Limits LIVI draws its gauges and slider ranges from, so the firmware stays the
+ *        single place they are defined.
+ */
+void VCUWebServer::handleGetLimits(AsyncWebServerRequest* request) {
+    JsonDocument doc;
+
+    doc["maxRpm"] = VehicleParams::Motor::MAX_RPM;  // the limit CANManager actually applies
+
+    JsonObject torque = doc["maxTorque"].to<JsonObject>();
+    torque["min"] = Configuration::minTorqueLimit();
+    torque["max"] = Configuration::maxTorqueLimit();
+
+    JsonObject soc = doc["maxSoc"].to<JsonObject>();
+    soc["min"] = Configuration::minSocLimit();
+    soc["max"] = Configuration::maxSocLimit();
+
+    JsonObject charge = doc["chargeCurrent"].to<JsonObject>();
+    charge["min"] = Configuration::minChargingCurrent();
+    charge["max"] = Configuration::maxChargingCurrent();
+
+    JsonObject motor = doc["motorTemp"].to<JsonObject>();
+    motor["derate"] = FaultLimits::TEMP_DERATE_C;
+    motor["cutoff"] = FaultLimits::TEMP_CUTOFF_C;
+
+    JsonObject inverter = doc["inverterTemp"].to<JsonObject>();
+    inverter["derate"] = FaultLimits::TEMP_DERATE_C;
+    inverter["cutoff"] = FaultLimits::TEMP_CUTOFF_C;
+
+    JsonObject pack = doc["packVoltage"].to<JsonObject>();
+    pack["min"] = VehicleParams::Battery::MIN_VOLTAGE;
+    pack["max"] = VehicleParams::Battery::MAX_VOLTAGE;
+
+    doc["chargerTempMax"] = VehicleParams::Temperature::NLG_MAX;
+
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
 }
 
 void VCUWebServer::handleSystemInfo(AsyncWebServerRequest* request) {
