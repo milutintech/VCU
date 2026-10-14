@@ -683,14 +683,19 @@ void VCUWebServer::handleSetThrottleConfig(AsyncWebServerRequest* request, JsonV
     JsonObject obj = json.as<JsonObject>();
     bool success = true;
 
-    if (!obj["throttleMinADC"].isNull()) {
-        int value = obj["throttleMinADC"].as<int>();
-        success &= config->setThrottleMinADC(value);
-    }
+    // min must stay below max at every step, so when the whole range moves up the
+    // new max goes in first.
+    bool hasMin = !obj["throttleMinADC"].isNull();
+    bool hasMax = !obj["throttleMaxADC"].isNull();
+    int newMin = hasMin ? obj["throttleMinADC"].as<int>() : 0;
+    int newMax = hasMax ? obj["throttleMaxADC"].as<int>() : 0;
 
-    if (!obj["throttleMaxADC"].isNull()) {
-        int value = obj["throttleMaxADC"].as<int>();
-        success &= config->setThrottleMaxADC(value);
+    if (hasMin && hasMax && newMin >= config->getThrottleMaxADC()) {
+        success &= config->setThrottleMaxADC(newMax);
+        success &= config->setThrottleMinADC(newMin);
+    } else {
+        if (hasMin) success &= config->setThrottleMinADC(newMin);
+        if (hasMax) success &= config->setThrottleMaxADC(newMax);
     }
 
     if (success) {

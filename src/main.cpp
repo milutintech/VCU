@@ -125,14 +125,24 @@ void canTask(void* parameter) {
             lastMonitorUpdate = millis();
         }
         
-        // Check for system errors using the global config instance
+        // Check for system errors. Re-raised at most every FAULT_RERAISE_MS so the
+        // log and the fault counters count events, not loop iterations.
+        static unsigned long lastUndervoltageRaise = 0;
+        static unsigned long lastOvertempRaise = 0;
+        const unsigned long FAULT_RERAISE_MS = 5000;
+        const unsigned long nowMs = millis();
+
         const BMSData& bmsData = canManager->getBMSData();
-        if (bmsData.voltage < VehicleParams::Battery::MIN_VOLTAGE) { // Use constants instead of config
+        if (bmsData.voltage < VehicleParams::Battery::MIN_VOLTAGE &&
+            nowMs - lastUndervoltageRaise >= FAULT_RERAISE_MS) {
+            lastUndervoltageRaise = nowMs;
             errorMonitor->logError(ErrorSeverity::WARNING, ErrorCode::BATTERY_UNDERVOLTAGE, 
                                  "Battery voltage low", bmsData.voltage, "BMS");
         }
         
-        if (dmcData.tempInverter > VehicleParams::Temperature::INV_HIGH) { // Use constants instead of config
+        if (dmcData.tempInverter > VehicleParams::Temperature::INV_HIGH &&
+            nowMs - lastOvertempRaise >= FAULT_RERAISE_MS) {
+            lastOvertempRaise = nowMs;
             errorMonitor->logError(ErrorSeverity::ERROR, ErrorCode::INVERTER_OVERTEMP,
                                  "Inverter overtemperature", dmcData.tempInverter, "DMC");
         }
