@@ -38,6 +38,26 @@ void ErrorMonitor::logError(ErrorSeverity severity, ErrorCode code, const String
         errorLog.pop_front();
     }
     
+    // Generic info/warning/error helpers log under SYSTEM_BOOT; only real codes are faults.
+    if (severity >= ErrorSeverity::WARNING && code != ErrorCode::SYSTEM_BOOT) {
+        bool found = false;
+        for (auto& f : faults) {
+            if (f.code == code) {
+                f.severity = severity;
+                f.description = description;
+                if (f.count < UINT16_MAX) f.count++;
+                f.lastMs = millis();
+                f.active = true;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            if (faults.size() >= MAX_FAULTS) faults.pop_front();
+            faults.push_back({code, severity, description, 1, millis(), true});
+        }
+    }
+
     // Print to serial for debugging
     String severityStr = severityToString(severity);
     String codeStr = errorCodeToString(code);
@@ -433,4 +453,44 @@ String ErrorMonitor::vehicleStateToString(VehicleState state) {
         case VehicleState::CHARGING: return "CHARGING";
         default: return "UNKNOWN";
     }
+}
+
+// ===== FAULT LIST =====
+
+void ErrorMonitor::clearFault(ErrorCode code) {
+    for (auto& f : faults) {
+        if (f.code == code) f.active = false;
+    }
+}
+
+void ErrorMonitor::clearAllFaults() {
+    for (auto& f : faults) f.active = false;
+}
+
+/**
+ * @brief Fault list for LIVI: `{ "faults": [{ code, name, severity, active, count, lastSeenS }] }`
+ */
+String ErrorMonitor::getFaultsJSON() {
+    JsonDocument doc;
+    JsonArray arr = doc["faults"].to<JsonArray>();
+    unsigned long now = millis();
+
+    for (const auto& f : faults) {
+        JsonObject o = arr.add<JsonObject>();
+        o["code"] = (uint16_t)f.code;
+        o["name"] = f.description.length() ? f.description : errorCodeToString(f.code);
+        switch (f.severity) {
+            case ErrorSeverity::INFO: o["severity"] = "info"; break;
+            case ErrorSeverity::WARNING: o["severity"] = "warning"; break;
+            case ErrorSeverity::ERROR: o["severity"] = "error"; break;
+            default: o["severity"] = "critical"; break;
+        }
+        o["active"] = f.active && (now - f.lastMs) < FAULT_ACTIVE_MS;
+        o["count"] = f.count;
+        o["lastSeenS"] = f.lastMs / 1000;
+    }
+
+    String out;
+    serializeJson(doc, out);
+    return out;
 }

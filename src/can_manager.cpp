@@ -60,6 +60,7 @@ CANManager::~CANManager() {
  * with 500kbps baudrate. Retries initialization until successful.
  */
 void CANManager::begin() {
+    bmsCells.begin();
     if (!customSPI) {
         Serial.println("SPI not initialized");
         return;
@@ -170,6 +171,9 @@ void CANManager::checkAndProcessMessages() {
                 }
             }
             
+            // Orion per-cell broadcast, IDs come from configuration.
+            if (bmsCells.handleFrame(id, buf, len)) continue;
+
             switch(id) {
                 case 0x010:  // BMS message
                     processBMSMessage(buf);

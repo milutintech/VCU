@@ -95,6 +95,16 @@ struct LogEntry {
 /**
  * @brief Real-time Monitoring Data Structure
  */
+/** One row per error code that reached WARNING or worse, for the fault list. */
+struct FaultEntry {
+    ErrorCode code;
+    ErrorSeverity severity;
+    String description;
+    uint16_t count;
+    unsigned long lastMs;
+    bool active;
+};
+
 struct MonitoringData {
     // System Status
     unsigned long timestamp;
@@ -222,6 +232,13 @@ public:
     void clearErrorLog();
     uint16_t getErrorCount(ErrorSeverity minSeverity = ErrorSeverity::WARNING);
     String getErrorLogJSON(uint16_t maxEntries = 100);
+
+    // Fault list: a fault is active when raised within FAULT_ACTIVE_MS and not cleared.
+    static constexpr unsigned long FAULT_ACTIVE_MS = 30000;
+    static constexpr size_t MAX_FAULTS = 32;
+    void clearFault(ErrorCode code);
+    void clearAllFaults();
+    String getFaultsJSON();
     
     // Monitoring Data
     void updateMonitoringData(const CANManager& canManager, const StateManager& stateManager);
@@ -247,6 +264,7 @@ public:
     
 private:
     std::deque<LogEntry> errorLog;
+    std::deque<FaultEntry> faults;
     std::deque<CANMessageInfo> canLog;
     MonitoringData currentData;
     PerformanceMetrics performance;

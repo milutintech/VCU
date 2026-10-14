@@ -335,3 +335,15 @@ Built with:
 ## Support
 
 For issues, questions, or contributions, please open an issue on GitHub.
+
+
+## BMS cells and faults API (for LIVI)
+
+- `GET /api/bms/cells` → `{ "cellsMv": [...], "balancing": [idx...], "temps": [...], "ageMs": n }`.
+  Cells come from the Orion *Battery Cell Broadcast* frame (see `include/bms_cells.h`).
+  `cellsMv` is empty until a valid frame has been decoded.
+- `GET|POST /api/config/bms` → `{ cellId, tempId, bigEndian, checkChecksum, cellCount, tempCount }`.
+  `cellId`/`tempId` are the CAN IDs set in the Orion BMS Utility; `0` turns decoding off (default).
+  Stored in its own NVS namespace, applied immediately.
+- `GET /api/status/faults` → `{ "faults": [{ code, name, severity, active, count, lastSeenS }] }`.
+  Aggregated from `ErrorMonitor` entries at WARNING or above; active for 30 s after the last raise.

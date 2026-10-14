@@ -51,6 +51,10 @@ private:
     void handleGetStatus(AsyncWebServerRequest* request);
     void handleGetLiveData(AsyncWebServerRequest* request);
     void handleGetErrors(AsyncWebServerRequest* request);
+    void handleGetFaults(AsyncWebServerRequest* request);
+    void handleGetBmsCells(AsyncWebServerRequest* request);
+    void handleGetBmsConfig(AsyncWebServerRequest* request);
+    void handleSetBmsConfig(AsyncWebServerRequest* request, JsonVariant& json);
 
     // API Endpoints - Configuration
     void handleGetConfig(AsyncWebServerRequest* request);

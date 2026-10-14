@@ -153,8 +153,20 @@ void VCUWebServer::setupRoutes() {
         handleGetErrors(request);
     });
 
+    server.on("/api/status/faults", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetFaults(request);
+    });
+
+    server.on("/api/bms/cells", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetBmsCells(request);
+    });
+
     // Configuration endpoints - GET
     // IMPORTANT: Register ALL specific routes BEFORE the generic /api/config route to avoid prefix matching
+    server.on("/api/config/bms", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetBmsConfig(request);
+    });
+
     server.on("/api/config/driving", HTTP_GET, [this](AsyncWebServerRequest* request) {
         handleGetDrivingConfig(request);
     });
@@ -287,6 +299,22 @@ void VCUWebServer::setupRoutes() {
     });
     server.addHandler(throttleHandler);
 
+    AsyncCallbackWebHandler* bmsHandler = new AsyncCallbackWebHandler();
+    bmsHandler->setUri("/api/config/bms");
+    bmsHandler->setMethod(HTTP_POST);
+    bmsHandler->onRequest([](AsyncWebServerRequest* request) {});
+    bmsHandler->onBody([this](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, data, len);
+        if (!error) {
+            JsonVariant json = doc.as<JsonVariant>();
+            handleSetBmsConfig(request, json);
+        } else {
+            request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid JSON\"}");
+        }
+    });
+    server.addHandler(bmsHandler);
+
     // System endpoints
     server.on("/api/system/save", HTTP_POST, [this](AsyncWebServerRequest* request) {
         handleSaveConfig(request);
@@ -392,6 +420,27 @@ void VCUWebServer::handleGetErrors(AsyncWebServerRequest* request) {
     String response;
     serializeJson(doc, response);
     request->send(200, "application/json", response);
+}
+
+void VCUWebServer::handleGetFaults(AsyncWebServerRequest* request) {
+    request->send(200, "application/json", errorMonitor->getFaultsJSON());
+}
+
+void VCUWebServer::handleGetBmsCells(AsyncWebServerRequest* request) {
+    request->send(200, "application/json", canManager->getBmsCells().cellsJSON());
+}
+
+void VCUWebServer::handleGetBmsConfig(AsyncWebServerRequest* request) {
+    request->send(200, "application/json", canManager->getBmsCells().mapJSON());
+}
+
+void VCUWebServer::handleSetBmsConfig(AsyncWebServerRequest* request, JsonVariant& json) {
+    // Persisted by BmsCells itself, no config->save() needed.
+    if (canManager->getBmsCells().applyMapJSON(json.as<JsonObject>())) {
+        request->send(200, "application/json", "{\"success\":true}");
+    } else {
+        request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid parameters\"}");
+    }
 }
 
 // ===== CONFIGURATION ENDPOINTS - GET =====

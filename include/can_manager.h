@@ -5,6 +5,7 @@
 #include "config.h"
 #include "vehicle_parameters.h"
 #include "state_manager.h"
+#include "bms_cells.h"
 #include <WiFi.h>
 #include <esp_now.h>
 
@@ -160,6 +161,7 @@ public:
     const DMCData& getDMCData() const { return dmcData; }
     const BSCData& getBSCData() const { return bscData; }
     const NLGData& getNLGData() const { return nlgData; }
+    BmsCells& getBmsCells() { return bmsCells; }
     
     // Control methods
     void setCurrentGear(GearState gear) { currentGear = gear; }
@@ -269,6 +271,7 @@ private:
     DMCData dmcData;         ///< Motor controller data
     BSCData bscData;         ///< DC-DC converter data
     NLGData nlgData;         ///< Charging system data
+    BmsCells bmsCells;       ///< Orion BMS per-cell data, decoded from the CAN broadcast
     
     StateManager* stateManager;  ///< Pointer to state manager
     GearState currentGear = GearState::NEUTRAL;
