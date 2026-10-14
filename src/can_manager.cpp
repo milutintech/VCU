@@ -491,7 +491,7 @@ void CANManager::sendNLG() {
    /* if (bmsData.voltage < VehicleParams::Battery::MIN_VOLTAGE && bmsData.maxCharge == 0) {
         limitedCurrentDC = 5;  // Force 5A in recovery mode
     }*/
-    
+    //limitedCurrentDC = 20;  
     int nlgCurrentScaleDC = static_cast<int>((limitedCurrentDC + 102.4) * 10);
     int nlgCurrentScaleAC = static_cast<int>((maxNlgCurrentAC + 102.4) * 10);
     
