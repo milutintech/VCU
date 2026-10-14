@@ -143,6 +143,9 @@ public:
     unsigned long getLastBMSMs() const { return lastBMSMs; }
     unsigned long getLastDMCMs() const { return lastDMCMs; }
     unsigned long getLastBSCMs() const { return lastBSCMs; }
+    bool isBSCEnabled() const { return enableBSC; }
+    bool isBSCBoost() const { return modeBSC; }
+    uint16_t getHVVoltageDemand() const { return hvVoltage; }
     unsigned long getLastNLGMs() const { return lastNLGMs; }
     
     // Control methods

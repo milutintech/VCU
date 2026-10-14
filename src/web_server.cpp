@@ -911,6 +911,23 @@ String VCUWebServer::createLiveDataJSON() {
 
     // Charging status
     const NLGData& nlg = canManager->getNLGData();
+    // DC-DC converter (BSC): what the VCU asks for and what the converter reports.
+    const BSCData& bsc = canManager->getBSCData();
+    JsonObject dcdc = doc["dcdc"].to<JsonObject>();
+    dcdc["enabled"] = canManager->isBSCEnabled();
+    dcdc["modeDemand"] = canManager->isBSCBoost() ? "BOOST" : "BUCK";
+    dcdc["modeAct"] = bsc.mode;
+    dcdc["hvVoltage"] = bsc.hvVoltageAct;
+    dcdc["lvVoltage"] = bsc.lvVoltageAct;
+    dcdc["hvCurrent"] = bsc.hvCurrentAct;
+    dcdc["lvCurrent"] = bsc.lvCurrentAct;
+    dcdc["hvVoltageDemand"] = canManager->getHVVoltageDemand();
+    dcdc["lvVoltageDemand"] = VehicleParams::Battery::MIN_LVVOLTAGE;
+    dcdc["lvCurrentLimit"] = canManager->isBSCBoost() ? VehicleParams::Power::BSC_LV_BOOST
+                                                      : VehicleParams::Power::BSC_LV_BUCK;
+    unsigned long bscMs = canManager->getLastBSCMs();
+    dcdc["ageMs"] = bscMs ? (long)(millis() - bscMs) : -1L;
+
     JsonObject charging = doc["charging"].to<JsonObject>();
 
     // Map NLG state to readable string
