@@ -21,6 +21,7 @@
 #include "config.h"
 #include "enhanced_serial_console.h"  // Fixed enhanced console
 #include "error_monitor.h"            // New error monitoring
+#include "fault_handler.h"            // Fault detection and reactions
 #include "configuration.h"            // Extended configuration
 #include "can_monitoring.h"           // CAN monitoring extensions
 #include "wifi_manager.h"             // WiFi management
@@ -33,6 +34,7 @@ StateManager* stateManager = nullptr;
 VehicleControl* vehicleControl = nullptr;
 EnhancedSerialConsole* serialConsole = nullptr;  // Fixed class name
 ErrorMonitor* errorMonitor = nullptr;             // New error monitor
+FaultHandler* faultHandler = nullptr;             // Fault detection and reactions
 CANMonitor* canMonitor = nullptr;                 // New CAN monitor
 WiFiManager* wifiManager = nullptr;               // WiFi manager
 VCUWebServer* webServer = nullptr;                // Web server
@@ -97,6 +99,10 @@ void canTask(void* parameter) {
         // Update CAN communication
         canManager->update();
         
+        // Evaluate faults and compute the reaction (torque derate / DMC disable)
+        faultHandler->update(*canManager, *stateManager);
+        const FaultReaction& reaction = faultHandler->reaction();
+
         // Update motor speed from DMC data
         const DMCData& dmcData = canManager->getDMCData();
         vehicleControl->setMotorSpeed(dmcData.speedActual);
@@ -105,8 +111,9 @@ void canTask(void* parameter) {
         if (stateManager->getCurrentState() == VehicleState::RUN) {
             vehicleControl->updateGearState();
             float torquePercentage = vehicleControl->calculateTorquePercentage();
-            canManager->setTorquePercentage(torquePercentage);
-            canManager->setEnableDMC(stateManager->isPreCharged() && vehicleControl->isDMCEnabled());
+            canManager->setTorquePercentage(torquePercentage * reaction.torqueScale);
+            canManager->setEnableDMC(stateManager->isPreCharged() && vehicleControl->isDMCEnabled() &&
+                                     !reaction.disableDMC);
             
             // Log significant torque changes
             static float lastLoggedTorque = 0.0f;
@@ -123,28 +130,6 @@ void canTask(void* parameter) {
         if (millis() - lastMonitorUpdate >= MONITOR_UPDATE_INTERVAL) {
             errorMonitor->updateMonitoringData(*canManager, *stateManager);
             lastMonitorUpdate = millis();
-        }
-        
-        // Check for system errors. Re-raised at most every FAULT_RERAISE_MS so the
-        // log and the fault counters count events, not loop iterations.
-        static unsigned long lastUndervoltageRaise = 0;
-        static unsigned long lastOvertempRaise = 0;
-        const unsigned long FAULT_RERAISE_MS = 5000;
-        const unsigned long nowMs = millis();
-
-        const BMSData& bmsData = canManager->getBMSData();
-        if (bmsData.voltage < VehicleParams::Battery::MIN_VOLTAGE &&
-            nowMs - lastUndervoltageRaise >= FAULT_RERAISE_MS) {
-            lastUndervoltageRaise = nowMs;
-            errorMonitor->logError(ErrorSeverity::WARNING, ErrorCode::BATTERY_UNDERVOLTAGE, 
-                                 "Battery voltage low", bmsData.voltage, "BMS");
-        }
-        
-        if (dmcData.tempInverter > VehicleParams::Temperature::INV_HIGH &&
-            nowMs - lastOvertempRaise >= FAULT_RERAISE_MS) {
-            lastOvertempRaise = nowMs;
-            errorMonitor->logError(ErrorSeverity::ERROR, ErrorCode::INVERTER_OVERTEMP,
-                                 "Inverter overtemperature", dmcData.tempInverter, "DMC");
         }
         
         vTaskDelay(1);
@@ -233,6 +218,7 @@ void setup() {
         Serial.println("CRITICAL: Failed to create ErrorMonitor");
         while(1);
     }
+    faultHandler = new FaultHandler(*errorMonitor);
     errorMonitor->logInfo("System startup initiated", "SYSTEM");
     
     // Initialize CAN monitor

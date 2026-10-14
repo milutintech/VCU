@@ -192,8 +192,6 @@ void CANManager::checkAndProcessMessages() {
  * @brief Process BMS status message
  */
 
-unsigned long lastBMSUpdate = 0;  // Variable to track last update timestamp
-
 void CANManager::processBMSMessage(uint8_t* buf) {
     if (!buf) return;
     
@@ -204,7 +202,7 @@ void CANManager::processBMSMessage(uint8_t* buf) {
     bmsData.maxCharge = buf[7] * 2;
     //Serial.println("BMS Data - SOC: " + String(bmsData.soc) + "%, Voltage: " + String(bmsData.voltage) + "V, Current: " + String(bmsData.current) + "A, Max Discharge: " + String(bmsData.maxDischarge) + "A, Max Charge: " + String(bmsData.maxCharge) + "A");;
 
-    lastBMSUpdate = millis(); // Update timestamp on valid message
+    lastBMSMs = millis(); // Update timestamp on valid message
 }
 
 /**
@@ -212,6 +210,7 @@ void CANManager::processBMSMessage(uint8_t* buf) {
  */
 void CANManager::processBSCMessage(uint8_t* buf) {
     if (!buf || !stateManager) return;
+    lastBSCMs = millis();
     
     bscData.hvVoltageAct = ((buf[0] << 8) | buf[1]) * 0.1;
     bscData.lvVoltageAct = buf[2] * 0.1;
@@ -227,6 +226,7 @@ void CANManager::processBSCMessage(uint8_t* buf) {
  */
 void CANManager::processDMCMessage(uint32_t id, uint8_t* buf) {
     if (!buf) return;
+    lastDMCMs = millis();
 
     switch(id) {
         case 0x258:  // Status message
@@ -264,6 +264,7 @@ void CANManager::processDMCMessage(uint32_t id, uint8_t* buf) {
  */
 void CANManager::processNLGMessage(uint32_t id, uint8_t* buf) {
     if (!buf) return;
+    lastNLGMs = millis();
 
     switch(id) {
         case CANIds::NLG_ACT_LIM:
@@ -467,11 +468,9 @@ void CANManager::sendNLG() {
     int nlgVoltageScale = static_cast<int>(VehicleParams::Battery::MAX_VOLTAGE * 10);
     Serial.println(bmsData.maxCharge);
     // Check if BMS timeout has occurred
-    // Note: You need to update lastBMSUpdate in your processBMSMessage() method
-    if (millis() - lastBMSUpdate > VehicleParams::Timing::BMS_TIMEOUT_MS) {
+    if (millis() - lastBMSMs > VehicleParams::Timing::BMS_TIMEOUT_MS) {
         bmsData.maxCharge = 0;  // Set max charge current to 0 if timeout occurs
     }
-    static unsigned long lastBMSUpdate = 0; // Track BMS messages
 
     // Use the configuration value for maximum charging current
     uint8_t maxNlgCurrentAC = config.getMaxChargingCurrent();

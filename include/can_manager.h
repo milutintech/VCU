@@ -138,6 +138,12 @@ public:
     const BSCData& getBSCData() const { return bscData; }
     const NLGData& getNLGData() const { return nlgData; }
     BmsCells& getBmsCells() { return bmsCells; }
+
+    /// millis() of the last frame received from each node; 0 = nothing received yet.
+    unsigned long getLastBMSMs() const { return lastBMSMs; }
+    unsigned long getLastDMCMs() const { return lastDMCMs; }
+    unsigned long getLastBSCMs() const { return lastBSCMs; }
+    unsigned long getLastNLGMs() const { return lastNLGMs; }
     
     // Control methods
     void setCurrentGear(GearState gear) { currentGear = gear; }
@@ -258,6 +264,10 @@ private:
     // Timing management
     unsigned long lastFastCycle;   ///< Last fast update cycle timestamp
     unsigned long lastSlowCycle;   ///< Last slow update cycle timestamp
+    volatile unsigned long lastBMSMs = 0; ///< Last BMS frame (millis), written in CAN task
+    volatile unsigned long lastDMCMs = 0; ///< Last DMC frame (any of 0x258/0x259/0x458)
+    volatile unsigned long lastBSCMs = 0; ///< Last BSC frame
+    volatile unsigned long lastNLGMs = 0; ///< Last NLG frame
 
     // CAN Monitoring - FIXED: Use pointers instead of direct objects
     CANMonitor* canMonitor = nullptr;      ///< CAN bus monitor instance

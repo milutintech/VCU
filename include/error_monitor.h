@@ -7,6 +7,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <deque>
+#include <mutex>
 #include "config.h"
 #include "can_manager.h"
 #include "state_manager.h"
@@ -233,11 +234,21 @@ public:
     uint16_t getErrorCount(ErrorSeverity minSeverity = ErrorSeverity::WARNING);
     String getErrorLogJSON(uint16_t maxEntries = 100);
 
-    // Fault list: a fault is active when raised within FAULT_ACTIVE_MS and not cleared.
-    static constexpr unsigned long FAULT_ACTIVE_MS = 30000;
+    // Fault list. Faults are edge-triggered: a fault becomes active on the first
+    // logError() with a real code (WARNING or worse) and stays active until
+    // clearFault() is called. Repeated raises while active only refresh lastSeen,
+    // so `count` is the number of inactive->active transitions. Hysteresis and
+    // timeouts live in FaultHandler, which is the only caller of clearFault().
     static constexpr size_t MAX_FAULTS = 32;
+    void raiseFault(ErrorCode code, ErrorSeverity severity, const String& description,
+                    float value = 0.0f, const String& component = "") {
+        logError(severity, code, description, value, component);
+    }
     void clearFault(ErrorCode code);
     void clearAllFaults();
+    bool isFaultActive(ErrorCode code);
+    bool hasActiveFault(ErrorSeverity minSeverity);
+    static String errorCodeToString(ErrorCode code);
     String getFaultsJSON();
     
     // Monitoring Data
@@ -265,6 +276,7 @@ public:
 private:
     std::deque<LogEntry> errorLog;
     std::deque<FaultEntry> faults;
+    std::mutex faultMutex;   ///< faults is touched by the CAN task and the web server
     std::deque<CANMessageInfo> canLog;
     MonitoringData currentData;
     PerformanceMetrics performance;
@@ -278,7 +290,6 @@ private:
     
     // Helper methods
     String severityToString(ErrorSeverity severity);
-    String errorCodeToString(ErrorCode code);
     String vehicleStateToString(VehicleState state);
     String gearStateToString(GearState state);
     String driveModeToString(DriveMode mode);

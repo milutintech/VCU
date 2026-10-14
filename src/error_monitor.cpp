@@ -39,21 +39,32 @@ void ErrorMonitor::logError(ErrorSeverity severity, ErrorCode code, const String
     }
     
     // Generic info/warning/error helpers log under SYSTEM_BOOT; only real codes are faults.
+    // Edge-triggered: a repeat while the fault is already active only refreshes
+    // lastSeen/severity and is neither logged nor counted again.
     if (severity >= ErrorSeverity::WARNING && code != ErrorCode::SYSTEM_BOOT) {
+        std::lock_guard<std::mutex> lock(faultMutex);
         bool found = false;
         for (auto& f : faults) {
-            if (f.code == code) {
-                f.severity = severity;
-                f.description = description;
-                if (f.count < UINT16_MAX) f.count++;
-                f.lastMs = millis();
-                f.active = true;
-                found = true;
-                break;
-            }
+            if (f.code != code) continue;
+            found = true;
+            f.lastMs = millis();
+            if (severity > f.severity) f.severity = severity;
+            if (f.active) return;
+            f.severity = severity;
+            f.description = description;
+            if (f.count < UINT16_MAX) f.count++;
+            f.active = true;
+            break;
         }
         if (!found) {
-            if (faults.size() >= MAX_FAULTS) faults.pop_front();
+            if (faults.size() >= MAX_FAULTS) {
+                // Drop the oldest inactive entry, else the oldest overall.
+                auto it = faults.begin();
+                for (auto j = faults.begin(); j != faults.end(); ++j) {
+                    if (!j->active) { it = j; break; }
+                }
+                faults.erase(it);
+            }
             faults.push_back({code, severity, description, 1, millis(), true});
         }
     }
@@ -385,7 +396,7 @@ void ErrorMonitor::resetPerformanceMetrics() {
  */
 bool ErrorMonitor::isSystemHealthy() {
     // Check for critical errors
-    if (getErrorCount(ErrorSeverity::CRITICAL) > 0) {
+    if (hasActiveFault(ErrorSeverity::CRITICAL)) {
         return false;
     }
     
@@ -410,6 +421,7 @@ String ErrorMonitor::getSystemHealthJSON() {
     
     doc["healthy"] = isSystemHealthy();
     doc["criticalErrors"] = getErrorCount(ErrorSeverity::CRITICAL);
+    doc["activeCriticalFault"] = hasActiveFault(ErrorSeverity::CRITICAL);
     doc["errors"] = getErrorCount(ErrorSeverity::ERROR);
     doc["warnings"] = getErrorCount(ErrorSeverity::WARNING);
     doc["freeMemory"] = ESP.getFreeHeap();
@@ -436,12 +448,37 @@ String ErrorMonitor::severityToString(ErrorSeverity severity) {
 String ErrorMonitor::errorCodeToString(ErrorCode code) {
     switch (code) {
         case ErrorCode::SYSTEM_BOOT: return "SYSTEM_BOOT";
+        case ErrorCode::SYSTEM_SHUTDOWN: return "SYSTEM_SHUTDOWN";
+        case ErrorCode::WATCHDOG_RESET: return "WATCHDOG_RESET";
+        case ErrorCode::MEMORY_ERROR: return "MEMORY_ERROR";
         case ErrorCode::CAN_INIT_FAILED: return "CAN_INIT_FAILED";
+        case ErrorCode::CAN_BUS_OFF: return "CAN_BUS_OFF";
+        case ErrorCode::BMS_TIMEOUT: return "BMS_TIMEOUT";
+        case ErrorCode::DMC_TIMEOUT: return "DMC_TIMEOUT";
+        case ErrorCode::BSC_TIMEOUT: return "BSC_TIMEOUT";
+        case ErrorCode::NLG_TIMEOUT: return "NLG_TIMEOUT";
         case ErrorCode::BATTERY_UNDERVOLTAGE: return "BATTERY_UNDERVOLTAGE";
         case ErrorCode::BATTERY_OVERVOLTAGE: return "BATTERY_OVERVOLTAGE";
+        case ErrorCode::BATTERY_OVERCURRENT: return "BATTERY_OVERCURRENT";
+        case ErrorCode::PRECHARGE_FAILED: return "PRECHARGE_FAILED";
+        case ErrorCode::PRECHARGE_TIMEOUT: return "PRECHARGE_TIMEOUT";
+        case ErrorCode::SOC_OUT_OF_RANGE: return "SOC_OUT_OF_RANGE";
         case ErrorCode::MOTOR_OVERTEMP: return "MOTOR_OVERTEMP";
         case ErrorCode::INVERTER_OVERTEMP: return "INVERTER_OVERTEMP";
-        // Add more codes as needed
+        case ErrorCode::DMC_ERROR: return "DMC_ERROR";
+        case ErrorCode::TORQUE_LIMIT_EXCEEDED: return "TORQUE_LIMIT_EXCEEDED";
+        case ErrorCode::SPEED_LIMIT_EXCEEDED: return "SPEED_LIMIT_EXCEEDED";
+        case ErrorCode::CHARGER_ERROR: return "CHARGER_ERROR";
+        case ErrorCode::CHARGER_OVERTEMP: return "CHARGER_OVERTEMP";
+        case ErrorCode::CONNECTOR_ERROR: return "CONNECTOR_ERROR";
+        case ErrorCode::CHARGE_CURRENT_ERROR: return "CHARGE_CURRENT_ERROR";
+        case ErrorCode::CONFIG_INVALID: return "CONFIG_INVALID";
+        case ErrorCode::CONFIG_SAVE_FAILED: return "CONFIG_SAVE_FAILED";
+        case ErrorCode::CONFIG_LOAD_FAILED: return "CONFIG_LOAD_FAILED";
+        case ErrorCode::CALIBRATION_ERROR: return "CALIBRATION_ERROR";
+        case ErrorCode::GEAR_SHIFT_ERROR: return "GEAR_SHIFT_ERROR";
+        case ErrorCode::PEDAL_ERROR: return "PEDAL_ERROR";
+        case ErrorCode::USER_ABORT: return "USER_ABORT";
         default: return "UNKNOWN_ERROR";
     }
 }
@@ -458,13 +495,35 @@ String ErrorMonitor::vehicleStateToString(VehicleState state) {
 // ===== FAULT LIST =====
 
 void ErrorMonitor::clearFault(ErrorCode code) {
-    for (auto& f : faults) {
-        if (f.code == code) f.active = false;
+    bool wasActive = false;
+    {
+        std::lock_guard<std::mutex> lock(faultMutex);
+        for (auto& f : faults) {
+            if (f.code == code && f.active) { f.active = false; wasActive = true; }
+        }
     }
+    if (wasActive) logInfo("Fault cleared: " + errorCodeToString(code), "FAULT");
 }
 
 void ErrorMonitor::clearAllFaults() {
+    std::lock_guard<std::mutex> lock(faultMutex);
     for (auto& f : faults) f.active = false;
+}
+
+bool ErrorMonitor::isFaultActive(ErrorCode code) {
+    std::lock_guard<std::mutex> lock(faultMutex);
+    for (const auto& f : faults) {
+        if (f.code == code) return f.active;
+    }
+    return false;
+}
+
+bool ErrorMonitor::hasActiveFault(ErrorSeverity minSeverity) {
+    std::lock_guard<std::mutex> lock(faultMutex);
+    for (const auto& f : faults) {
+        if (f.active && f.severity >= minSeverity) return true;
+    }
+    return false;
 }
 
 /**
@@ -473,7 +532,7 @@ void ErrorMonitor::clearAllFaults() {
 String ErrorMonitor::getFaultsJSON() {
     JsonDocument doc;
     JsonArray arr = doc["faults"].to<JsonArray>();
-    unsigned long now = millis();
+    std::lock_guard<std::mutex> lock(faultMutex);
 
     for (const auto& f : faults) {
         JsonObject o = arr.add<JsonObject>();
@@ -485,7 +544,7 @@ String ErrorMonitor::getFaultsJSON() {
             case ErrorSeverity::ERROR: o["severity"] = "error"; break;
             default: o["severity"] = "critical"; break;
         }
-        o["active"] = f.active && (now - f.lastMs) < FAULT_ACTIVE_MS;
+        o["active"] = f.active;
         o["count"] = f.count;
         o["lastSeenS"] = f.lastMs / 1000;
     }

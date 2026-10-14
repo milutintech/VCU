@@ -253,4 +253,44 @@ For issues, questions, or contributions, please open an issue on GitHub.
   `cellId`/`tempId` are the CAN IDs set in the Orion BMS Utility; `0` turns decoding off (default).
   Stored in its own NVS namespace, applied immediately.
 - `GET /api/status/faults` → `{ "faults": [{ code, name, severity, active, count, lastSeenS }] }`.
-  Aggregated from `ErrorMonitor` entries at WARNING or above; active for 30 s after the last raise.
+  Aggregated from `ErrorMonitor` entries at WARNING or above. `active` is edge-triggered: set on raise, cleared by `FaultHandler` once the value is back inside the hysteresis band (no time-based expiry). `count` is the number of inactive→active transitions.
+
+
+## Fault handling
+
+`FaultHandler` (`include/fault_handler.h`, `src/fault_handler.cpp`) runs every CAN-task cycle in `main.cpp`.
+It is the only place that raises/clears the fault codes below and the only place that maps faults to reactions.
+`ErrorMonitor` just stores them. Raising an already active fault does not log or count again.
+
+### Faults and thresholds
+
+Values marked *existing* come from `include/vehicle_parameters.h` and are unchanged (`INV_HIGH`/`MOT_HIGH` = 65 °C stay cooling-stage thresholds in `StateManager` and are not used for derating); the others are new and live in `FaultLimits` (`fault_handler.h`) so the safety header was not touched.
+
+| Code | Severity | Raised when | Cleared when |
+|---|---|---|---|
+| `BMS_TIMEOUT` | ERROR | no BMS frame (0x010) for > 1500 ms (*existing* `Timing::BMS_TIMEOUT_MS`) | a BMS frame is fresh again |
+| `DMC_TIMEOUT` | CRITICAL | in RUN, no DMC frame (0x258/0x259/0x458) for > 500 ms (new) | frame fresh again, or leaving RUN |
+| `BSC_TIMEOUT` | WARNING | no BSC status frame for > 1500 ms (new) | frame fresh again |
+| `NLG_TIMEOUT` | WARNING | in CHARGING, no NLG frame for > 1500 ms (new) | frame fresh again, or leaving CHARGING |
+| `BATTERY_UNDERVOLTAGE` | ERROR | pack < 320 V (*existing* `Battery::MIN_VOLTAGE`), BMS data fresh | pack >= 325 V (+5 V, new) |
+| `BATTERY_OVERVOLTAGE` | CRITICAL | pack > 420 V (*existing* `Battery::MAX_VOLTAGE`), BMS data fresh | pack <= 415 V (-5 V, new) |
+| `INVERTER_OVERTEMP` | ERROR | inverter > 100 °C (new `TEMP_DERATE_C`); CRITICAL above 105 °C (new `TEMP_CUTOFF_C`) | inverter < 95 °C (-5 °C, new) |
+| `MOTOR_OVERTEMP` | ERROR | motor > 100 °C (new `TEMP_DERATE_C`); CRITICAL above 105 °C (new `TEMP_CUTOFF_C`) | motor < 95 °C (-5 °C, new) |
+
+Nodes that never sent anything are timed from boot (BMS, BSC) or from entering the state that needs them (DMC, NLG), so an unpowered node in standby does not raise a fault. Temperature faults are evaluated only after the first DMC frame, voltage faults only while BMS data is fresh.
+Not wired yet (no source signal in the firmware): `BATTERY_OVERCURRENT`, `DMC_ERROR`, `SOC_OUT_OF_RANGE`, precharge and charger codes.
+
+### Reactions
+
+Applied in `canTask` (`main.cpp`) in RUN state; the fault reaction is the minimum over all active faults.
+
+| Active fault | Reaction |
+|---|---|
+| `INVERTER_OVERTEMP` / `MOTOR_OVERTEMP` | torque request x 0.5 (drive and regen); x 0 above 105 °C |
+| `BATTERY_UNDERVOLTAGE` | torque request x 0.5 |
+| `BATTERY_OVERVOLTAGE` | torque request x 0 |
+| `BMS_TIMEOUT` | torque request x 0 |
+| any active CRITICAL fault (`DMC_TIMEOUT`, `BATTERY_OVERVOLTAGE`, overtemp above 105 °C) | torque x 0 and DMC enable bit forced off |
+| `BSC_TIMEOUT`, `NLG_TIMEOUT` | log/report only |
+
+Reactions are not latched: they release automatically once the fault clears. `isSystemHealthy()` now reports unhealthy while a CRITICAL fault is active (instead of whenever any critical line was ever logged). `/api/status/faults` output shape is unchanged. CAN IDs and task timing are unchanged.
