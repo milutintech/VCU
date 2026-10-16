@@ -115,6 +115,10 @@ void VCUWebServer::setupRoutes() {
         handleGetBmsConfig(request);
     });
 
+    server.on("/api/config/wifi", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetWifiConfig(request);
+    });
+
     server.on("/api/config/driving", HTTP_GET, [this](AsyncWebServerRequest* request) {
         handleGetDrivingConfig(request);
     });
@@ -263,6 +267,22 @@ void VCUWebServer::setupRoutes() {
     });
     server.addHandler(bmsHandler);
 
+    AsyncCallbackWebHandler* wifiHandler = new AsyncCallbackWebHandler();
+    wifiHandler->setUri("/api/config/wifi");
+    wifiHandler->setMethod(HTTP_POST);
+    wifiHandler->onRequest([](AsyncWebServerRequest* request) {});
+    wifiHandler->onBody([this](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, data, len);
+        if (!error) {
+            JsonVariant json = doc.as<JsonVariant>();
+            handleSetWifiConfig(request, json);
+        } else {
+            request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid JSON\"}");
+        }
+    });
+    server.addHandler(wifiHandler);
+
     // System endpoints
     server.on("/api/system/save", HTTP_POST, [this](AsyncWebServerRequest* request) {
         handleSaveConfig(request);
@@ -386,6 +406,24 @@ void VCUWebServer::handleSetBmsConfig(AsyncWebServerRequest* request, JsonVarian
     // Persisted by BmsCells itself, no config->save() needed.
     if (canManager->getBmsCells().applyMapJSON(json.as<JsonObject>())) {
         request->send(200, "application/json", "{\"success\":true}");
+    } else {
+        request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid parameters\"}");
+    }
+}
+
+void VCUWebServer::handleGetWifiConfig(AsyncWebServerRequest* request) {
+    if (!wifiManager) {
+        request->send(503, "application/json", "{\"success\":false,\"error\":\"WiFi unavailable\"}");
+        return;
+    }
+    request->send(200, "application/json", wifiManager->statusJSON());
+}
+
+void VCUWebServer::handleSetWifiConfig(AsyncWebServerRequest* request, JsonVariant& json) {
+    // Stored at once, applied on the next boot: switching networks live would cut the
+    // link to the reply and is not something to do while driving.
+    if (wifiManager && wifiManager->applyJSON(json.as<JsonObjectConst>())) {
+        request->send(200, "application/json", "{\"success\":true,\"appliesOnReboot\":true}");
     } else {
         request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid parameters\"}");
     }
@@ -768,8 +806,8 @@ void VCUWebServer::handleGetLimits(AsyncWebServerRequest* request) {
     soc["max"] = Configuration::maxSocLimit();
 
     JsonObject charge = doc["chargeCurrent"].to<JsonObject>();
-    charge["min"] = Configuration::minChargingCurrent();
-    charge["max"] = Configuration::maxChargingCurrent();
+    charge["min"] = Configuration::minChargingCurrentLimit();
+    charge["max"] = Configuration::maxChargingCurrentLimit();
 
     JsonObject motor = doc["motorTemp"].to<JsonObject>();
     motor["derate"] = FaultLimits::TEMP_DERATE_C;

@@ -1,4 +1,7 @@
 #include "wifi_manager.h"
+#include <ESPmDNS.h>
+
+static constexpr const char* MDNS_HOSTNAME = "vcu";
 
 WiFiManager::WiFiManager()
     : connected(false)
@@ -33,6 +36,14 @@ void WiFiManager::begin() {
     if (WiFi.status() != WL_CONNECTED && apEnabled) {
         Serial.println("[WiFi] Station failed, starting AP mode...");
         startAP();
+    }
+
+    // Reachable as vcu.local in either mode, so LIVI does not depend on the DHCP address.
+    if (MDNS.begin(MDNS_HOSTNAME)) {
+        MDNS.addService("http", "tcp", 80);
+        Serial.println("[WiFi] mDNS: vcu.local");
+    } else {
+        Serial.println("[WiFi] mDNS failed to start");
     }
 }
 
@@ -230,4 +241,69 @@ void WiFiManager::clearStationCredentials() {
 
     Serial.println("[WiFi] Station credentials cleared!");
     Serial.println("[WiFi] AP mode will be used on next boot");
+}
+
+String WiFiManager::statusJSON() const {
+    JsonDocument doc;
+    doc["mode"] = apMode ? "AP" : "STA";
+    doc["connected"] = connected;
+    doc["ip"] = getIPAddress();
+    doc["rssi"] = getRSSI();
+    doc["hostname"] = String(MDNS_HOSTNAME) + ".local";
+    doc["staSsid"] = stationSSID;
+    doc["hasStaPassword"] = stationPassword.length() > 0;
+    doc["staEnabled"] = stationEnabled;
+    doc["apSsid"] = apSSID;
+    doc["apEnabled"] = apEnabled;
+    String out;
+    serializeJson(doc, out);
+    return out;
+}
+
+bool WiFiManager::applyJSON(JsonObjectConst obj) {
+    // Validate everything first so a bad request changes nothing.
+    String newStaSsid = stationSSID;
+    String newStaPass = stationPassword;
+    String newApSsid = apSSID;
+    String newApPass = apPassword;
+    bool newStaEn = stationEnabled;
+
+    if (!obj["staSsid"].isNull()) {
+        if (!obj["staSsid"].is<const char*>()) return false;
+        newStaSsid = obj["staSsid"].as<String>();
+        if (newStaSsid.length() > 32) return false;
+    }
+    if (!obj["staPassword"].isNull()) {
+        if (!obj["staPassword"].is<const char*>()) return false;
+        newStaPass = obj["staPassword"].as<String>();
+        // Empty means an open network, otherwise WPA2 length rules.
+        if (newStaPass.length() != 0 && (newStaPass.length() < 8 || newStaPass.length() > 63)) return false;
+    }
+    if (!obj["staEnabled"].isNull()) {
+        if (!obj["staEnabled"].is<bool>()) return false;
+        newStaEn = obj["staEnabled"].as<bool>();
+    }
+    if (!obj["apSsid"].isNull()) {
+        if (!obj["apSsid"].is<const char*>()) return false;
+        newApSsid = obj["apSsid"].as<String>();
+        if (newApSsid.length() < 1 || newApSsid.length() > 32) return false;
+    }
+    if (!obj["apPassword"].isNull()) {
+        if (!obj["apPassword"].is<const char*>()) return false;
+        newApPass = obj["apPassword"].as<String>();
+        // The AP must stay protected: it is the way back in when joining fails.
+        if (newApPass.length() < 8 || newApPass.length() > 63) return false;
+    }
+    // Joining is only meaningful with a network name.
+    if (newStaEn && newStaSsid.length() == 0) newStaEn = false;
+
+    stationSSID = newStaSsid;
+    stationPassword = newStaPass;
+    apSSID = newApSsid;
+    apPassword = newApPass;
+    stationEnabled = newStaEn;
+    // The AP is the fallback and stays on; LIVI offers no way to switch it off.
+    apEnabled = true;
+    saveConfig();
+    return true;
 }

@@ -107,8 +107,8 @@ public:
     static constexpr int maxTorqueLimit() { return MAX_TORQUE_LIMIT; }
     static constexpr int minSocLimit() { return MIN_SOC_LIMIT; }
     static constexpr int maxSocLimit() { return MAX_SOC_LIMIT; }
-    static constexpr int minChargingCurrent() { return MIN_CHARGING_CURRENT; }
-    static constexpr int maxChargingCurrent() { return MAX_CHARGING_CURRENT; }
+    static constexpr int minChargingCurrentLimit() { return MIN_CHARGING_CURRENT; }
+    static constexpr int maxChargingCurrentLimit() { return MAX_CHARGING_CURRENT; }
 
 private:
     Preferences preferences;

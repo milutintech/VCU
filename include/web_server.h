@@ -9,6 +9,7 @@
 #include "vehicle_control.h"
 #include "can_manager.h"
 #include "error_monitor.h"
+#include "wifi_manager.h"
 
 class VCUWebServer {
 public:
@@ -19,6 +20,8 @@ public:
 
     // Update (for WebSocket broadcasts)
     void update();
+
+    void setWifiManager(WiFiManager* wm) { wifiManager = wm; }
 
     // Enable/disable debug mode
     void setDebugMode(bool enabled);
@@ -34,6 +37,7 @@ private:
     VehicleControl* vehicleControl;
     CANManager* canManager;
     ErrorMonitor* errorMonitor;
+    WiFiManager* wifiManager = nullptr;
 
     // System flags
     bool debugMode;
@@ -54,6 +58,8 @@ private:
     void handleGetBmsCells(AsyncWebServerRequest* request);
     void handleGetBmsConfig(AsyncWebServerRequest* request);
     void handleSetBmsConfig(AsyncWebServerRequest* request, JsonVariant& json);
+    void handleGetWifiConfig(AsyncWebServerRequest* request);
+    void handleSetWifiConfig(AsyncWebServerRequest* request, JsonVariant& json);
 
     // API Endpoints - Configuration
     void handleGetConfig(AsyncWebServerRequest* request);

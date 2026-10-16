@@ -3,6 +3,7 @@
 
 #include <WiFi.h>
 #include <Preferences.h>
+#include <ArduinoJson.h>
 
 class WiFiManager {
 public:
@@ -26,6 +27,11 @@ public:
     String getIPAddress() const;
     String getSSID() const;
     int getRSSI() const;
+
+    // JSON for LIVI. Passwords are never reported, only whether a station password is stored.
+    String statusJSON() const;
+    // Validates, stores and persists. Takes effect on the next boot, never mid-drive.
+    bool applyJSON(JsonObjectConst obj);
 
     // Save/Load configuration
     void saveConfig();

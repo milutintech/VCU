@@ -292,6 +292,7 @@ void setup() {
         errorMonitor->logCritical("Failed to create VCUWebServer", "SYSTEM");
         while(1);
     }
+    webServer->setWifiManager(wifiManager);
     webServer->begin();
     errorMonitor->logInfo("Web Server initialized", "NETWORK");
 
