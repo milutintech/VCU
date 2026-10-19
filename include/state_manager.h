@@ -16,7 +16,8 @@
 #include "vehicle_parameters.h"
 
 class CANManager; // Forward declaration
-class VehicleControl;  
+class VehicleControl;
+class PiPower;  
 class StateManager {
 public:
     explicit StateManager(CANManager& canMgr, VehicleControl* vc = nullptr);
@@ -114,6 +115,7 @@ public:
      * Called by ISR when the unlock button is pressed
      */
     void setVehicleControl(VehicleControl* vc) { vehicleControl = vc; }
+    void setPiPower(PiPower* p) { piPower = p; }
     void handleConnectorUnlockInterrupt() { conUlockInterrupt = true; }
     void setErrorLatch(bool state) { errorLatch = state; }
     void resetErrorLatch();
@@ -138,6 +140,7 @@ private:
     void removePinFromWakeSources(uint8_t pin);
     void addPinToWakeSources(uint8_t pin);
     VehicleControl* vehicleControl;
+    PiPower* piPower = nullptr;   ///< Pi shutdown sequence, deep sleep waits for it
     // System references
     CANManager& canManager;
     

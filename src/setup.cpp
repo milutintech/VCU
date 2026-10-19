@@ -50,7 +50,7 @@ void SystemSetup::initializeGPIO() {
     pinMode(46, OUTPUT);                  // IO46 - Reverse signal
     pinMode(Pins::PW1, OUTPUT);          // Now Contactor
     pinMode(Pins::LWP5, OUTPUT);
-    pinMode(Pins::LWP6, OUTPUT);
+    // Pins::LWP6 (IO21) belongs to PiPower, which sets it up.
     pinMode(Pins::PUMP, OUTPUT);         // Pump
     pinMode(Pins::UNLCKCON, INPUT);
     
@@ -119,7 +119,6 @@ void SystemSetup::setDefaultPinStates() {
     digitalWrite(Pins::BCKLIGHT, LOW);
     digitalWrite(Pins::PW1, LOW);        // Contactor open
     digitalWrite(Pins::LWP5, LOW);
-    digitalWrite(Pins::LWP6, LOW);
     digitalWrite(Pins::PUMP, LOW);       // Pump off
     digitalWrite(19, LOW);
 }

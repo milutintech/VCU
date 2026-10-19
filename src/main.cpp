@@ -25,6 +25,7 @@
 #include "configuration.h"            // Extended configuration
 #include "can_monitoring.h"           // CAN monitoring extensions
 #include "wifi_manager.h"             // WiFi management
+#include "pi_power.h"                // Pi power and shutdown sequence
 #include "web_server.h"               // Web server
 
 // Global objects - Enhanced
@@ -37,6 +38,7 @@ ErrorMonitor* errorMonitor = nullptr;             // New error monitor
 FaultHandler* faultHandler = nullptr;             // Fault detection and reactions
 CANMonitor* canMonitor = nullptr;                 // New CAN monitor
 WiFiManager* wifiManager = nullptr;               // WiFi manager
+PiPower* piPower = nullptr;                       // Power and shutdown of the infotainment Pi
 VCUWebServer* webServer = nullptr;                // Web server
 
 // Task handles
@@ -191,6 +193,11 @@ void webServerTask(void* parameter) {
             wifiManager->update();
         }
 
+        // The Pi's power sequence runs here, away from the control task
+        if (piPower) {
+            piPower->update();
+        }
+
         // Update web server (WebSocket broadcasts)
         if (webServer) {
             webServer->update();
@@ -260,6 +267,11 @@ void setup() {
     if (stateManager && vehicleControl) {
         stateManager->setVehicleControl(vehicleControl);
     }
+
+    // Pi power: owns IO21, leaves the Pi off until the ignition has been on for a moment
+    piPower = new PiPower();
+    piPower->begin();
+    stateManager->setPiPower(piPower);
     vehicleControl->setCanManager(canManager);
     vehicleControl->setErrorMonitor(errorMonitor);
     
@@ -293,6 +305,7 @@ void setup() {
         while(1);
     }
     webServer->setWifiManager(wifiManager);
+    webServer->setPiPower(piPower);
     webServer->begin();
     errorMonitor->logInfo("Web Server initialized", "NETWORK");
 

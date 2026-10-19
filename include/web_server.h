@@ -10,6 +10,7 @@
 #include "can_manager.h"
 #include "error_monitor.h"
 #include "wifi_manager.h"
+#include "pi_power.h"
 
 class VCUWebServer {
 public:
@@ -22,6 +23,7 @@ public:
     void update();
 
     void setWifiManager(WiFiManager* wm) { wifiManager = wm; }
+    void setPiPower(PiPower* p) { piPower = p; }
 
     // Enable/disable debug mode
     void setDebugMode(bool enabled);
@@ -38,6 +40,7 @@ private:
     CANManager* canManager;
     ErrorMonitor* errorMonitor;
     WiFiManager* wifiManager = nullptr;
+    PiPower* piPower = nullptr;
 
     // System flags
     bool debugMode;
@@ -59,6 +62,8 @@ private:
     void handleGetBmsConfig(AsyncWebServerRequest* request);
     void handleSetBmsConfig(AsyncWebServerRequest* request, JsonVariant& json);
     void handleGetWifiConfig(AsyncWebServerRequest* request);
+    void handleGetPi(AsyncWebServerRequest* request);
+    void handlePiAck(AsyncWebServerRequest* request);
     void handleSetWifiConfig(AsyncWebServerRequest* request, JsonVariant& json);
 
     // API Endpoints - Configuration

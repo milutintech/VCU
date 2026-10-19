@@ -54,6 +54,21 @@ on the AP) and drops the AP once joined. If the station is gone for 60 s the AP 
 Pi is powered through the VCU, so it boots later than the VCU: the retry is what makes that work.
 The HTTP API has no authentication: only put the VCU on a network that is yours alone.
 
+## Pi power and shutdown (pi_power_logic.h, pi_power.{h,cpp})
+
+IO21 (`Pins::LWP6`) switches the Pi's supply (HIGH = on, assumed active-high: check the hardware).
+The pin is LOW after every reset. Sequence: Pi powered once the ignition has been on 1 s (and power
+was off 3 s); ignition off for 3 s = `REQUESTED` (`GET /api/pi` and the live JSON `pi` block say
+`shutdownRequested`); the Pi POSTs `/api/pi/ack`; power is cut 20 s after the ack, 15 s without an
+ack, 60 s at the very latest. A request always runs to the end, also if the key comes back, and
+the Pi is powered again after the off time (quick key cycle = clean Pi restart, car unaffected:
+it runs in the web task, never in the control task). Deep sleep waits until the Pi has no power
+(`StateManager::handleStandbyState`), IO21 is held low through it. The Pi side is
+`scripts/pi/vcu-power-watch.py` in the LIVI repo (own systemd service, not LIVI). Charging with the
+ignition off does NOT power the Pi. Host test of the logic:
+`c++ -std=c++17 -I include tools/host-tests/pi_power_logic_test.cpp && ./a.out`.
+Not compiled for the ESP32 yet.
+
 ## Open items
 
 - Station WiFi credentials: API `GET|POST /api/config/wifi` exists (applies on next boot).

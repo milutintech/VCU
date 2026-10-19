@@ -20,6 +20,7 @@
 #include <esp_sleep.h>
 #include "configuration.h"  // Add this include at the top
 #include "vehicle_control.h"
+#include "pi_power.h"
 
 
 /**
@@ -224,8 +225,15 @@ void StateManager::handleStandbyState() {
         return; // Don't sleep yet, wait until connector is unlocked
     }*/
     
+    // The Pi gets its shutdown first: no deep sleep while it has power or is shutting down.
+    // The transitions above stay live, so the car can still start in the meantime.
+    if (piPower && !piPower->mayDeepSleep()) {
+        return;
+    }
+
     // Once we're sure connector is unlocked if needed, we can sleep
     Serial.println("No wake signals, entering deep sleep");
+    if (piPower) piPower->holdForSleep();
     delay(100); // Small delay to allow serial to finish
     esp_deep_sleep_start();
 }

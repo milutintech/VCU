@@ -119,6 +119,14 @@ void VCUWebServer::setupRoutes() {
         handleGetWifiConfig(request);
     });
 
+    // The infotainment Pi asks here whether it is to shut down, and says that it does.
+    server.on("/api/pi", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetPi(request);
+    });
+    server.on("/api/pi/ack", HTTP_POST, [this](AsyncWebServerRequest* request) {
+        handlePiAck(request);
+    });
+
     server.on("/api/config/driving", HTTP_GET, [this](AsyncWebServerRequest* request) {
         handleGetDrivingConfig(request);
     });
@@ -409,6 +417,29 @@ void VCUWebServer::handleSetBmsConfig(AsyncWebServerRequest* request, JsonVarian
     } else {
         request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid parameters\"}");
     }
+}
+
+void VCUWebServer::handleGetPi(AsyncWebServerRequest* request) {
+    if (!piPower) {
+        request->send(503, "application/json", "{\"success\":false,\"error\":\"Pi power unavailable\"}");
+        return;
+    }
+    JsonDocument doc;
+    doc["state"] = PiPower::name(piPower->state());
+    doc["shutdownRequested"] = piPower->shutdownRequested();
+    doc["cutInMs"] = piPower->cutInMs();
+    String out;
+    serializeJson(doc, out);
+    request->send(200, "application/json", out);
+}
+
+void VCUWebServer::handlePiAck(AsyncWebServerRequest* request) {
+    if (!piPower) {
+        request->send(503, "application/json", "{\"success\":false}");
+        return;
+    }
+    piPower->acknowledge();
+    request->send(200, "application/json", "{\"success\":true}");
 }
 
 void VCUWebServer::handleGetWifiConfig(AsyncWebServerRequest* request) {
@@ -904,6 +935,11 @@ String VCUWebServer::createLiveDataJSON() {
     battery["current"] = bms.current / 10.0f;  // Scale: divide by 10
     battery["maxDischarge"] = bms.maxDischarge;  // the BMS limits the VCU enforces
     battery["maxCharge"] = bms.maxCharge;
+    if (piPower) {
+        JsonObject pi = doc["pi"].to<JsonObject>();
+        pi["state"] = PiPower::name(piPower->state());
+        pi["shutdownRequested"] = piPower->shutdownRequested();
+    }
     battery["minCell"] = 0.0f;
 
     // DMC data
