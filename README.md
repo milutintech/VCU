@@ -264,7 +264,7 @@ It is the only place that raises/clears the fault codes below and the only place
 
 ### Faults and thresholds
 
-Values marked *existing* come from `include/vehicle_parameters.h` and are unchanged (`INV_HIGH`/`MOT_HIGH` = 65 °C stay cooling-stage thresholds in `StateManager` and are not used for derating); the others are new and live in `FaultLimits` (`fault_handler.h`) so the safety header was not touched.
+Values marked *existing* come from `include/vehicle_parameters.h` and are unchanged (`INV_HIGH`/`MOT_HIGH` = 45 °C, `INV_LOW`/`MOT_LOW` = 30 °C and `FAN_ON` = 65 °C are the cooling thresholds in `StateManager`, the pump on above 45 and off below 30, the fan on above 65, and are not used for derating); the others are new and live in `FaultLimits` (`fault_handler.h`) so the safety header was not touched.
 
 | Code | Severity | Raised when | Cleared when |
 |---|---|---|---|
@@ -272,8 +272,9 @@ Values marked *existing* come from `include/vehicle_parameters.h` and are unchan
 | `DMC_TIMEOUT` | CRITICAL | in RUN, no DMC frame (0x258/0x259/0x458) for > 500 ms (new) | frame fresh again, or leaving RUN |
 | `BSC_TIMEOUT` | WARNING | no BSC status frame for > 1500 ms (new) | frame fresh again |
 | `NLG_TIMEOUT` | WARNING | in CHARGING, no NLG frame for > 1500 ms (new) | frame fresh again, or leaving CHARGING |
-| `BATTERY_UNDERVOLTAGE` | ERROR | pack < 320 V (*existing* `Battery::MIN_VOLTAGE`), BMS data fresh | pack >= 325 V (+5 V, new) |
-| `BATTERY_OVERVOLTAGE` | CRITICAL | pack > 420 V (*existing* `Battery::MAX_VOLTAGE`), BMS data fresh | pack <= 415 V (-5 V, new) |
+| `CHARGER_OVERTEMP` | INFO | in CHARGING, charger cooling plate > 85 °C (new; the charger itself is good to 95 °C) | plate <= 80 °C, or leaving CHARGING |
+| `BATTERY_UNDERVOLTAGE` | ERROR | pack < 333 V (*existing* `Battery::MIN_VOLTAGE`), BMS data fresh | pack >= 338 V (+5 V, new) |
+| `BATTERY_OVERVOLTAGE` | CRITICAL | pack > 437 V (*existing* `Battery::MAX_VOLTAGE`), BMS data fresh | pack <= 432 V (-5 V, new) |
 | `INVERTER_OVERTEMP` | ERROR | inverter > 100 °C (new `TEMP_DERATE_C`); CRITICAL above 105 °C (new `TEMP_CUTOFF_C`) | inverter < 95 °C (-5 °C, new) |
 | `MOTOR_OVERTEMP` | ERROR | motor > 100 °C (new `TEMP_DERATE_C`); CRITICAL above 105 °C (new `TEMP_CUTOFF_C`) | motor < 95 °C (-5 °C, new) |
 
@@ -291,7 +292,7 @@ Applied in `canTask` (`main.cpp`) in RUN state; the fault reaction is the minimu
 | `BATTERY_OVERVOLTAGE` | torque request x 0 |
 | `BMS_TIMEOUT` | torque request x 0 |
 | any active CRITICAL fault (`DMC_TIMEOUT`, `BATTERY_OVERVOLTAGE`, overtemp above 105 °C) | torque x 0 and DMC enable bit forced off |
-| `BSC_TIMEOUT`, `NLG_TIMEOUT` | log/report only |
+| `BSC_TIMEOUT`, `NLG_TIMEOUT`, `CHARGER_OVERTEMP` | log/report only (the charger reduces its own power) |
 
 Reactions are not latched: they release automatically once the fault clears. `isSystemHealthy()` now reports unhealthy while a CRITICAL fault is active (instead of whenever any critical line was ever logged). `/api/status/faults` output shape is unchanged. CAN IDs and task timing are unchanged.
 

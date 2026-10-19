@@ -441,6 +441,7 @@ void VCUWebServer::handleGetDrivingConfig(AsyncWebServerRequest* request) {
 
     doc["driveMode"] = config->getDriveModeString();
     doc["maxTorque"] = config->getMaxTorque();
+    doc["maxReverseTorque"] = config->getMaxReverseTorque();
     doc["maxSOC"] = config->getMaxSOC();
 
     String response;
@@ -545,6 +546,10 @@ void VCUWebServer::handleSetDrivingConfig(AsyncWebServerRequest* request, JsonVa
 
     if (!obj["maxTorque"].isNull()) {
         success &= config->setMaxTorque(obj["maxTorque"].as<int>());
+    }
+
+    if (!obj["maxReverseTorque"].isNull()) {
+        success &= config->setMaxReverseTorque(obj["maxReverseTorque"].as<int>());
     }
 
     if (!obj["maxSOC"].isNull()) {
@@ -897,6 +902,8 @@ String VCUWebServer::createLiveDataJSON() {
     battery["soc"] = bms.soc;
     battery["voltage"] = bms.voltage;
     battery["current"] = bms.current / 10.0f;  // Scale: divide by 10
+    battery["maxDischarge"] = bms.maxDischarge;  // the BMS limits the VCU enforces
+    battery["maxCharge"] = bms.maxCharge;
     battery["minCell"] = 0.0f;
 
     // DMC data

@@ -11,6 +11,7 @@
  * Uses MCP2515 CAN controller via SPI interface.
  */
 
+#include <cmath>
 #include "can_manager.h"
 #include "state_manager.h"
 #include <esp_task_wdt.h>
@@ -290,7 +291,7 @@ void CANManager::processNLGMessage(uint32_t id, uint8_t* buf) {
  * @brief Enhanced sendBSC() method with CAN logging - REPLACE EXISTING
  */
 void CANManager::sendBSC() {
-    uint8_t lvVoltageScale = static_cast<uint8_t>(VehicleParams::Battery::MIN_LVVOLTAGE * 10);
+    uint8_t lvVoltageScale = static_cast<uint8_t>(lroundf(VehicleParams::Battery::MIN_LVVOLTAGE * 10.0f));
     uint8_t hvVoltageScale = static_cast<uint8_t>(hvVoltage - 220);  // Changed to match DBC
     
     // BSC control message (0x260)
@@ -405,8 +406,16 @@ void CANManager::sendDMC() {
     // DMC limits message (0x211)
     int dcVoltLimMotor = VehicleParams::Battery::MIN_VOLTAGE * 10;
     int dcVoltLimGen = (VehicleParams::Battery::MAX_VOLTAGE + 4) * 10;
-    int dcCurrLimMotor = VehicleParams::Battery::MAX_DMC_CURRENT * 10;
-    int dcCurrLimGen = VehicleParams::Power::DMC_DC_GEN * 10;
+    // The BMS's own current limits win over the fixed ones. Without fresh BMS data both are 0:
+    // the same rule the charger already follows.
+    const bool bmsFresh = lastBMSMs != 0 &&
+                          (millis() - lastBMSMs) <= VehicleParams::Timing::BMS_TIMEOUT_MS;
+    const int driveLimitA = bmsFresh ? std::min<int>(VehicleParams::Battery::MAX_DMC_CURRENT,
+                                                     bmsData.maxDischarge) : 0;
+    const int regenLimitA = bmsFresh ? std::min<int>(VehicleParams::Power::DMC_DC_GEN,
+                                                     bmsData.maxCharge) : 0;
+    int dcCurrLimMotor = driveLimitA * 10;
+    int dcCurrLimGen = regenLimitA * 10;
     
     limitBufferDMC[0] = dcVoltLimMotor >> 8;
     limitBufferDMC[1] = dcVoltLimMotor & 0xFF;
@@ -701,17 +710,14 @@ void CANManager::setTorquePercentage(float torquePercent) {
     // Store percentage for reference
     torquePercentage = torquePercent;
     
-    // Convert percentage to Nm
-    float maxTorqueNm = config.getMaxTorque(); // User-configurable max torque
-    float torqueNm = (torquePercent / 100.0f) * 850;//maxTorqueNm;
+    // Full pedal is the configured maximum: forward in drive, reverse in reverse (both set in LIVI).
+    const float maxTorqueNm = (currentGear == GearState::REVERSE)
+                                  ? config.getMaxReverseTorque()
+                                  : config.getMaxTorque();
+    float torqueNm = (torquePercent / 100.0f) * maxTorqueNm;
     
-    // Limit to motor capabilities
+    // The motor's own limit stays on top, whatever the settings say.
     torqueNm = constrain(torqueNm, -VehicleParams::Motor::MAX_TRQ, VehicleParams::Motor::MAX_TRQ);
-    
-    // For reverse, limit to reverse torque capability
-    if (currentGear == GearState::REVERSE) {
-        torqueNm = constrain(torqueNm, -VehicleParams::Motor::MAX_REVERSE_TRQ, VehicleParams::Motor::MAX_REVERSE_TRQ);
-    }
     
     // Set the converted torque demand
     torqueDemand = torqueNm;

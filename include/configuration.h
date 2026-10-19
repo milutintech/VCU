@@ -37,6 +37,7 @@ public:
     // === EXISTING INTERFACE (backwards compatible) ===
     DriveMode getDriveMode() const { return driveMode; }
     int getMaxTorque() const { return maxTorque; }
+    int getMaxReverseTorque() const { return maxReverseTorque; }
     uint8_t getMaxSOC() const { return maxSOC; }
     uint8_t getMaxChargingCurrent() const { return maxChargingCurrent; }
     String getDriveModeString() const;
@@ -44,6 +45,7 @@ public:
     bool setDriveMode(DriveMode mode);
     bool setDriveMode(const String& modeStr);
     bool setMaxTorque(int torque);
+    bool setMaxReverseTorque(int torque);
     bool setMaxSOC(uint8_t soc);
     bool setMaxChargingCurrent(uint8_t current);
     bool setDriveModeFromByte(uint8_t modeByte);
@@ -118,6 +120,7 @@ private:
     // Basic configuration
     DriveMode driveMode;
     int maxTorque;
+    int maxReverseTorque;   ///< pedal full scale in reverse gear (Nm)
     uint8_t maxSOC;
     uint8_t maxChargingCurrent;
     
@@ -148,6 +151,7 @@ private:
     // Storage keys - Basic
     static const char* KEY_DRIVE_MODE;
     static const char* KEY_MAX_TORQUE;
+    static const char* KEY_MAX_REVERSE_TORQUE;
     static const char* KEY_MAX_SOC;
     static const char* KEY_MAX_CHARGING_CURRENT;
     

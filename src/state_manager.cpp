@@ -479,8 +479,8 @@ void StateManager::armCoolingSys(bool arm) {
                 }
                 
                 // Fan control when driving
-                if ((inverterTemp > (VehicleParams::Temperature::INV_HIGH + 10)) || 
-                    (motorTemp > (VehicleParams::Temperature::MOT_HIGH + 10))) {
+                if ((inverterTemp > VehicleParams::Temperature::FAN_ON) || 
+                    (motorTemp > VehicleParams::Temperature::FAN_ON)) {
                     digitalWrite(Pins::FAN, HIGH); // Turn on fan
                 } else if ((inverterTemp < VehicleParams::Temperature::INV_LOW) &&
                           (motorTemp < VehicleParams::Temperature::MOT_LOW)) {

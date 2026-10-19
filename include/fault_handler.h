@@ -20,10 +20,14 @@ namespace FaultLimits {
     constexpr float VOLTAGE_HYST_V = 5.0f;     ///< pack volts (under/overvoltage)
     constexpr float TEMP_HYST_C    = 5.0f;     ///< inverter/motor °C
 
-    // Inverter/motor are rated to 100 °C. VehicleParams INV_HIGH/MOT_HIGH (65 °C) are
+    // Inverter/motor are rated to 100 °C. VehicleParams INV_HIGH/MOT_HIGH (45 °C) are
     // cooling-stage thresholds in StateManager and are NOT used for derating.
     constexpr float TEMP_DERATE_C = 100.0f;      ///< derate (torque x0.5) above this
     constexpr float TEMP_CUTOFF_C = 105.0f;      ///< torque 0 and DMC disabled above this
+
+    // The charger cuts its own power when it runs hot; this only tells the driver why
+    // charging slows down. The charger itself is good to Temperature::NLG_MAX (95 °C).
+    constexpr float CHARGER_HOT_C = 85.0f;       ///< cooling plate °C, info fault above this
 
     // CAN receive timeouts. BMS uses VehicleParams::Timing::BMS_TIMEOUT_MS.
     constexpr unsigned long DMC_TIMEOUT_MS = 500;

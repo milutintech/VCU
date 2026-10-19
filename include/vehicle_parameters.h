@@ -15,25 +15,24 @@ namespace VehicleParams {
      * @brief Battery System Parameters
      */
     struct Battery {
-        static constexpr int MIN_VOLTAGE = 320;     ///< Minimum pack voltage (3.2V * 100S)
-        static constexpr int NOM_VOLTAGE = 367;     ///< Nominal pack voltage (3.67V * 100S)
-        static constexpr int MAX_VOLTAGE = 420;     ///< Maximum pack voltage (4.2V * 100S)
+        static constexpr int MIN_VOLTAGE = 333;     ///< Minimum pack voltage (3.2V * 104S)
+        static constexpr int MAX_VOLTAGE = 437;     ///< Maximum pack voltage (4.2V * 104S)
         static constexpr int MAX_DMC_CURRENT = 450; ///< Maximum motor controller current (A)
         static constexpr int MAX_NLG_CURRENT = 80;  ///< Maximum charging current (A)
         static constexpr int PRECHARGE_CURRENT = 20;///< Precharge current limit (A)
-        static constexpr int MIN_LVVOLTAGE = 14.4;  ///< Charge Voltage for the LV Bat (V)
-        static constexpr int MAX_SOC = 100;         ///< Maximum Battery Pack SOC
+        static constexpr float MIN_LVVOLTAGE = 14.4f; ///< Charge Voltage for the LV Bat (V)
     };
 
     /**
      * @brief Temperature Management Parameters
      */
     struct Temperature {
-        static constexpr float INV_HIGH = 65.0f;   ///< Inverter high temp limit (°C)
-        static constexpr float MOT_HIGH = 65.0f;   ///< Motor high temp limit (°C)
-        static constexpr float INV_LOW = 40.0f;    ///< Inverter low temp threshold (°C)
-        static constexpr float MOT_LOW = 50.0f;    ///< Motor low temp threshold (°C)
-        static constexpr float NLG_MAX = 80.0f;    ///< Maximum charger temperature (°C)
+        static constexpr float INV_HIGH = 45.0f;   ///< Coolant pump on above this inverter temp (°C)
+        static constexpr float MOT_HIGH = 45.0f;   ///< Coolant pump on above this motor temp (°C)
+        static constexpr float INV_LOW = 30.0f;    ///< Pump and fan off below this inverter temp (°C)
+        static constexpr float MOT_LOW = 30.0f;    ///< Pump and fan off below this motor temp (°C)
+        static constexpr float FAN_ON = 65.0f;     ///< Fan on above this inverter or motor temp (°C)
+        static constexpr float NLG_MAX = 95.0f;    ///< Maximum charger temperature (°C)
     };
 
     /**
@@ -41,7 +40,6 @@ namespace VehicleParams {
      */
     struct Motor {
         static constexpr int MAX_TRQ = 850;         ///< Maximum motor torque (Nm)
-        static constexpr int MAX_REQ_TRQ = 850;     ///< Maximum request torque (Nm)
         static constexpr int MAX_REVERSE_TRQ = 450; ///< Maximum reverse torque (Nm)
         static constexpr int MAX_RPM = 6000;        ///< Maximum motor RPM
         static constexpr float DEADZONE_THRESHOLD = 0.5f; ///< Dead zone around zero (%)
@@ -51,7 +49,6 @@ namespace VehicleParams {
      * @brief Power Management Parameters
      */
     struct Power {
-        static constexpr int DMC_DC_MOT = 450;     ///< Motor power limit (A)
         static constexpr int DMC_DC_GEN = 420;     ///< Generator power limit (A)
         static constexpr int BSC_LV_BUCK = 100;    ///< DC-DC buck mode limit (A)
         static constexpr int BSC_LV_BOOST = 100;   ///< DC-DC boost mode limit (A)
@@ -106,18 +103,7 @@ namespace VehicleParams {
     struct Timing {
         static constexpr unsigned long FAST_CYCLE_MS = 50;    ///< Fast loop interval (ms)
         static constexpr unsigned long SLOW_CYCLE_MS = 100;   ///< Slow loop interval (ms)
-        static constexpr unsigned long NLG_UNLOCK_TIMEOUT = 3000; ///< Charger unlock timeout (ms)
-        static constexpr unsigned long PRECHARGE_TIMEOUT = 5000;  ///< Precharge timeout (ms)
         static constexpr unsigned long BMS_TIMEOUT_MS = 1500;     ///< BMS timeout (ms)
     };
 
-    /**
-     * @brief Vehicle Speed and Performance Limits
-     */
-    struct Limits {
-        static constexpr float MAX_SPEED = 120.0f;        ///< Maximum speed (kph)
-        static constexpr float MAX_REVERSE_SPEED = 20.0f; ///< Maximum reverse speed (kph)
-        static constexpr int MAX_MOTOR_RPM = 8000;        ///< Maximum motor speed (RPM)
-        static constexpr float MAX_ACCELERATION = 3.0f;   ///< Maximum acceleration (m/s²)
-    };
 };

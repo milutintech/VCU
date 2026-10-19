@@ -63,6 +63,17 @@ void FaultHandler::update(const CANManager& can, const StateManager& state) {
         monitor.clearFault(ErrorCode::NLG_TIMEOUT);
     }
 
+    // ---- Charger temperature: information only, the charger reduces power by itself ----
+    if (vs == VehicleState::CHARGING && can.getLastNLGMs() != 0) {
+        const float plate = can.getNLGData().tempCoolPlate;
+        evaluate(ErrorCode::CHARGER_OVERTEMP,
+                 plate > FaultLimits::CHARGER_HOT_C,
+                 plate < FaultLimits::CHARGER_HOT_C - FaultLimits::TEMP_HYST_C,
+                 ErrorSeverity::INFO, "Charger running hot, charging power reduced", plate, "NLG");
+    } else if (monitor.isFaultActive(ErrorCode::CHARGER_OVERTEMP)) {
+        monitor.clearFault(ErrorCode::CHARGER_OVERTEMP);
+    }
+
     // ---- Battery voltage (only while the BMS value is fresh) ----------------
     const float packV = (float)can.getBMSData().voltage;
     if (can.getLastBMSMs() != 0 && !bmsTimeout) {

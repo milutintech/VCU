@@ -12,6 +12,7 @@ const char* Configuration::NAMESPACE = "vcu_config";
 // Storage keys - Basic
 const char* Configuration::KEY_DRIVE_MODE = "drive_mode";
 const char* Configuration::KEY_MAX_TORQUE = "max_torque";
+const char* Configuration::KEY_MAX_REVERSE_TORQUE = "max_rev_torque";
 const char* Configuration::KEY_MAX_SOC = "max_soc";
 const char* Configuration::KEY_MAX_CHARGING_CURRENT = "max_ac_curr";
 
@@ -70,6 +71,7 @@ void Configuration::resetToDefaults() {
     // Basic defaults
     driveMode = DriveMode::REGEN;
     maxTorque = VehicleParams::Motor::MAX_TRQ;
+    maxReverseTorque = VehicleParams::Motor::MAX_REVERSE_TRQ;
     maxSOC = 100;
     maxChargingCurrent = VehicleParams::Power::NLG_MAX_AC;
     
@@ -161,6 +163,9 @@ bool Configuration::save() {
     written = preferences.putInt(KEY_MAX_TORQUE, maxTorque);
     if (written == 0) { Serial.printf("[Config] FAIL: max_torque\n"); success = false; }
 
+    written = preferences.putInt(KEY_MAX_REVERSE_TORQUE, maxReverseTorque);
+    if (written == 0) { Serial.printf("[Config] FAIL: max_rev_torque\n"); success = false; }
+
     written = preferences.putUChar(KEY_MAX_SOC, maxSOC);
     if (written == 0) { Serial.printf("[Config] FAIL: max_soc\n"); success = false; }
 
@@ -249,6 +254,13 @@ bool Configuration::load() {
         }
     }
     
+    if (preferences.isKey(KEY_MAX_REVERSE_TORQUE)) {
+        int torque = preferences.getInt(KEY_MAX_REVERSE_TORQUE, maxReverseTorque);
+        if (torque >= MIN_TORQUE_LIMIT && torque <= MAX_TORQUE_LIMIT) {
+            maxReverseTorque = torque;
+        }
+    }
+
     if (preferences.isKey(KEY_MAX_SOC)) {
         uint8_t soc = preferences.getUChar(KEY_MAX_SOC, maxSOC);
         Serial.printf("[Config] Loading maxSOC from preferences: %d%%\n", soc);
@@ -533,6 +545,14 @@ bool Configuration::setMaxTorque(int torque) {
     return false;
 }
 
+bool Configuration::setMaxReverseTorque(int torque) {
+    if (torque >= MIN_TORQUE_LIMIT && torque <= MAX_TORQUE_LIMIT) {
+        maxReverseTorque = torque;
+        return true;
+    }
+    return false;
+}
+
 bool Configuration::setMaxSOC(uint8_t soc) {
     if (soc >= MIN_SOC_LIMIT && soc <= MAX_SOC_LIMIT) {
         maxSOC = soc;
@@ -611,6 +631,7 @@ String Configuration::toJSON() {
     JsonObject driving = doc["driving"].to<JsonObject>();
     driving["mode"] = getDriveModeString();
     driving["maxTorque"] = maxTorque;
+    driving["maxReverseTorque"] = maxReverseTorque;
     
     JsonObject battery = doc["battery"].to<JsonObject>();
     battery["maxSOC"] = maxSOC;
@@ -747,6 +768,7 @@ JsonDocument Configuration::createDrivingJSON() {
     JsonDocument doc;
     doc["mode"] = getDriveModeString();
     doc["maxTorque"] = maxTorque;
+    doc["maxReverseTorque"] = maxReverseTorque;
     return doc;
 }
 
@@ -800,6 +822,10 @@ bool Configuration::parseDrivingJSON(const JsonObject& obj) {
     
     if (obj["maxTorque"].is<int>()) {
         setMaxTorque(obj["maxTorque"]);
+    }
+
+    if (obj["maxReverseTorque"].is<int>()) {
+        setMaxReverseTorque(obj["maxReverseTorque"]);
     }
     
     return true;
