@@ -45,6 +45,15 @@ Walked through one by one with the owner; the pack is **104 cells in series**.
 - Unused constants were deleted (speed limits, MAX_REQ_TRQ, DMC_DC_MOT, NOM_VOLTAGE, ...).
 - None of this has been compiled or flashed yet (last known good build: before these edits).
 
+## WiFi behaviour (wifi_manager.cpp)
+
+Saved station credentials (`/api/config/wifi`, applied on the next boot) make the VCU join that
+network (meant: the infotainment Pi's own WPA2 network) and switch its AP off. At boot it tries for
+10 s, falls back to its AP (`VCU_xxxx`), then retries every 30 s from the AP (skipped while a client is
+on the AP) and drops the AP once joined. If the station is gone for 60 s the AP comes back. The
+Pi is powered through the VCU, so it boots later than the VCU: the retry is what makes that work.
+The HTTP API has no authentication: only put the VCU on a network that is yours alone.
+
 ## Open items
 
 - Station WiFi credentials: API `GET|POST /api/config/wifi` exists (applies on next boot).

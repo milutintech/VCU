@@ -39,12 +39,26 @@ void WiFiManager::begin() {
     }
 
     // Reachable as vcu.local in either mode, so LIVI does not depend on the DHCP address.
+    startMdns();
+}
+
+void WiFiManager::startMdns() {
+    MDNS.end();   // after a network change the old announcement points nowhere
     if (MDNS.begin(MDNS_HOSTNAME)) {
         MDNS.addService("http", "tcp", 80);
         Serial.println("[WiFi] mDNS: vcu.local");
     } else {
         Serial.println("[WiFi] mDNS failed to start");
     }
+}
+
+/** From the fallback AP: try the saved network without taking the AP down first. */
+void WiFiManager::tryStationFromAP() {
+    Serial.printf("[WiFi] Trying to join \"%s\" from the AP...\n", stationSSID.c_str());
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.begin(stationSSID.c_str(), stationPassword.c_str());
+    stationTrying = true;
+    stationTryStarted = millis();
 }
 
 void WiFiManager::update() {
@@ -99,9 +113,38 @@ void WiFiManager::startAP() {
 void WiFiManager::checkConnection() {
     unsigned long now = millis();
 
+    const bool haveStation = stationEnabled && stationSSID.length() > 0;
+
     if (apMode) {
         // In AP mode, always consider connected
         connected = true;
+
+        if (stationTrying) {
+            if (WiFi.status() == WL_CONNECTED) {
+                // Joined: the AP is no longer needed, so it stops broadcasting.
+                stationTrying = false;
+                WiFi.softAPdisconnect(true);
+                WiFi.mode(WIFI_STA);
+                apMode = false;
+                stationLostSince = 0;
+                Serial.print("[WiFi] Joined ");
+                Serial.print(stationSSID);
+                Serial.print(", AP off. IP: ");
+                Serial.println(WiFi.localIP());
+                startMdns();
+            } else if (now - stationTryStarted > STATION_TRY_MS) {
+                // Not there (yet): stay an AP only and try again later.
+                stationTrying = false;
+                WiFi.disconnect(false);
+                WiFi.mode(WIFI_AP);
+                Serial.println("[WiFi] Join failed, staying in AP mode");
+            }
+        } else if (haveStation && now - lastConnectionAttempt > STATION_RETRY_MS &&
+                   WiFi.softAPgetStationNum() == 0) {
+            // Someone configuring the VCU through the AP is not disturbed by a scan.
+            lastConnectionAttempt = now;
+            tryStationFromAP();
+        }
         return;
     }
 
@@ -114,10 +157,22 @@ void WiFiManager::checkConnection() {
             Serial.print("[WiFi] IP: ");
             Serial.println(WiFi.localIP());
         }
+        stationLostSince = 0;
     } else {
         if (connected) {
             Serial.println("[WiFi] Connection lost!");
             connected = false;
+        }
+        if (stationLostSince == 0) stationLostSince = now;
+
+        // Gone for good: bring the AP back so the VCU can still be reached.
+        if (apEnabled && now - stationLostSince > AP_AFTER_LOSS_MS) {
+            Serial.println("[WiFi] Station gone, starting the AP again");
+            startAP();
+            startMdns();
+            stationLostSince = 0;
+            lastConnectionAttempt = now;
+            return;
         }
 
         // Attempt reconnection

@@ -53,9 +53,19 @@ private:
     unsigned long lastConnectionAttempt;
     unsigned long reconnectInterval;
 
+    // Joining the infotainment's network from the fallback AP, and the AP coming back.
+    bool stationTrying = false;
+    unsigned long stationTryStarted = 0;
+    unsigned long stationLostSince = 0;
+    static constexpr unsigned long STATION_RETRY_MS = 30000;   ///< between tries from the AP
+    static constexpr unsigned long STATION_TRY_MS = 12000;     ///< how long one try may take
+    static constexpr unsigned long AP_AFTER_LOSS_MS = 60000;   ///< station gone this long: AP back
+
     Preferences preferences;
 
     void connectStation();
+    void startMdns();
+    void tryStationFromAP();
     void startAP();
     void checkConnection();
 };
