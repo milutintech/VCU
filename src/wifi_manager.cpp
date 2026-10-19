@@ -22,23 +22,21 @@ void WiFiManager::begin() {
 
     // Try station mode first if enabled and credentials exist
     if (stationEnabled && stationSSID.length() > 0) {
+        // Never wait for it here: begin() runs before the CAN and control tasks exist, and the
+        // network may well not be up yet (the Pi that hosts it boots after the VCU). The join
+        // is watched from update(), which starts the fallback AP when it does not work out.
         Serial.println("[WiFi] Attempting Station mode...");
         connectStation();
-
-        // Wait up to 10 seconds for connection
-        unsigned long startTime = millis();
-        while (WiFi.status() != WL_CONNECTED && (millis() - startTime) < 10000) {
-            delay(100);
-        }
+        initialJoin = true;
+        initialJoinStarted = millis();
+        return;
     }
 
-    // Fall back to AP mode if station failed or not enabled
-    if (WiFi.status() != WL_CONNECTED && apEnabled) {
-        Serial.println("[WiFi] Station failed, starting AP mode...");
+    // No network saved: the AP is the way in.
+    if (apEnabled) {
+        Serial.println("[WiFi] No station configured, starting AP mode...");
         startAP();
     }
-
-    // Reachable as vcu.local in either mode, so LIVI does not depend on the DHCP address.
     startMdns();
 }
 
@@ -114,6 +112,28 @@ void WiFiManager::checkConnection() {
     unsigned long now = millis();
 
     const bool haveStation = stationEnabled && stationSSID.length() > 0;
+
+    // The first join after boot: joined, or after 10 s give up and start the fallback AP.
+    if (initialJoin) {
+        if (WiFi.status() == WL_CONNECTED) {
+            initialJoin = false;
+            connected = true;
+            Serial.print("[WiFi] Joined ");
+            Serial.print(stationSSID);
+            Serial.print(". IP: ");
+            Serial.println(WiFi.localIP());
+            startMdns();
+        } else if (now - initialJoinStarted > INITIAL_JOIN_MS) {
+            initialJoin = false;
+            if (apEnabled) {
+                Serial.println("[WiFi] Station failed, starting AP mode...");
+                startAP();
+                startMdns();
+                lastConnectionAttempt = now;
+            }
+        }
+        return;
+    }
 
     if (apMode) {
         // In AP mode, always consider connected

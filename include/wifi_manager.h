@@ -55,6 +55,9 @@ private:
 
     // Joining the infotainment's network from the fallback AP, and the AP coming back.
     bool stationTrying = false;
+    bool initialJoin = false;           ///< first join after boot, running in update()
+    unsigned long initialJoinStarted = 0;
+    static constexpr unsigned long INITIAL_JOIN_MS = 10000;
     unsigned long stationTryStarted = 0;
     unsigned long stationLostSince = 0;
     static constexpr unsigned long STATION_RETRY_MS = 30000;   ///< between tries from the AP
