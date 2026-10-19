@@ -103,7 +103,7 @@ namespace VehicleParams {
     struct Timing {
         static constexpr unsigned long FAST_CYCLE_MS = 50;    ///< Fast loop interval (ms)
         static constexpr unsigned long SLOW_CYCLE_MS = 100;   ///< Slow loop interval (ms)
-        static constexpr unsigned long BMS_TIMEOUT_MS = 1500;     ///< BMS timeout (ms)
+        static constexpr unsigned long BMS_TIMEOUT_MS = 1600;     ///< BMS timeout (ms)
     };
 
 };

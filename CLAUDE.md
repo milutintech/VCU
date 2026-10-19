@@ -38,7 +38,7 @@ Walked through one by one with the owner; the pack is **104 cells in series**.
   100 to 850 Nm and settable in LIVI. `Motor::MAX_TRQ` 850 stays a hard cap. Before this the
   configured value was ignored (hard-coded 850).
 - Charging 80 A DC / 32 A AC / 20 A precharge, BSC 100 A, temperatures 100 / 105 / 5 (derate,
-  cutoff, hysteresis), timeouts BMS 1500, DMC 500, BSC 1500, NLG 1500 ms, pedal and shift values
+  cutoff, hysteresis), timeouts BMS 1600 (owner raised it from 1500), DMC 500, BSC 1500, NLG 1500 ms, pedal and shift values
   unchanged.
 - Cooling: pump on above 45 C, off below 30 C, fan on above 65 C (`FAN_ON`). Charger limit 95 C;
   `CHARGER_OVERTEMP` is an INFO fault above 85 C (clears at 80), no reaction.
