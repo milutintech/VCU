@@ -120,5 +120,4 @@ void SystemSetup::setDefaultPinStates() {
     digitalWrite(Pins::PW1, LOW);        // Contactor open
     digitalWrite(Pins::LWP5, LOW);
     digitalWrite(Pins::PUMP, LOW);       // Pump off
-    digitalWrite(19, LOW);
 }

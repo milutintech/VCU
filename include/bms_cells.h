@@ -20,7 +20,7 @@ struct BmsCellMap {
     uint32_t tempId = 0;      ///< 0 = thermistor decoding off
     bool bigEndian = true;    ///< byte order of the 16-bit fields (verify with a capture)
     bool checkChecksum = true;
-    uint8_t cellCount = 104;
+    uint8_t cellCount = 100;
     uint8_t tempCount = 8;
 };
 

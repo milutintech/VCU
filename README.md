@@ -249,11 +249,17 @@ For issues, questions, or contributions, please open an issue on GitHub.
 - `GET /api/bms/cells` → `{ "cellsMv": [...], "balancing": [idx...], "temps": [...], "ageMs": n }`.
   Cells come from the Orion *Battery Cell Broadcast* frame (see `include/bms_cells.h`).
   `cellsMv` is empty until a valid frame has been decoded.
-- `GET|POST /api/config/bms` → `{ cellId, tempId, bigEndian, checkChecksum, cellCount, tempCount }`.
+- `GET|POST /api/config/bms` → `{ cellId, tempId, bigEndian, checkChecksum, cellCount, tempCount, ignoreAllowFlags }`.
+  `ignoreAllowFlags` (override of the BMS charge/discharge allow flags, for breakdown, trailer
+  loading or debugging) is **not saved**: every boot starts with the flags enforced. The BMS current
+  limits (DCL/CCL) still apply while it is on, and `BMS_FLAGS_IGNORED` stays active as a reminder.
+- Live JSON `battery`: `minCell`, `maxCell` (V), `tempHigh`, `tempLow` (°C) from BMS 0x001, and
+  `allow { fresh, chargeFlag, dischargeFlag, ignored, charge, discharge }` (`charge`/`discharge` =
+  what the VCU acts on).
   `cellId`/`tempId` are the CAN IDs set in the Orion BMS Utility; `0` turns decoding off (default).
   Stored in its own NVS namespace, applied immediately.
 - `GET /api/status/faults` → `{ "faults": [{ code, name, severity, active, count, lastSeenS }] }`.
-  Aggregated from `ErrorMonitor` entries at WARNING or above. `active` is edge-triggered: set on raise, cleared by `FaultHandler` once the value is back inside the hysteresis band (no time-based expiry). `count` is the number of inactive→active transitions.
+  Every fault code raised by `FaultHandler`, INFO included (e.g. `BMS_CHARGE_NOT_ALLOWED`, `CHARGER_OVERTEMP`). `active` is edge-triggered: set on raise, cleared by `FaultHandler` once the value is back inside the hysteresis band (no time-based expiry). `count` is the number of inactive→active transitions.
 
 
 ## Fault handling
@@ -273,8 +279,11 @@ Values marked *existing* come from `include/vehicle_parameters.h` and are unchan
 | `BSC_TIMEOUT` | WARNING | no BSC status frame for > 1500 ms (new) | frame fresh again |
 | `NLG_TIMEOUT` | WARNING | in CHARGING, no NLG frame for > 1500 ms (new) | frame fresh again, or leaving CHARGING |
 | `CHARGER_OVERTEMP` | INFO | in CHARGING, charger cooling plate > 85 °C (new; the charger itself is good to 95 °C) | plate <= 80 °C, or leaving CHARGING |
-| `BATTERY_UNDERVOLTAGE` | ERROR | pack < 333 V (*existing* `Battery::MIN_VOLTAGE`), BMS data fresh | pack >= 338 V (+5 V, new) |
-| `BATTERY_OVERVOLTAGE` | CRITICAL | pack > 437 V (*existing* `Battery::MAX_VOLTAGE`), BMS data fresh | pack <= 432 V (-5 V, new) |
+| `BATTERY_UNDERVOLTAGE` | ERROR | pack < 300 V (`Battery::MIN_VOLTAGE`), BMS data fresh | pack >= 305 V (+5 V, new) |
+| `BMS_DISCHARGE_NOT_ALLOWED` | CRITICAL | in RUN, BMS discharge flag (0x001 byte 6 bit 1) off or no 0x001 frame for > 1600 ms, override off | flag on again, or leaving RUN |
+| `BMS_CHARGE_NOT_ALLOWED` | INFO | in CHARGING, BMS charge flag (0x001 byte 6 bit 0) off or frame missing, override off | flag on again, or leaving CHARGING |
+| `BMS_FLAGS_IGNORED` | WARNING | allow-flag override on (`ignoreAllowFlags`) | override off (or restart) |
+| `BATTERY_OVERVOLTAGE` | CRITICAL | pack > 422 V (`Battery::OVERVOLTAGE`), BMS data fresh | pack <= 417 V (-5 V, new) |
 | `INVERTER_OVERTEMP` | ERROR | inverter > 100 °C (new `TEMP_DERATE_C`); CRITICAL above 105 °C (new `TEMP_CUTOFF_C`) | inverter < 95 °C (-5 °C, new) |
 | `MOTOR_OVERTEMP` | ERROR | motor > 100 °C (new `TEMP_DERATE_C`); CRITICAL above 105 °C (new `TEMP_CUTOFF_C`) | motor < 95 °C (-5 °C, new) |
 
@@ -293,6 +302,15 @@ Applied in `canTask` (`main.cpp`) in RUN state; the fault reaction is the minimu
 | `BMS_TIMEOUT` | torque request x 0 |
 | any active CRITICAL fault (`DMC_TIMEOUT`, `BATTERY_OVERVOLTAGE`, overtemp above 105 °C) | torque x 0 and DMC enable bit forced off |
 | `BSC_TIMEOUT`, `NLG_TIMEOUT`, `CHARGER_OVERTEMP` | log/report only (the charger reduces its own power) |
+
+The allow flags also act directly in `CANManager`, in every state: discharge not allowed sets the DMC
+drive current limit to 0; charge not allowed sets the charger DC current and the DMC regen current
+limit to 0. Not latched: current flows again as soon as the BMS sets the flag again.
+Regen torque itself is also not requested while charge is not allowed or the BMS charge limit
+(CCL) is 0 A: the DMC's 0 A generator current limit alone still let some current into a full
+pack (Orion P0A06). The pedal's regen zone then behaves like coasting.
+With max SOC at 100 % the SOC is not checked at all: charging continues until the plug is pulled,
+governed only by the BMS charge limit (CCL) and charge flag.
 
 Reactions are not latched: they release automatically once the fault clears. `isSystemHealthy()` now reports unhealthy while a CRITICAL fault is active (instead of whenever any critical line was ever logged). `/api/status/faults` output shape is unchanged. CAN IDs and task timing are unchanged.
 

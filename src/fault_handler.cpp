@@ -82,10 +82,44 @@ void FaultHandler::update(const CANManager& can, const StateManager& state) {
                  packV >= Battery::MIN_VOLTAGE + FaultLimits::VOLTAGE_HYST_V,
                  ErrorSeverity::ERROR, "Battery voltage low", packV, "BMS");
         evaluate(ErrorCode::BATTERY_OVERVOLTAGE,
-                 packV > Battery::MAX_VOLTAGE,
-                 packV <= Battery::MAX_VOLTAGE - FaultLimits::VOLTAGE_HYST_V,
+                 packV > Battery::OVERVOLTAGE,
+                 packV <= Battery::OVERVOLTAGE - FaultLimits::VOLTAGE_HYST_V,
                  ErrorSeverity::CRITICAL, "Battery voltage high", packV, "BMS");
     }
+
+    // ---- BMS allow flags (0x001) --------------------------------------------
+    // Missing flag frames count as "not allowed". The current limits in CANManager
+    // already follow the flags; these faults make the reason visible and stop the DMC.
+    const bool flagsFresh = can.bmsFlagsFresh();
+    // A fault keeps the text it was raised with. When the cause changes (frame missing at
+    // boot -> BMS up but saying no), re-raise so the reported text is the current one.
+    if (flagsFresh != lastFlagsFresh) {
+        lastFlagsFresh = flagsFresh;
+        monitor.clearFault(ErrorCode::BMS_DISCHARGE_NOT_ALLOWED);
+        monitor.clearFault(ErrorCode::BMS_CHARGE_NOT_ALLOWED);
+    }
+    const char* dischargeText = flagsFresh ? "BMS does not allow discharging"
+                                           : "BMS discharge flag missing (no 0x001 frame)";
+    const char* chargeText = flagsFresh ? "BMS does not allow charging"
+                                        : "BMS charge flag missing (no 0x001 frame)";
+    if (vs == VehicleState::RUN) {
+        const bool allowed = can.dischargeAllowed();
+        evaluate(ErrorCode::BMS_DISCHARGE_NOT_ALLOWED, !allowed, allowed, ErrorSeverity::CRITICAL,
+                 dischargeText, flagsFresh ? 1.0f : 0.0f, "BMS");
+    } else if (monitor.isFaultActive(ErrorCode::BMS_DISCHARGE_NOT_ALLOWED)) {
+        monitor.clearFault(ErrorCode::BMS_DISCHARGE_NOT_ALLOWED);
+    }
+    if (vs == VehicleState::CHARGING) {
+        // Normal at the top of a charge (Orion drops charge enable when full), so INFO only.
+        const bool allowed = can.chargeAllowed();
+        evaluate(ErrorCode::BMS_CHARGE_NOT_ALLOWED, !allowed, allowed, ErrorSeverity::INFO,
+                 chargeText, flagsFresh ? 1.0f : 0.0f, "BMS");
+    } else if (monitor.isFaultActive(ErrorCode::BMS_CHARGE_NOT_ALLOWED)) {
+        monitor.clearFault(ErrorCode::BMS_CHARGE_NOT_ALLOWED);
+    }
+    const bool ignored = can.getIgnoreAllowFlags();
+    evaluate(ErrorCode::BMS_FLAGS_IGNORED, ignored, !ignored, ErrorSeverity::WARNING,
+             "BMS allow flags ignored (override on until restart)", 0.0f, "BMS");
 
     // ---- Inverter / motor temperature (only once the DMC has reported) ------
     const DMCData& dmc = can.getDMCData();

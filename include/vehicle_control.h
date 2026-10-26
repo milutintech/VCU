@@ -51,6 +51,16 @@ public:
     void updateGearState();
 
     /**
+     * @brief Read pedal (average of 4) and gear switches from the ADS1115.
+     * Runs only in the ADC task, which owns the I2C bus. Everything else uses the
+     * cached values, so the CAN task never waits for a conversion.
+     */
+    void sampleInputs();
+
+    /// Cached inputs older than this count as missing: 0 % torque and neutral.
+    static constexpr unsigned long INPUT_STALE_MS = 100;
+
+    /**
      * @brief Updates current motor speed
      * @param speed Motor speed in RPM
      */
@@ -313,6 +323,18 @@ private:
     static constexpr float THROTTLE_SHIFT_THRESHOLD = 10.0f; ///< Throttle % threshold for shifts
 
     int rawThrottleADC;              ///< Raw throttle ADC value (for calibration display)
+
+    // Written by the ADC task (sampleInputs), read by the CAN task
+    volatile int32_t cachedPedalADC = 0;      ///< pedal, average of 4 conversions
+    volatile int32_t cachedForwardADC = 0;    ///< drive switch (A2)
+    volatile int32_t cachedReverseADC = 0;    ///< reverse switch (A3)
+    volatile unsigned long inputsMs = 0;      ///< millis() of the last complete sample, 0 = none
+    bool inputsFresh() const {
+        const unsigned long t = inputsMs;
+        return t != 0 && millis() - t <= INPUT_STALE_MS;
+    }
+    /// One conversion without busy waiting: sleeps while the ADS1115 converts.
+    int32_t readChannel(uint8_t channel);
 
     // NEW: Smooth torque transition system
     float currentTorqueOutput;       ///< Actual torque being output

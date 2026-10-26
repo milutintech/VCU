@@ -44,6 +44,7 @@ VCUWebServer* webServer = nullptr;                // Web server
 // Task handles
 TaskHandle_t canTaskHandle = nullptr;
 TaskHandle_t controlTaskHandle = nullptr;
+TaskHandle_t adcTaskHandle = nullptr;
 TaskHandle_t webTaskHandle = nullptr;
 
 // Interrupt handling (unchanged)
@@ -70,6 +71,42 @@ void checkAndHandleInterrupt() {
 }
 
 /**
+ * @brief MCP2515 INT (active low, IO37): wake the CAN task to read the frame at once.
+ * The chip holds only two frames and the bus has bursts of 3 to 5 within 1 ms.
+ */
+static void IRAM_ATTR canIntISR() {
+    BaseType_t woken = pdFALSE;
+    CANManager::intCount = CANManager::intCount + 1;
+    if (canTaskHandle) vTaskNotifyGiveFromISR(canTaskHandle, &woken);
+    portYIELD_FROM_ISR(woken);
+}
+
+/**
+ * @brief Task watchdog: 5 s timeout, panic on expiry (ESP-IDF 5 API)
+ *
+ * The Arduino core already starts the watchdog at boot, so it is reconfigured;
+ * init is only the fallback when it is not running yet. The CAN and control
+ * tasks are not subscribed (no esp_task_wdt_add), so they do not call
+ * esp_task_wdt_reset(): on IDF 5 that logs "task not found" on every call.
+ */
+static void configureTaskWdt() {
+    esp_task_wdt_config_t cfg = {
+        .timeout_ms = 5000,
+        .idle_core_mask = 0,
+        .trigger_panic = true,
+    };
+#if CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0
+    cfg.idle_core_mask |= 1 << 0;
+#endif
+#if CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1
+    cfg.idle_core_mask |= 1 << 1;
+#endif
+    if (esp_task_wdt_reconfigure(&cfg) == ESP_ERR_INVALID_STATE) {
+        esp_task_wdt_init(&cfg);
+    }
+}
+
+/**
  * @brief Enhanced CAN Task with comprehensive monitoring
  */
 void canTask(void* parameter) {
@@ -78,26 +115,25 @@ void canTask(void* parameter) {
     
     // Initialize communication hardware
     SPI.begin(Pins::SCK, Pins::MISO, Pins::MOSI, Pins::SPI_CS_PIN);
-    Wire.begin(Pins::SDA, Pins::SCL);
-    Wire.setClock(400000);
-    ads.begin();
-    ads.setGain(2);
     
     // Initialize CAN with enhanced monitoring
     canManager->begin();
     // Note: CAN logging methods need to be implemented in CANManager
     // canManager->enableCANLogging(true);  // Enable CAN message logging
+
+    // Attached here so the ISR runs on this task's core
+    pinMode(Pins::CAN_INT_PIN, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(Pins::CAN_INT_PIN), canIntISR, FALLING);
     
-    esp_task_wdt_init(5, true);
+    configureTaskWdt();
     
     errorMonitor->logInfo("CAN task started successfully", "SYSTEM");
+    const unsigned long taskStartMs = millis();
     
     unsigned long lastMonitorUpdate = 0;
     const unsigned long MONITOR_UPDATE_INTERVAL = 100; // Update monitoring every 100ms
     
     for(;;) {
-        esp_task_wdt_reset();
-        
         // Update CAN communication
         canManager->update();
         
@@ -134,6 +170,60 @@ void canTask(void* parameter) {
             lastMonitorUpdate = millis();
         }
         
+        // Receive diagnostics: INT self-test 3 s after start, then lost frames every 10 s
+        static unsigned long lastRxReport = 0;
+        static bool intChecked = false;
+        static uint32_t lastOverflows = 0;
+        if (!intChecked && millis() - taskStartMs >= 3000) {
+            intChecked = true;
+            const uint32_t ints = CANManager::intCount, frames = canManager->getRxCount();
+            if (frames == 0) {
+                errorMonitor->logWarning("CAN INT (IO37) not tested: no frames received yet", "CAN");
+            } else if (ints == 0) {
+                errorMonitor->logWarning("CAN INT (IO37) never fired, " + String(frames) +
+                                         " frames read by polling only: check the INT line", "CAN");
+            } else {
+                errorMonitor->logInfo("CAN INT (IO37) ok: " + String(ints) + " interrupts, " +
+                                      String(frames) + " frames", "CAN");
+            }
+        }
+        if (millis() - lastRxReport >= 10000) {
+            lastRxReport = millis();
+            const uint32_t overflows = canManager->getRxOverflowCount();
+            if (overflows != lastOverflows) {
+                errorMonitor->logWarning("CAN RX overflow (frames lost) in " + String(overflows - lastOverflows) +
+                                         " cycles in the last 10 s", "CAN");
+                lastOverflows = overflows;
+            }
+        }
+
+        // Wait one tick as before, but read frames as soon as the MCP2515 signals one.
+        const TickType_t waitStart = xTaskGetTickCount();
+        while (xTaskGetTickCount() - waitStart < 1) {
+            if (ulTaskNotifyTake(pdTRUE, 1) == 0) break;   // tick over, no frame
+            canManager->receive();
+        }
+    }
+}
+
+/**
+ * @brief ADC task: owns the I2C bus and the ADS1115 (pedal, gear switches).
+ *
+ * The reads used to run inside the CAN task at 128 SPS (~8 ms per conversion, 6 per
+ * loop), which blocked it ~47 ms per cycle in RUN: MCP2515 overflows, late 0x210.
+ * Now: 860 SPS, sleeping during conversions, one full set every ~7 ms. The CAN task
+ * only uses the cached values (stale after VehicleControl::INPUT_STALE_MS).
+ */
+void adcTask(void* parameter) {
+    Wire.begin(Pins::SDA, Pins::SCL);
+    Wire.setClock(400000);
+    ads.begin();
+    ads.setGain(2);
+    ads.setDataRate(7);   // 860 SPS
+    errorMonitor->logInfo("ADC task started", "SYSTEM");
+
+    for (;;) {
+        vehicleControl->sampleInputs();
         vTaskDelay(1);
     }
 }
@@ -145,7 +235,7 @@ void controlTask(void* parameter) {
     Serial.print("Enhanced Control Task running on core: ");
     Serial.println(xPortGetCoreID());
 
-    esp_task_wdt_init(5, true);
+    configureTaskWdt();
     errorMonitor->logInfo("Control task started successfully", "SYSTEM");
 
     stateManager->handleWakeup();
@@ -154,8 +244,6 @@ void controlTask(void* parameter) {
     const unsigned long PERFORMANCE_UPDATE_INTERVAL = 1000; // Update performance every second
 
     for(;;) {
-        esp_task_wdt_reset();
-
         // Check for pending unlock interrupt
         checkAndHandleInterrupt();
 
@@ -169,9 +257,13 @@ void controlTask(void* parameter) {
             lastPerformanceUpdate = millis();
         }
 
-        // Check system health
-        if (!errorMonitor->isSystemHealthy()) {
-            errorMonitor->logWarning("System health check failed", "MONITOR");
+        // Check system health (logged on change only, the faults themselves are logged once)
+        static bool wasHealthy = true;
+        const bool healthy = errorMonitor->isSystemHealthy();
+        if (healthy != wasHealthy) {
+            if (healthy) errorMonitor->logInfo("System health check passed", "MONITOR");
+            else errorMonitor->logWarning("System health check failed", "MONITOR");
+            wasHealthy = healthy;
         }
 
         vTaskDelay(pdMS_TO_TICKS(50)); // 50ms cycle time
@@ -211,6 +303,13 @@ void webServerTask(void* parameter) {
  * @brief Enhanced System Setup - ADD this code after creating the canManager
  */
 void setup() {
+    // Outputs first: every object below may drive them (StateManager sets the contactor and
+    // KL15 lines LOW in its constructor), and a write to an unconfigured pin is ignored.
+    SystemSetup::initializeGPIO();
+
+    // A TX buffer makes Serial.print return at once instead of waiting for the UART
+    // (115200 baud: ~10 ms per log line), so logging does not stall the CAN task.
+    Serial.setTxBufferSize(4096);
     Serial.begin(115200);
     delay(500);
     
@@ -329,7 +428,6 @@ void setup() {
     pinMode(Pins::UNLCKCON, INPUT_PULLDOWN);
     attachInterrupt(digitalPinToInterrupt(Pins::UNLCKCON), connectorUnlockISR, RISING);
     
-    SystemSetup::initializeGPIO();
     SystemSetup::initializeSleep();
     
     // Print system information (don't force WiFi mode - let WiFiManager handle it)
@@ -340,7 +438,10 @@ void setup() {
     
     // Create enhanced tasks
     BaseType_t canTaskCreated = xTaskCreatePinnedToCore(
-        canTask, "Enhanced_CAN_Task", 12000, NULL, 1, &canTaskHandle, 0
+        // Core 1, above the control/web/loop tasks (1): core 0 runs WiFi, lwIP and AsyncTCP,
+        // which starved this task and overflowed the MCP2515 (lost BMS frames, DMC
+        // CanCtrlMsgLost). The loop still waits 1 tick per cycle, so lower tasks keep running.
+        canTask, "Enhanced_CAN_Task", 12000, NULL, 5, &canTaskHandle, 1
     );
     
     if (canTaskCreated != pdPASS) {
@@ -348,6 +449,16 @@ void setup() {
         while(1);
     }
     
+    // Below the CAN task (5), above control/web (1); it sleeps during every conversion.
+    BaseType_t adcTaskCreated = xTaskCreatePinnedToCore(
+        adcTask, "ADC_Task", 4096, NULL, 2, &adcTaskHandle, 1
+    );
+
+    if (adcTaskCreated != pdPASS) {
+        errorMonitor->logCritical("Failed to create ADC task", "SYSTEM");
+        while(1);
+    }
+
     BaseType_t controlTaskCreated = xTaskCreatePinnedToCore(
         controlTask, "Enhanced_Control_Task", 24000, NULL, 1, &controlTaskHandle, 1
     );

@@ -83,6 +83,13 @@ float VehicleControl::calculateTorquePercentage() {
  * @return Target torque percentage without transitions applied
  */
 float VehicleControl::calculateImmediateTorqueFromPedal() {
+    // No fresh pedal reading (ADC task stalled or I2C fault): no torque at all. A low
+    // pedal value would mean regen, so the stale case must not go through the mapping.
+    if (!inputsFresh()) {
+        throttlePercentage = 0.0f;
+        return 0.0f;
+    }
+
     // Sample pedal position
     int32_t sampledPotiValue = samplePedalPosition();
     rawThrottleADC = sampledPotiValue;  // Store for calibration display
@@ -106,6 +113,17 @@ float VehicleControl::calculateImmediateTorqueFromPedal() {
     
     // Apply simplified three-zone pedal mapping
     float baseTorquePercent = applyPedalZones(rawThrottle);
+
+    // Regen charges the pack. With the BMS charge limit at 0 A or charge enable off (full
+    // pack, cold cells) request no regen torque at all: the DMC's 0 A generator current
+    // limit alone lets some current through (Orion P0A06, charge limit exceeded).
+    if (baseTorquePercent < 0.0f) {
+        const bool regenAllowed = canManager && canManager->chargeAllowed() &&
+                                  canManager->getBMSData().maxCharge > 0;
+        if (!regenAllowed) {
+            baseTorquePercent = 0.0f;
+        }
+    }
     
     // Apply delta-based power limiting (keep existing Curtis power maps)
     bool isDriving = (baseTorquePercent > 0);  // Positive = acceleration, Negative = regen
@@ -473,11 +491,33 @@ float VehicleControl::applyDeadbandHysteresis(float torquePercent) {
  * @return Averaged ADC reading for pedal position
  */
 int32_t VehicleControl::samplePedalPosition() {
+    return cachedPedalADC;   // averaged in sampleInputs()
+}
+
+int32_t VehicleControl::readChannel(uint8_t channel) {
+    ads.requestADC(channel);
+    // 860 SPS: ~1.2 ms per conversion. Sleep instead of spinning; give up after 10 ms.
+    for (int i = 0; i < 10 && ads.isBusy(); i++) {
+        vTaskDelay(1);
+    }
+    return ads.getValue();
+}
+
+void VehicleControl::sampleInputs() {
     int32_t total = 0;
     for (int i = 0; i < 4; i++) {
-        total += ads.readADC(ADC::GASPEDAL1);
+        total += readChannel(ADC::GASPEDAL1);
     }
-    return total / 4;
+    const int32_t forward = readChannel(2);   // Drive switch on A2
+    const int32_t reverse = readChannel(3);   // Reverse switch on A3
+
+    // An I2C failure leaves the timestamp alone, so the values go stale (0 % torque, neutral).
+    if (ads.isConnected()) {
+        cachedPedalADC = total / 4;
+        cachedForwardADC = forward;
+        cachedReverseADC = reverse;
+        inputsMs = millis();
+    }
 }
 
 /**
@@ -534,8 +574,10 @@ void VehicleControl::updateGearState() {
     static unsigned long errorClearStartTime = 0;
     static bool inErrorClearSequence = false;
     
-    int32_t forwardValue = ads.readADC(2);  // Drive switch on A2
-    int32_t reverseValue = ads.readADC(3);  // Reverse switch on A3
+    // Cached by the ADC task; stale inputs read as both switches off = neutral
+    const bool fresh = inputsFresh();
+    int32_t forwardValue = fresh ? cachedForwardADC : 0;  // Drive switch on A2
+    int32_t reverseValue = fresh ? cachedReverseADC : 0;  // Reverse switch on A3
     
     bool isForwardHigh = forwardValue > 200;
     bool isReverseHigh = reverseValue > 200;

@@ -407,12 +407,27 @@ void VCUWebServer::handleGetBmsCells(AsyncWebServerRequest* request) {
 }
 
 void VCUWebServer::handleGetBmsConfig(AsyncWebServerRequest* request) {
-    request->send(200, "application/json", canManager->getBmsCells().mapJSON());
+    JsonDocument doc;
+    deserializeJson(doc, canManager->getBmsCells().mapJSON());
+    doc["ignoreAllowFlags"] = canManager->getIgnoreAllowFlags();
+    String out;
+    serializeJson(doc, out);
+    request->send(200, "application/json", out);
 }
 
 void VCUWebServer::handleSetBmsConfig(AsyncWebServerRequest* request, JsonVariant& json) {
-    // Persisted by BmsCells itself, no config->save() needed.
-    if (canManager->getBmsCells().applyMapJSON(json.as<JsonObject>())) {
+    // Cell map: persisted by BmsCells itself, no config->save() needed.
+    // ignoreAllowFlags: runtime only, every boot starts with the flags enforced.
+    JsonObject obj = json.as<JsonObject>();
+    if (!obj["ignoreAllowFlags"].isNull()) {
+        const bool ignore = obj["ignoreAllowFlags"].as<bool>();
+        if (ignore != canManager->getIgnoreAllowFlags()) {
+            errorMonitor->logWarning(ignore ? "BMS allow flags override ON" : "BMS allow flags override OFF",
+                                     "BMS");
+        }
+        canManager->setIgnoreAllowFlags(ignore);
+    }
+    if (canManager->getBmsCells().applyMapJSON(obj)) {
         request->send(200, "application/json", "{\"success\":true}");
     } else {
         request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid parameters\"}");
@@ -940,7 +955,19 @@ String VCUWebServer::createLiveDataJSON() {
         pi["state"] = PiPower::name(piPower->state());
         pi["shutdownRequested"] = piPower->shutdownRequested();
     }
-    battery["minCell"] = 0.0f;
+    // From BMS_MINMAX (0x001); allow flags as the BMS sends them, "allowed" after the override
+    const bool flagsFresh = canManager->bmsFlagsFresh();
+    battery["minCell"] = flagsFresh ? bms.cellLowDeciMv / 10000.0f : 0.0f;
+    battery["maxCell"] = flagsFresh ? bms.cellHighDeciMv / 10000.0f : 0.0f;
+    battery["tempHigh"] = bms.tempHigh;
+    battery["tempLow"] = bms.tempLow;
+    JsonObject allow = battery["allow"].to<JsonObject>();
+    allow["fresh"] = flagsFresh;
+    allow["chargeFlag"] = bms.chargeRelay;
+    allow["dischargeFlag"] = bms.dischargeRelay;
+    allow["ignored"] = canManager->getIgnoreAllowFlags();
+    allow["charge"] = canManager->chargeAllowed();
+    allow["discharge"] = canManager->dischargeAllowed();
 
     // DMC data
     const DMCData& dmc = canManager->getDMCData();
@@ -1049,6 +1076,13 @@ String VCUWebServer::createSystemInfoJSON() {
     doc["freeSketchSpace"] = ESP.getFreeSketchSpace();
     doc["uptime"] = millis() / 1000;
     doc["debugMode"] = debugMode;
+
+    // CAN receive diagnostics: interrupts should track frames, overflows should stay 0
+    JsonObject can = doc["can"].to<JsonObject>();
+    can["interrupts"] = CANManager::intCount;
+    can["frames"] = canManager->getRxCount();
+    can["rxOverflows"] = canManager->getRxOverflowCount();
+    can["intPinLow"] = digitalRead(Pins::CAN_INT_PIN) == LOW;
 
     String response;
     serializeJson(doc, response);

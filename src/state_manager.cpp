@@ -185,7 +185,6 @@ void StateManager::update() {
  */
 void StateManager::handleStandbyState() {
     // Disable all systems in standby
-    Serial.println("In STANDBY state handler");
 
     digitalWrite(Pins::DMCKL15, LOW);
     digitalWrite(Pins::BSCKL15, LOW);
@@ -348,11 +347,16 @@ void StateManager::armBattery(bool arm) {
             }
 
             if (millis() - lastModeChangeTime >= Constants::MODE_CHANGE_DELAY_MS) {
-                Serial.println("Precharge Status:");
-                Serial.println("Battery Voltage: " + String(batteryVoltage) + "V");
-                Serial.println("HV Actual: " + String(hvVoltageActual) + "V");
-                Serial.println("BSC Enable State: " + String(enableBSC));
-                Serial.println("BSC Mode: " + String(modeBSC));
+                // Status once per second, this runs every control cycle
+                static unsigned long lastStatusPrint = 0;
+                if (millis() - lastStatusPrint >= 1000) {
+                    lastStatusPrint = millis();
+                    Serial.println("Precharge Status:");
+                    Serial.println("Battery Voltage: " + String(batteryVoltage) + "V");
+                    Serial.println("HV Actual: " + String(hvVoltageActual) + "V");
+                    Serial.println("BSC Enable State: " + String(enableBSC));
+                    Serial.println("BSC Mode: " + String(modeBSC));
+                }
                 hvVoltage = batteryVoltage;  // Set target voltage
                 canManager.setHVVoltage(hvVoltage);
                 enableBSC = true;
@@ -417,7 +421,10 @@ void StateManager::armBattery(bool arm) {
             }
         }
     } else {
-        Serial.println("Disabling battery system");
+        // Called every cycle while disarmed: only report when something was actually on.
+        if (batteryArmed || hasPreCharged || enableBSC || inErrorClearSequence) {
+            Serial.println("Disabling battery system");
+        }
         batteryArmed = false;
         enableBSC = false;
         hasPreCharged = false;
@@ -594,7 +601,8 @@ void StateManager::chargeManage() {
 
         chargerState = canManager.getNLGData().stateAct;
         
-        // Check SOC limit - now with special case for 100% SOC
+        // SOC limit. At 100 % the SOC is ignored: charging continues until unplugged and
+        // is governed only by the BMS (charge limit CCL and charge enable flag).
         if (config.getMaxSOC() < 100 && canManager.getBMSData().soc >= config.getMaxSOC()) {
             // For less than 100% SOC, use the standard behavior
             Serial.println("SOC limit reached! Stopping charge.");
@@ -605,16 +613,6 @@ void StateManager::chargeManage() {
             unlockConnectorRequest = true;
             unlockPersist = true;
             unlockTimeout = currentTime;
-        } else if (config.getMaxSOC() == 100) {
-            // For 100% SOC, we check current instead
-            if (canManager.getBMSData().soc >= 100 && 
-                canManager.getNLGData().dcHvCurrentAct < 30) { // 3 Amps (assuming scale factor of 10)
-                Serial.println("Charge current below 3A with 100% SOC - BMS drift reset complete");
-                chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
-                unlockConnectorRequest = true;
-                unlockPersist = true;
-                unlockTimeout = currentTime;
-            }
         }
 
         switch (chargerState) {

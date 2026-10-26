@@ -47,6 +47,9 @@ enum class ErrorCode : uint16_t {
     PRECHARGE_FAILED = 303,
     PRECHARGE_TIMEOUT = 304,
     SOC_OUT_OF_RANGE = 305,
+    BMS_DISCHARGE_NOT_ALLOWED = 306,
+    BMS_CHARGE_NOT_ALLOWED = 307,
+    BMS_FLAGS_IGNORED = 308,
     
     // Motor Errors (400-499)
     MOTOR_OVERTEMP = 400,
@@ -229,7 +232,6 @@ public:
     void logCritical(const String& message, const String& component = "");
     
     // Log Management
-    std::deque<LogEntry>& getErrorLog() { return errorLog; }
     void clearErrorLog();
     uint16_t getErrorCount(ErrorSeverity minSeverity = ErrorSeverity::WARNING);
     String getErrorLogJSON(uint16_t maxEntries = 100);
@@ -277,6 +279,7 @@ private:
     std::deque<LogEntry> errorLog;
     std::deque<FaultEntry> faults;
     std::mutex faultMutex;   ///< faults is touched by the CAN task and the web server
+    std::mutex logMutex;     ///< errorLog is written by every task and read by the web server
     std::deque<CANMessageInfo> canLog;
     MonitoringData currentData;
     PerformanceMetrics performance;

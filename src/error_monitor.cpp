@@ -28,20 +28,11 @@ ErrorMonitor::ErrorMonitor(size_t maxLogEntries, size_t maxCANMessages)
  */
 void ErrorMonitor::logError(ErrorSeverity severity, ErrorCode code, const String& description, 
                           float value, const String& component) {
-    LogEntry entry(severity, code, description, value, component);
-    
-    // Add to log
-    errorLog.push_back(entry);
-    
-    // Maintain size limit
-    if (errorLog.size() > maxLogEntries) {
-        errorLog.pop_front();
-    }
-    
-    // Generic info/warning/error helpers log under SYSTEM_BOOT; only real codes are faults.
+    // Generic info/warning/error helpers log under SYSTEM_BOOT; only real codes are faults,
+    // at any severity (INFO faults such as BMS_CHARGE_NOT_ALLOWED are raised every cycle too).
     // Edge-triggered: a repeat while the fault is already active only refreshes
     // lastSeen/severity and is neither logged nor counted again.
-    if (severity >= ErrorSeverity::WARNING && code != ErrorCode::SYSTEM_BOOT) {
+    if (code != ErrorCode::SYSTEM_BOOT) {
         std::lock_guard<std::mutex> lock(faultMutex);
         bool found = false;
         for (auto& f : faults) {
@@ -66,6 +57,17 @@ void ErrorMonitor::logError(ErrorSeverity severity, ErrorCode code, const String
                 faults.erase(it);
             }
             faults.push_back({code, severity, description, 1, millis(), true});
+        }
+    }
+
+    // Add to log
+    {
+        std::lock_guard<std::mutex> lock(logMutex);
+        errorLog.emplace_back(severity, code, description, value, component);
+        
+        // Maintain size limit
+        if (errorLog.size() > maxLogEntries) {
+            errorLog.pop_front();
         }
     }
 
@@ -117,7 +119,10 @@ void ErrorMonitor::logCritical(const String& message, const String& component) {
  * @brief Clear error log
  */
 void ErrorMonitor::clearErrorLog() {
-    errorLog.clear();
+    {
+        std::lock_guard<std::mutex> lock(logMutex);
+        errorLog.clear();
+    }
     logInfo("Error log cleared", "MONITOR");
 }
 
@@ -125,6 +130,7 @@ void ErrorMonitor::clearErrorLog() {
  * @brief Get error count by severity
  */
 uint16_t ErrorMonitor::getErrorCount(ErrorSeverity minSeverity) {
+    std::lock_guard<std::mutex> lock(logMutex);
     uint16_t count = 0;
     for (const auto& entry : errorLog) {
         if (entry.severity >= minSeverity) {
@@ -141,6 +147,7 @@ String ErrorMonitor::getErrorLogJSON(uint16_t maxEntries) {
     JsonDocument doc;
     JsonArray errors = doc["errors"].to<JsonArray>();
     
+    std::lock_guard<std::mutex> lock(logMutex);
     uint16_t count = 0;
     for (auto it = errorLog.rbegin(); it != errorLog.rend() && count < maxEntries; ++it, ++count) {
         JsonObject error = errors.add<JsonObject>();
@@ -463,6 +470,9 @@ String ErrorMonitor::errorCodeToString(ErrorCode code) {
         case ErrorCode::PRECHARGE_FAILED: return "PRECHARGE_FAILED";
         case ErrorCode::PRECHARGE_TIMEOUT: return "PRECHARGE_TIMEOUT";
         case ErrorCode::SOC_OUT_OF_RANGE: return "SOC_OUT_OF_RANGE";
+        case ErrorCode::BMS_DISCHARGE_NOT_ALLOWED: return "BMS_DISCHARGE_NOT_ALLOWED";
+        case ErrorCode::BMS_CHARGE_NOT_ALLOWED: return "BMS_CHARGE_NOT_ALLOWED";
+        case ErrorCode::BMS_FLAGS_IGNORED: return "BMS_FLAGS_IGNORED";
         case ErrorCode::MOTOR_OVERTEMP: return "MOTOR_OVERTEMP";
         case ErrorCode::INVERTER_OVERTEMP: return "INVERTER_OVERTEMP";
         case ErrorCode::DMC_ERROR: return "DMC_ERROR";

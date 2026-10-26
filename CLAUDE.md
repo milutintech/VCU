@@ -28,11 +28,11 @@ no web page and no ESP-NOW. Wire contract and plan: `/Users/cmo/LIVI/docs/VCU.md
 
 ## Decisions on the constants (all in `vehicle_parameters.h` / `fault_handler.h`)
 
-Walked through one by one with the owner; the pack is **104 cells in series**.
+Walked through one by one with the owner; the pack is **100 cells in series** (was 104 until 2026-10-22).
 
 - LV charge voltage 14.4 V (`float`, rounded when sent). Max rpm 6000 (the unused 8000 is gone).
-- Pack volts 333 / 382 / 437 V (3.2 / 3.67 / 4.2 V x 104): faults, charger target (437 V), DMC
-  voltage limits, BSC minimum.
+- Pack volts (100S): min 300 V (undervoltage fault, DMC motor limit, BSC minimum), max 420 V
+  (charger CV target, DMC regen limit 424 V), overvoltage fault above 422 V (`Battery::OVERVOLTAGE`).
 - DMC current: min(450 A drive, 420 A regen, BMS limit); 0 A without fresh BMS data.
 - Torque: pedal full scale = `maxTorque` (forward) or `maxReverseTorque` (reverse, default 450), both
   100 to 850 Nm and settable in LIVI. `Motor::MAX_TRQ` 850 stays a hard cap. Before this the
@@ -68,6 +68,34 @@ it runs in the web task, never in the control task). Deep sleep waits until the 
 ignition off does NOT power the Pi. Host test of the logic:
 `c++ -std=c++17 -I include tools/host-tests/pi_power_logic_test.cpp && ./a.out`.
 Not compiled for the ESP32 yet.
+
+## BMS frames (Lada.dbc, Orion)
+
+- 0x010 `BMS_PACK` (248 ms): SOC 0.5 %, voltage 0.1 V, current int16 0.1 A (negative = charging;
+  stored raw, the API divides by 10), DCL 1 A, CCL 2 A. Matches the DBC.
+- 0x001 `BMS_MINMAX` (632 ms, 7 bytes): temps int8, low/high cell 0.1 mV, byte 6 bit 0 charge
+  allowed, bit 1 discharge allowed. Seen in a capture (2026-10-23): full pack (SOC 100 %, CCL 0) sends
+  both flags 0, and the BMS starts sending a moment after the VCU boots (flags count as
+  "not allowed" until then).
+  Discharge flag 0 while plugged in is expected: Orion charge/drive interlock (owner).
+- Allow flags are safety critical: missing frame = not allowed. Override `ignoreAllowFlags` in
+  `/api/config/bms`, runtime only (never saved), DCL/CCL still apply.
+- Max SOC 100 % = no SOC check, charge until unplugged (BMS CCL and charge flag decide).
+
+## CAN task scheduling (owner approved 2026-10-23)
+
+The CAN task was priority 1 on core 0 next to WiFi/lwIP/AsyncTCP and got starved: the MCP2515
+(2 RX buffers, bus bursts of 3 to 5 frames within 1 ms) overflowed, BMS frames were lost and
+0x210 went late (DMC `CanCtrlMsgLost`). Now: CAN task core 1, priority 5; AsyncTCP pinned to
+core 0 (`platformio.ini`); MCP2515 INT on IO37 wakes the task to read frames at once (send
+periods and the 1-tick loop unchanged). Self-test 3 s after boot logs whether INT fires;
+`GET /api/system/info` `can { interrupts, frames, rxOverflows, intPinLow }`, overflows logged
+every 10 s. Serial has a 4 KB TX buffer so logging does not block.
+
+Second cause, found with the overflow counter: the ADS1115 reads (pedal x4, gear switches A2/A3)
+ran inside the CAN task at 128 SPS, ~47 ms blocked per loop in RUN. Now an ADC task (core 1,
+priority 2) owns I2C, 860 SPS, sleeps during conversions, full set every ~7 ms; the CAN task uses
+the cached values. Older than 100 ms (`INPUT_STALE_MS`) = 0 % torque and neutral (owner approved).
 
 ## Open items
 

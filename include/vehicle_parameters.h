@@ -15,8 +15,9 @@ namespace VehicleParams {
      * @brief Battery System Parameters
      */
     struct Battery {
-        static constexpr int MIN_VOLTAGE = 333;     ///< Minimum pack voltage (3.2V * 104S)
-        static constexpr int MAX_VOLTAGE = 437;     ///< Maximum pack voltage (4.2V * 104S)
+        static constexpr int MIN_VOLTAGE = 300;     ///< Minimum pack voltage (3.0V * 100S)
+        static constexpr int MAX_VOLTAGE = 420;     ///< Maximum pack voltage, charger CV target (4.2V * 100S)
+        static constexpr int OVERVOLTAGE = 422;     ///< Overvoltage fault above this (V), headroom over the CV target
         static constexpr int MAX_DMC_CURRENT = 450; ///< Maximum motor controller current (A)
         static constexpr int MAX_NLG_CURRENT = 80;  ///< Maximum charging current (A)
         static constexpr int PRECHARGE_CURRENT = 20;///< Precharge current limit (A)

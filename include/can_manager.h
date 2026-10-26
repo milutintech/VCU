@@ -18,11 +18,19 @@ class ErrorMonitor;
  * Contains battery state information from BMS
  */
 struct BMSData {
-    uint8_t soc;              ///< State of charge (%)
-    uint16_t voltage;         ///< Battery voltage (V)
-    int16_t current;         ///< Battery current (A)
-    uint16_t maxDischarge;    ///< Maximum discharge current (A)
-    uint16_t maxCharge;       ///< Maximum charge current (A)
+    // From BMS_PACK (0x010)
+    uint8_t soc = 0;                ///< State of charge (%)
+    uint16_t voltage = 0;           ///< Battery voltage (V)
+    int16_t current = 0;            ///< Battery current (0.1 A, negative while charging)
+    uint16_t maxDischarge = 0;      ///< Maximum discharge current (A)
+    uint16_t maxCharge = 0;         ///< Maximum charge current (A)
+    // From BMS_MINMAX (0x001)
+    int8_t tempHigh = 0;            ///< Highest pack temperature (°C)
+    int8_t tempLow = 0;             ///< Lowest pack temperature (°C)
+    uint16_t cellLowDeciMv = 0;     ///< Lowest cell voltage (0.1 mV)
+    uint16_t cellHighDeciMv = 0;    ///< Highest cell voltage (0.1 mV)
+    bool chargeRelay = false;       ///< BMS allows charging (charge enable)
+    bool dischargeRelay = false;    ///< BMS allows discharging (discharge enable)
 };
 
 /**
@@ -132,6 +140,15 @@ public:
      */
     void sendNLG();
     
+    /** Read every frame waiting in the MCP2515 (also done at the start of update()). */
+    void receive() { checkAndProcessMessages(); }
+
+    /// Receive diagnostics (for testing the INT pin and checking for lost frames)
+    static volatile uint32_t intCount;   ///< MCP2515 INT falling edges, counted in the ISR
+    uint32_t getRxCount() const { return rxCount; }
+    /// update() cycles in which the MCP2515 reported a receive overflow (frames lost)
+    uint32_t getRxOverflowCount() const { return rxOverflowCount; }
+
     // Data access methods
     const BMSData& getBMSData() const { return bmsData; }
     const DMCData& getDMCData() const { return dmcData; }
@@ -147,6 +164,18 @@ public:
     bool isBSCBoost() const { return modeBSC; }
     uint16_t getHVVoltageDemand() const { return hvVoltage; }
     unsigned long getLastNLGMs() const { return lastNLGMs; }
+    unsigned long getLastBMSFlagsMs() const { return lastBMSFlagsMs; }
+
+    /// BMS allow flags (0x001) received within the BMS timeout.
+    bool bmsFlagsFresh() const;
+    /// Charging (charger and regen) allowed: flag set and fresh, or flags ignored.
+    bool chargeAllowed() const;
+    /// Discharging (drive current) allowed: flag set and fresh, or flags ignored.
+    bool dischargeAllowed() const;
+    /// Ignore the BMS allow flags (breakdown, trailer loading, debugging). Not saved: every
+    /// boot starts with the flags enforced. Current limits (DCL/CCL) still apply.
+    void setIgnoreAllowFlags(bool ignore) { ignoreAllowFlags = ignore; }
+    bool getIgnoreAllowFlags() const { return ignoreAllowFlags; }
     
     // Control methods
     void setCurrentGear(GearState gear) { currentGear = gear; }
@@ -197,6 +226,11 @@ private:
      * @param buf Message data buffer
      */
     void processBMSMessage(uint8_t* buf);
+
+    /**
+     * @brief Process BMS min/max message (0x001): cells, temps, allow flags
+     */
+    void processBMSMinMaxMessage(uint8_t* buf, uint8_t len);
 
     /**
      * @brief Process BSC status message
@@ -271,6 +305,10 @@ private:
     volatile unsigned long lastDMCMs = 0; ///< Last DMC frame (any of 0x258/0x259/0x458)
     volatile unsigned long lastBSCMs = 0; ///< Last BSC frame
     volatile unsigned long lastNLGMs = 0; ///< Last NLG frame
+    volatile uint32_t rxCount = 0;           ///< frames read from the MCP2515
+    volatile uint32_t rxOverflowCount = 0;   ///< see getRxOverflowCount()
+    volatile unsigned long lastBMSFlagsMs = 0; ///< Last BMS_MINMAX frame (allow flags)
+    volatile bool ignoreAllowFlags = false;    ///< set from the web task, read in the CAN task
 
     // CAN Monitoring - FIXED: Use pointers instead of direct objects
     CANMonitor* canMonitor = nullptr;      ///< CAN bus monitor instance

@@ -34,6 +34,9 @@ namespace Pins {
 
 // CAN Message IDs
 namespace CANIds {
+    // BMS Messages (Orion, see Lada.dbc)
+    constexpr uint16_t BMS_PACK = 0x010;    ///< SOC, voltage, current, DCL, CCL (248 ms)
+    constexpr uint16_t BMS_MINMAX = 0x001;  ///< cell min/max, temps, charge/discharge allow (632 ms)
     // BSC Messages
     constexpr uint16_t BSC_COMM = 0x260;
     constexpr uint16_t BSC_LIM = 0x261;

@@ -61,6 +61,7 @@ private:
     VehicleState lastState = VehicleState::STANDBY;
     unsigned long stateEnteredMs = 0;
     FaultReaction current;
+    bool lastFlagsFresh = false;   ///< BMS allow-flag frame freshness in the last update()
 
     /** Raise when `bad`, clear when `ok`, otherwise keep the current state (hysteresis band). */
     void evaluate(ErrorCode code, bool bad, bool ok, ErrorSeverity sev,

@@ -25,6 +25,8 @@
  * 
  * Initializes communication buffers and system state.
  */
+volatile uint32_t CANManager::intCount = 0;
+
 CANManager::CANManager(uint8_t cs_pin)
     : CAN(cs_pin)
     , stateManager(nullptr)
@@ -111,6 +113,14 @@ void CANManager::update() {
     // Process all incoming CAN messages
     checkAndProcessMessages();
 
+    // Receive overflow = a frame arrived while both RX buffers were full and was lost.
+    // checkError() also clears the flags.
+    uint8_t eflg = 0;
+    CAN.checkError(&eflg);
+    if (eflg & (MCP_EFLG_RX0OVR | MCP_EFLG_RX1OVR)) {
+        rxOverflowCount = rxOverflowCount + 1;
+    }
+
     // Update state manager with latest data
     if (stateManager) {
         stateManager->setBatteryVoltage(bmsData.voltage);
@@ -151,6 +161,7 @@ void CANManager::checkAndProcessMessages() {
     while (CAN_MSGAVAIL == CAN.checkReceive()) {
         if (CAN.readMsgBuf(&len, buf) == CAN_OK) {
             uint32_t id = CAN.getCanId();
+            rxCount = rxCount + 1;
             
             // FIXED: Use pointer access with null checks
             if (canMonitor && canMonitor->isLoggingEnabled()) {
@@ -164,8 +175,11 @@ void CANManager::checkAndProcessMessages() {
             if (bmsCells.handleFrame(id, buf, len)) continue;
 
             switch(id) {
-                case 0x010:  // BMS message
+                case CANIds::BMS_PACK:
                     processBMSMessage(buf);
+                    break;
+                case CANIds::BMS_MINMAX:
+                    processBMSMinMaxMessage(buf, len);
                     break;
                 case CANIds::CONFIG_MESSAGE:
                     processConfigMessage(buf);
@@ -204,6 +218,35 @@ void CANManager::processBMSMessage(uint8_t* buf) {
     //Serial.println("BMS Data - SOC: " + String(bmsData.soc) + "%, Voltage: " + String(bmsData.voltage) + "V, Current: " + String(bmsData.current) + "A, Max Discharge: " + String(bmsData.maxDischarge) + "A, Max Charge: " + String(bmsData.maxCharge) + "A");;
 
     lastBMSMs = millis(); // Update timestamp on valid message
+}
+
+/**
+ * @brief Process BMS min/max message (Lada.dbc BMS_MINMAX, 7 bytes, big endian)
+ */
+void CANManager::processBMSMinMaxMessage(uint8_t* buf, uint8_t len) {
+    if (!buf || len < 7) return;
+
+    bmsData.tempHigh = static_cast<int8_t>(buf[0]);
+    bmsData.tempLow = static_cast<int8_t>(buf[1]);
+    bmsData.cellLowDeciMv = (buf[2] << 8) | buf[3];
+    bmsData.cellHighDeciMv = (buf[4] << 8) | buf[5];
+    bmsData.chargeRelay = buf[6] & 0x01;
+    bmsData.dischargeRelay = buf[6] & 0x02;
+
+    lastBMSFlagsMs = millis();
+}
+
+bool CANManager::bmsFlagsFresh() const {
+    const unsigned long last = lastBMSFlagsMs;
+    return last != 0 && (millis() - last) <= VehicleParams::Timing::BMS_TIMEOUT_MS;
+}
+
+bool CANManager::chargeAllowed() const {
+    return ignoreAllowFlags || (bmsFlagsFresh() && bmsData.chargeRelay);
+}
+
+bool CANManager::dischargeAllowed() const {
+    return ignoreAllowFlags || (bmsFlagsFresh() && bmsData.dischargeRelay);
 }
 
 /**
@@ -407,12 +450,13 @@ void CANManager::sendDMC() {
     int dcVoltLimMotor = VehicleParams::Battery::MIN_VOLTAGE * 10;
     int dcVoltLimGen = (VehicleParams::Battery::MAX_VOLTAGE + 4) * 10;
     // The BMS's own current limits win over the fixed ones. Without fresh BMS data both are 0:
-    // the same rule the charger already follows.
+    // the same rule the charger already follows. The BMS allow flags gate them as well
+    // (regen is charging).
     const bool bmsFresh = lastBMSMs != 0 &&
                           (millis() - lastBMSMs) <= VehicleParams::Timing::BMS_TIMEOUT_MS;
-    const int driveLimitA = bmsFresh ? std::min<int>(VehicleParams::Battery::MAX_DMC_CURRENT,
+    const int driveLimitA = bmsFresh && dischargeAllowed() ? std::min<int>(VehicleParams::Battery::MAX_DMC_CURRENT,
                                                      bmsData.maxDischarge) : 0;
-    const int regenLimitA = bmsFresh ? std::min<int>(VehicleParams::Power::DMC_DC_GEN,
+    const int regenLimitA = bmsFresh && chargeAllowed() ? std::min<int>(VehicleParams::Power::DMC_DC_GEN,
                                                      bmsData.maxCharge) : 0;
     int dcCurrLimMotor = driveLimitA * 10;
     int dcCurrLimGen = regenLimitA * 10;
@@ -475,7 +519,6 @@ void CANManager::sendDMC() {
  */
 void CANManager::sendNLG() {
     int nlgVoltageScale = static_cast<int>(VehicleParams::Battery::MAX_VOLTAGE * 10);
-    Serial.println(bmsData.maxCharge);
     // Check if BMS timeout has occurred
     if (millis() - lastBMSMs > VehicleParams::Timing::BMS_TIMEOUT_MS) {
         bmsData.maxCharge = 0;  // Set max charge current to 0 if timeout occurs
@@ -487,6 +530,10 @@ void CANManager::sendNLG() {
     // Limit charging current by smaller of max charger current and BMS max charge
     float limitedCurrentDC = std::min(static_cast<int>(VehicleParams::Battery::MAX_NLG_CURRENT), 
                                     static_cast<int>(bmsData.maxCharge));
+    // BMS charge enable off: no DC current. Not latched, charging resumes when it comes back.
+    if (!chargeAllowed()) {
+        limitedCurrentDC = 0;
+    }
     // Recovery mode for low voltage
    /* if (bmsData.voltage < VehicleParams::Battery::MIN_VOLTAGE && bmsData.maxCharge == 0) {
         limitedCurrentDC = 5;  // Force 5A in recovery mode
