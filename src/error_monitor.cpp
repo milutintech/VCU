@@ -173,98 +173,113 @@ String ErrorMonitor::getErrorLogJSON(uint16_t maxEntries) {
  * @brief Update monitoring data
  */
 void ErrorMonitor::updateMonitoringData(const CANManager& canManager, const StateManager& stateManager) {
-    currentData.timestamp = millis();
-    
+    // Build the snapshot off to the side, then publish it under the lock with one
+    // assignment, so a concurrent reader never sees a partially-updated struct.
+    MonitoringData data;
+    data.timestamp = millis();
+
     // System status
-    currentData.vehicleState = stateManager.getCurrentState();
-    currentData.batteryArmed = stateManager.isBatteryArmed();
-    currentData.prechargeComplete = stateManager.isPreCharged();
-    
+    data.vehicleState = stateManager.getCurrentState();
+    data.batteryArmed = stateManager.isBatteryArmed();
+    data.prechargeComplete = stateManager.isPreCharged();
+
     // BMS data
     const BMSData& bms = canManager.getBMSData();
-    currentData.soc = bms.soc;
-    currentData.packVoltage = bms.voltage;
-    currentData.packCurrent = bms.current;
-    currentData.maxDischarge = bms.maxDischarge;
-    currentData.maxCharge = bms.maxCharge;
-    
+    data.soc = bms.soc;
+    data.packVoltage = bms.voltage;
+    data.packCurrent = bms.current;
+    data.maxDischarge = bms.maxDischarge;
+    data.maxCharge = bms.maxCharge;
+
     // DMC data
     const DMCData& dmc = canManager.getDMCData();
-    currentData.motorTemp = dmc.tempMotor;
-    currentData.inverterTemp = dmc.tempInverter;
-    currentData.motorSpeedRPM = dmc.speedActual;
-    
+    data.motorTemp = dmc.tempMotor;
+    data.inverterTemp = dmc.tempInverter;
+    data.motorSpeedRPM = dmc.speedActual;
+
     // BSC data
     const BSCData& bsc = canManager.getBSCData();
-    currentData.bscHVVoltage = bsc.hvVoltageAct;
-    currentData.bscLVVoltage = bsc.lvVoltageAct;
-    currentData.bscHVCurrent = bsc.hvCurrentAct;
-    currentData.bscLVCurrent = bsc.lvCurrentAct;
-    currentData.bscMode = bsc.mode;
-    
+    data.bscHVVoltage = bsc.hvVoltageAct;
+    data.bscLVVoltage = bsc.lvVoltageAct;
+    data.bscHVCurrent = bsc.hvCurrentAct;
+    data.bscLVCurrent = bsc.lvCurrentAct;
+    data.bscMode = bsc.mode;
+
     // NLG data
     const NLGData& nlg = canManager.getNLGData();
-    currentData.chargerState = nlg.stateAct;
-    currentData.chargingVoltage = nlg.dcHvVoltageAct;
-    currentData.chargingCurrent = nlg.dcHvCurrentAct;
-    currentData.connectorLocked = nlg.connectorLocked;
-    currentData.chargerTemp = nlg.tempCoolPlate;
-    currentData.coolingRequest = nlg.coolingRequest;
-    
+    data.chargerState = nlg.stateAct;
+    data.chargingVoltage = nlg.dcHvVoltageAct;
+    data.chargingCurrent = nlg.dcHvCurrentAct;
+    data.connectorLocked = nlg.connectorLocked;
+    data.chargerTemp = nlg.tempCoolPlate;
+    data.coolingRequest = nlg.coolingRequest;
+
     // System health
-    currentData.uptime = millis();
-    currentData.freeMemory = ESP.getFreeHeap();
-    currentData.activeErrors = getErrorCount(ErrorSeverity::ERROR);
+    data.uptime = millis();
+    data.freeMemory = ESP.getFreeHeap();
+    data.activeErrors = getErrorCount(ErrorSeverity::ERROR);
+
+    std::lock_guard<std::mutex> lock(dataMutex);
+    currentData = data;
+}
+
+/**
+ * @brief Thread-safe snapshot of the monitoring data
+ */
+MonitoringData ErrorMonitor::getMonitoringData() const {
+    std::lock_guard<std::mutex> lock(dataMutex);
+    return currentData;
 }
 
 /**
  * @brief Get monitoring data as JSON
  */
 String ErrorMonitor::getMonitoringJSON() {
+    const MonitoringData data = getMonitoringData();
     JsonDocument doc;
-    
+
     // System info
-    doc["timestamp"] = currentData.timestamp;
-    doc["uptime"] = currentData.uptime;
-    doc["vehicleState"] = vehicleStateToString(currentData.vehicleState);
-    doc["batteryArmed"] = currentData.batteryArmed;
-    doc["prechargeComplete"] = currentData.prechargeComplete;
-    
+    doc["timestamp"] = data.timestamp;
+    doc["uptime"] = data.uptime;
+    doc["vehicleState"] = vehicleStateToString(data.vehicleState);
+    doc["batteryArmed"] = data.batteryArmed;
+    doc["prechargeComplete"] = data.prechargeComplete;
+
     // Power system
     JsonObject power = doc["power"].to<JsonObject>();
-    power["soc"] = currentData.soc;
-    power["packVoltage"] = currentData.packVoltage;
-    power["packCurrent"] = currentData.packCurrent;
-    power["maxDischarge"] = currentData.maxDischarge;
-    power["maxCharge"] = currentData.maxCharge;
-    power["bscHVVoltage"] = currentData.bscHVVoltage;
-    power["bscLVVoltage"] = currentData.bscLVVoltage;
-    
+    power["soc"] = data.soc;
+    power["packVoltage"] = data.packVoltage;
+    power["packCurrent"] = data.packCurrent;
+    power["maxDischarge"] = data.maxDischarge;
+    power["maxCharge"] = data.maxCharge;
+    power["bscHVVoltage"] = data.bscHVVoltage;
+    power["bscLVVoltage"] = data.bscLVVoltage;
+
     // Thermal
     JsonObject thermal = doc["thermal"].to<JsonObject>();
-    thermal["motorTemp"] = currentData.motorTemp;
-    thermal["inverterTemp"] = currentData.inverterTemp;
-    thermal["chargerTemp"] = currentData.chargerTemp;
-    thermal["coolingRequest"] = currentData.coolingRequest;
-    
+    thermal["motorTemp"] = data.motorTemp;
+    thermal["inverterTemp"] = data.inverterTemp;
+    thermal["chargerTemp"] = data.chargerTemp;
+    thermal["coolingRequest"] = data.coolingRequest;
+
     // Motion
     JsonObject motion = doc["motion"].to<JsonObject>();
-    motion["motorSpeedRPM"] = currentData.motorSpeedRPM;
-    motion["vehicleSpeedKPH"] = currentData.vehicleSpeedKPH;
-    motion["torquePercent"] = currentData.torquePercent;
-    
+    motion["motorSpeedRPM"] = data.motorSpeedRPM;
+    motion["vehicleSpeedKPH"] = data.vehicleSpeedKPH;
+    motion["torquePercent"] = data.torquePercent;
+
     // Charging
     JsonObject charging = doc["charging"].to<JsonObject>();
-    charging["state"] = currentData.chargerState;
-    charging["voltage"] = currentData.chargingVoltage;
-    charging["current"] = currentData.chargingCurrent;
-    charging["connectorLocked"] = currentData.connectorLocked;
-    
+    charging["state"] = data.chargerState;
+    charging["voltage"] = data.chargingVoltage;
+    charging["current"] = data.chargingCurrent;
+    charging["connectorLocked"] = data.connectorLocked;
+
     // System health
     JsonObject health = doc["health"].to<JsonObject>();
-    health["freeMemory"] = currentData.freeMemory;
-    health["activeErrors"] = currentData.activeErrors;
-    
+    health["freeMemory"] = data.freeMemory;
+    health["activeErrors"] = data.activeErrors;
+
     String result;
     serializeJson(doc, result);
     return result;
@@ -413,10 +428,10 @@ bool ErrorMonitor::isSystemHealthy() {
     }
     
     // Check data freshness (basic check)
-    if (millis() - currentData.timestamp > 5000) { // Data older than 5 seconds
+    if (millis() - getMonitoringData().timestamp > 5000) { // Data older than 5 seconds
         return false;
     }
-    
+
     return true;
 }
 
@@ -425,14 +440,14 @@ bool ErrorMonitor::isSystemHealthy() {
  */
 String ErrorMonitor::getSystemHealthJSON() {
     JsonDocument doc;
-    
+
     doc["healthy"] = isSystemHealthy();
     doc["criticalErrors"] = getErrorCount(ErrorSeverity::CRITICAL);
     doc["activeCriticalFault"] = hasActiveFault(ErrorSeverity::CRITICAL);
     doc["errors"] = getErrorCount(ErrorSeverity::ERROR);
     doc["warnings"] = getErrorCount(ErrorSeverity::WARNING);
     doc["freeMemory"] = ESP.getFreeHeap();
-    doc["dataAge"] = millis() - currentData.timestamp;
+    doc["dataAge"] = millis() - getMonitoringData().timestamp;
     doc["uptime"] = millis();
     
     String result;
@@ -458,6 +473,7 @@ String ErrorMonitor::errorCodeToString(ErrorCode code) {
         case ErrorCode::SYSTEM_SHUTDOWN: return "SYSTEM_SHUTDOWN";
         case ErrorCode::WATCHDOG_RESET: return "WATCHDOG_RESET";
         case ErrorCode::MEMORY_ERROR: return "MEMORY_ERROR";
+        case ErrorCode::LV_BATTERY_LOW: return "LV_BATTERY_LOW";
         case ErrorCode::CAN_INIT_FAILED: return "CAN_INIT_FAILED";
         case ErrorCode::CAN_BUS_OFF: return "CAN_BUS_OFF";
         case ErrorCode::BMS_TIMEOUT: return "BMS_TIMEOUT";

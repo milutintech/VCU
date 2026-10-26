@@ -17,6 +17,7 @@
 #include "state_manager.h"
 #include "can_manager.h"  // Add this include
 #include "config.h"
+#include "fault_handler.h"  // FaultLimits::NLG_TIMEOUT_MS, shared with FaultHandler's own NLG_TIMEOUT fault
 #include <esp_sleep.h>
 #include "configuration.h"  // Add this include at the top
 #include "vehicle_control.h"
@@ -600,65 +601,75 @@ void StateManager::chargeManage() {
         }
 
         chargerState = canManager.getNLGData().stateAct;
-        
-        // SOC limit. At 100 % the SOC is ignored: charging continues until unplugged and
-        // is governed only by the BMS (charge limit CCL and charge enable flag).
-        if (config.getMaxSOC() < 100 && canManager.getBMSData().soc >= config.getMaxSOC()) {
-            // For less than 100% SOC, use the standard behavior
-            Serial.println("SOC limit reached! Stopping charge.");
-            Serial.print("Max SOC limit: ");
-            Serial.print(config.getMaxSOC());
-            Serial.println("%");
-            chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
-            unlockConnectorRequest = true;
-            unlockPersist = true;
-            unlockTimeout = currentTime;
-        }
 
-        switch (chargerState) {
-            case ChargerStates::NLG_ACT_SLEEP:
-                chargeLedDemand = 0;
-                if (!digitalRead(Pins::NLG_HW_Wakeup)) {
-                    // Charger is unplugged, wait for connector to unlock before going to standby
-                    unlockConnectorRequest = true;
-                    waitingForUnlockComplete = true;
-                    connectorUnlockStartTime = currentTime;
-                } else {
-                    chargerStateDemand = ChargerStates::NLG_DEM_STANDBY;
-                }
-                break;
+        // NLG CAN link lost: chargerState above is stale, so don't drive the switch below
+        // off it (it could keep demanding CHARGE on a charger we can no longer hear from).
+        // Fail safe by holding at STANDBY until a fresh NLG_ACT frame arrives.
+        const unsigned long nlgAge = currentTime - canManager.getLastNLGMs();
+        const bool nlgTimedOut = canManager.getLastNLGMs() != 0 &&
+                                  nlgAge > FaultLimits::NLG_TIMEOUT_MS;
+        if (nlgTimedOut) {
+            chargerStateDemand = ChargerStates::NLG_DEM_STANDBY;
+        } else {
+            // SOC limit. At 100 % the SOC is ignored: charging continues until unplugged and
+            // is governed only by the BMS (charge limit CCL and charge enable flag).
+            if (config.getMaxSOC() < 100 && canManager.getBMSData().soc >= config.getMaxSOC()) {
+                // For less than 100% SOC, use the standard behavior
+                Serial.println("SOC limit reached! Stopping charge.");
+                Serial.print("Max SOC limit: ");
+                Serial.print(config.getMaxSOC());
+                Serial.println("%");
+                chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
+                unlockConnectorRequest = true;
+                unlockPersist = true;
+                unlockTimeout = currentTime;
+            }
 
-            case ChargerStates::NLG_ACT_STANDBY:
-                chargeLedDemand = 1;
-                if (nlgCharged) {
-                    chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
-                    unlockConnectorRequest = true;
-                    unlockPersist = true;
-                    unlockTimeout = currentTime;
-                    // Don't transition to standby yet - wait for connector to unlock
-                    waitingForUnlockComplete = true;
-                    connectorUnlockStartTime = currentTime;
-                }
-                break;
+            switch (chargerState) {
+                case ChargerStates::NLG_ACT_SLEEP:
+                    chargeLedDemand = 0;
+                    if (!digitalRead(Pins::NLG_HW_Wakeup)) {
+                        // Charger is unplugged, wait for connector to unlock before going to standby
+                        unlockConnectorRequest = true;
+                        waitingForUnlockComplete = true;
+                        connectorUnlockStartTime = currentTime;
+                    } else {
+                        chargerStateDemand = ChargerStates::NLG_DEM_STANDBY;
+                    }
+                    break;
 
-            case ChargerStates::NLG_ACT_READY2CHARGE:
-                chargeLedDemand = 3;
-                if (unlockPersist || unlockConnectorRequest) {
-                    chargerStateDemand = ChargerStates::NLG_DEM_STANDBY;
-                } else if (hasPreCharged) {
-                    chargerStateDemand = ChargerStates::NLG_DEM_CHARGE;
-                }
-                armBattery(true);
-                break;
+                case ChargerStates::NLG_ACT_STANDBY:
+                    chargeLedDemand = 1;
+                    if (nlgCharged) {
+                        chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
+                        unlockConnectorRequest = true;
+                        unlockPersist = true;
+                        unlockTimeout = currentTime;
+                        // Don't transition to standby yet - wait for connector to unlock
+                        waitingForUnlockComplete = true;
+                        connectorUnlockStartTime = currentTime;
+                    }
+                    break;
 
-            case ChargerStates::NLG_ACT_CHARGE:
-                chargeLedDemand = 4;
-                armBattery(true);
-                break;
+                case ChargerStates::NLG_ACT_READY2CHARGE:
+                    chargeLedDemand = 3;
+                    if (unlockPersist || unlockConnectorRequest) {
+                        chargerStateDemand = ChargerStates::NLG_DEM_STANDBY;
+                    } else if (hasPreCharged) {
+                        chargerStateDemand = ChargerStates::NLG_DEM_CHARGE;
+                    }
+                    armBattery(true);
+                    break;
 
-            default:
-                armBattery(false);
-                break;
+                case ChargerStates::NLG_ACT_CHARGE:
+                    chargeLedDemand = 4;
+                    armBattery(true);
+                    break;
+
+                default:
+                    armBattery(false);
+                    break;
+            }
         }
 
         if (unlockPersist) {

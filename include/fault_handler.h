@@ -20,6 +20,12 @@ namespace FaultLimits {
     constexpr float VOLTAGE_HYST_V = 5.0f;     ///< pack volts (under/overvoltage)
     constexpr float TEMP_HYST_C    = 5.0f;     ///< inverter/motor °C
 
+    // 12V (LV) system, read from the BSC's low-voltage rail. Not drive-critical by itself,
+    // but a dead 12V battery takes the ECUs/contactors down with it, so it is worth a
+    // warning well before that happens.
+    constexpr float LV_VOLTAGE_WARN_V = 11.5f;   ///< warn below this
+    constexpr float LV_VOLTAGE_HYST_V = 0.3f;    ///< clears once back above WARN + this
+
     // Inverter/motor are rated to 100 °C. VehicleParams INV_HIGH/MOT_HIGH (45 °C) are
     // cooling-stage thresholds in StateManager and are NOT used for derating.
     constexpr float TEMP_DERATE_C = 100.0f;      ///< derate (torque x0.5) above this

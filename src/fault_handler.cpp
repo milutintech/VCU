@@ -34,15 +34,28 @@ void FaultHandler::update(const CANManager& can, const StateManager& state) {
     // A node that never sent anything is timed from boot (BMS, BSC) or from entering
     // the state in which it is needed (DMC in RUN, NLG in CHARGING), so a node that
     // is simply off in standby does not raise a fault.
+    // BMS comms loss means we can no longer verify cell voltages or current limits while
+    // driving, so this is CRITICAL (disables the DMC below), not just a torque derate.
     const unsigned long bmsAge = ageMs(can.getLastBMSMs(), bootMs, now);
     const bool bmsTimeout = bmsAge > Timing::BMS_TIMEOUT_MS;
-    evaluate(ErrorCode::BMS_TIMEOUT, bmsTimeout, !bmsTimeout, ErrorSeverity::ERROR,
+    evaluate(ErrorCode::BMS_TIMEOUT, bmsTimeout, !bmsTimeout, ErrorSeverity::CRITICAL,
              "BMS CAN timeout", (float)bmsAge, "BMS");
 
     const unsigned long bscAge = ageMs(can.getLastBSCMs(), bootMs, now);
     const bool bscTimeout = bscAge > FaultLimits::BSC_TIMEOUT_MS;
     evaluate(ErrorCode::BSC_TIMEOUT, bscTimeout, !bscTimeout, ErrorSeverity::WARNING,
              "BSC CAN timeout", (float)bscAge, "BSC");
+
+    // 12V rail: only meaningful once the BSC itself is actually reporting.
+    if (can.getLastBSCMs() != 0 && !bscTimeout) {
+        const float lv = can.getBSCData().lvVoltageAct;
+        evaluate(ErrorCode::LV_BATTERY_LOW,
+                 lv < FaultLimits::LV_VOLTAGE_WARN_V,
+                 lv >= FaultLimits::LV_VOLTAGE_WARN_V + FaultLimits::LV_VOLTAGE_HYST_V,
+                 ErrorSeverity::WARNING, "12V battery voltage low", lv, "BSC");
+    } else if (monitor.isFaultActive(ErrorCode::LV_BATTERY_LOW)) {
+        monitor.clearFault(ErrorCode::LV_BATTERY_LOW);
+    }
 
     bool dmcTimeout = false;
     if (vs == VehicleState::RUN) {

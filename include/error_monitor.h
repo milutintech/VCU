@@ -31,6 +31,7 @@ enum class ErrorCode : uint16_t {
     SYSTEM_SHUTDOWN = 101,
     WATCHDOG_RESET = 102,
     MEMORY_ERROR = 103,
+    LV_BATTERY_LOW = 104,
     
     // Communication Errors (200-299)
     CAN_INIT_FAILED = 200,
@@ -255,7 +256,9 @@ public:
     
     // Monitoring Data
     void updateMonitoringData(const CANManager& canManager, const StateManager& stateManager);
-    const MonitoringData& getMonitoringData() const { return currentData; }
+    // Returns a copy: currentData is written from the CAN task roughly every 100ms while
+    // this is read from the control task, so callers must not hold a reference into it.
+    MonitoringData getMonitoringData() const;
     String getMonitoringJSON();
     
     // CAN Message Monitoring
@@ -280,6 +283,7 @@ private:
     std::deque<FaultEntry> faults;
     std::mutex faultMutex;   ///< faults is touched by the CAN task and the web server
     std::mutex logMutex;     ///< errorLog is written by every task and read by the web server
+    mutable std::mutex dataMutex;  ///< currentData is written by the CAN task, read by control/web tasks
     std::deque<CANMessageInfo> canLog;
     MonitoringData currentData;
     PerformanceMetrics performance;

@@ -252,7 +252,7 @@ void controlTask(void* parameter) {
 
         // Update performance metrics periodically
         if (millis() - lastPerformanceUpdate >= PERFORMANCE_UPDATE_INTERVAL) {
-            const MonitoringData& monData = errorMonitor->getMonitoringData();
+            const MonitoringData monData = errorMonitor->getMonitoringData();
             errorMonitor->updatePerformanceMetrics(monData);
             lastPerformanceUpdate = millis();
         }
