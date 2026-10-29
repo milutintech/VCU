@@ -25,8 +25,8 @@
 namespace PiPowerTiming {
     constexpr uint32_t IGNITION_OFF_DEBOUNCE_MS = 3000;  ///< ignition must stay off this long
     constexpr uint32_t ACK_TIMEOUT_MS = 15000;           ///< wait for the Pi's acknowledgement
-    constexpr uint32_t POST_ACK_MS = 20000;              ///< Pi's time to shut down after it
-    constexpr uint32_t HARD_MAX_MS = 60000;              ///< longest a shutdown may take
+    constexpr uint32_t POST_ACK_MS = 50000;              ///< Pi's time to shut down after it
+    constexpr uint32_t HARD_MAX_MS = 70000;              ///< longest a shutdown may take (>= ack 15 s + 50 s)
     constexpr uint32_t MIN_OFF_MS = 3000;                ///< power stays cut at least this long
     constexpr uint32_t POWER_ON_DELAY_MS = 1000;         ///< ignition on this long before power
 }

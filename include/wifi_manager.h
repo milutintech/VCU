@@ -9,8 +9,12 @@ class WiFiManager {
 public:
     WiFiManager();
 
-    // Initialize WiFi (tries Station mode first, falls back to AP)
+    // Service mode: WiFi is off unless started from the serial console (Ethernet is the
+    // normal link). begin() tries the saved station first, falls back to the AP.
     void begin();
+    // Service mode off: radio off until the next begin().
+    void stop();
+    bool isStarted() const { return started; }
 
     // Update connection status (call in loop)
     void update();
@@ -40,6 +44,7 @@ public:
     void clearStationCredentials();  // Clear only station credentials (keeps AP settings)
 
 private:
+    bool started = false;
     bool connected;
     bool apMode;
     bool stationEnabled;

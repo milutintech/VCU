@@ -8,6 +8,32 @@
 #include "bms_cells.h"
 #include <WiFi.h>
 
+/**
+ * @brief mcp2515_can whose frame read holds the SPI bus lock.
+ *
+ * The library reads received frames (mcp2515_read_canMsg) without beginTransaction(), unlike
+ * every other access. With the W5500 on the same bus that read could run in the middle of an
+ * Ethernet transfer from the other core (both chip selects low) or at the W5500's 20 MHz
+ * (MCP2515 max 10 MHz): garbage or no frames.
+ */
+class LockedMcp2515 : public mcp2515_can {
+public:
+    using mcp2515_can::mcp2515_can;
+
+    /** One received frame (RX0 first); status and frame are read under one bus lock. */
+    bool readFrame(uint32_t& id, uint8_t& len, uint8_t* buf);
+
+    /**
+     * Puts a standard frame into a free TX buffer and returns. The library's sendMsgBuf()
+     * waits until the frame is on the wire (polling, up to ~1.5 ms per frame): with the DMC
+     * and BMS talking, frames arrived faster than the two RX buffers could hold meanwhile
+     * (~100 overflows per 10 s). Only waits if all three TX buffers are still busy.
+     */
+    byte queueFrame(uint32_t id, uint8_t len, const uint8_t* buf) {
+        return sendMsgBuf(id, 0, 0, len, buf, false);
+    }
+};
+
 // Forward declarations
 class StateManager;
 class CANMonitor;
@@ -116,6 +142,12 @@ public:
     void begin();
 
     /**
+     * @brief The SPI bus, started on first use. The W5500 shares it: both drivers use
+     * SPIClass transactions, whose lock keeps them from talking over each other.
+     */
+    SPIClass& spiBus();
+
+    /**
      * @brief Update CAN communication
      * Handles message reception and transmission timing
      * Should be called in fast control loop
@@ -168,7 +200,9 @@ public:
 
     /// BMS allow flags (0x001) received within the BMS timeout.
     bool bmsFlagsFresh() const;
-    /// Charging (charger and regen) allowed: flag set and fresh, or flags ignored.
+    /** 0x010 (pack voltage, current limits) received within BMS_TIMEOUT_MS. */
+    bool bmsPackFresh() const;
+    /// Charger allowed: flag set and fresh, or flags ignored. Not used for regen (CCL only).
     bool chargeAllowed() const;
     /// Discharging (drive current) allowed: flag set and fresh, or flags ignored.
     bool dischargeAllowed() const;
@@ -268,7 +302,7 @@ private:
     int calculateTaperedDMCCurrent();
 
     // Hardware interfaces
-    mcp2515_can CAN;         ///< CAN controller instance
+    LockedMcp2515 CAN;       ///< CAN controller instance
     SPIClass* customSPI;     ///< Custom SPI interface
     
     // Message buffers for different subsystems

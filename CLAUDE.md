@@ -45,13 +45,29 @@ Walked through one by one with the owner; the pack is **100 cells in series** (w
 - Unused constants were deleted (speed limits, MAX_REQ_TRQ, DMC_DC_MOT, NOM_VOLTAGE, ...).
 - None of this has been compiled or flashed yet (last known good build: before these edits).
 
-## WiFi behaviour (wifi_manager.cpp)
+## Ethernet (ethernet_link.{h,cpp}, added 2026-10-26)
 
-Saved station credentials (`/api/config/wifi`, applied on the next boot) make the VCU join that
-network (meant: the infotainment Pi's own WPA2 network) and switch its AP off. At boot it tries for
-10 s, falls back to its AP (`VCU_xxxx`), then retries every 30 s from the AP (skipped while a client is
-on the AP) and drops the AP once joined. If the station is gone for 60 s the AP comes back. The
-Pi is powered through the VCU, so it boots later than the VCU: the retry is what makes that work.
+W5500 on the MCP2515's SPI bus (SCK IO4, MOSI IO6, MISO IO5), CS IO15 (`EXT_CS`), INT IO3,
+RST IO20. Direct cable to the Pi, fixed IP, no DHCP: VCU 192.168.5.1/24, Pi 192.168.5.2 (set
+on the Pi, LIVI host 192.168.5.1). Bus sharing: both drivers lock through SPIClass transactions
+on `CANManager::spiBus()` (started in setup before ETH; the old `SPI.begin()` in the CAN task
+is gone, it took the pins from that bus). W5500 at 20 MHz, its receive task lowered from 15 to
+4 (below the CAN task). Watch `can.rxOverflows` with Ethernet traffic. The Seeed library reads received
+frames (`mcp2515_read_canMsg`) without the SPI lock, which broke CAN once the W5500 shared the
+bus (2026-10-28: garbage/no frames). `LockedMcp2515::readFrame()` (can_manager) reads status and
+frame under one `beginTransaction()`; do not go back to `readMsgBuf()`. RST held low in deep
+sleep. mDNS `vcu.local` starts with Ethernet (the Pi's shutdown watcher uses it). `GET /api/system/info` has `eth { present, link, ip, mac, speedMbps }`.
+IO20 is USB D+ and IO3 a strapping pin: fine while the board programs over UART0.
+Builds (2026-10-26, user's `pio run`); not flashed or tested on hardware yet.
+
+## WiFi = service mode (wifi_manager.cpp)
+
+WiFi is off at boot. Serial (UART0, 115200) commands, read in the web task: `service on` starts
+WiFi as before (saved station from `/api/config/wifi`, else AP `VCU_xxxx` at 192.168.4.3, with
+the retry/fallback logic below), `service off` stops it, `net` prints status. Runtime only,
+a reboot ends service mode. The old `EnhancedSerialConsole` is still never created.
+Inside service mode: tries the saved station 10 s, falls back to the AP, retries every 30 s from
+the AP (skipped while a client is on the AP), AP back after 60 s without the station.
 The HTTP API has no authentication: only put the VCU on a network that is yours alone.
 
 ## Pi power and shutdown (pi_power_logic.h, pi_power.{h,cpp})
@@ -59,8 +75,8 @@ The HTTP API has no authentication: only put the VCU on a network that is yours 
 IO21 (`Pins::LWP6`) switches the Pi's supply (HIGH = on, assumed active-high: check the hardware).
 The pin is LOW after every reset. Sequence: Pi powered once the ignition has been on 1 s (and power
 was off 3 s); ignition off for 3 s = `REQUESTED` (`GET /api/pi` and the live JSON `pi` block say
-`shutdownRequested`); the Pi POSTs `/api/pi/ack`; power is cut 20 s after the ack, 15 s without an
-ack, 60 s at the very latest. A request always runs to the end, also if the key comes back, and
+`shutdownRequested`); the Pi POSTs `/api/pi/ack`; power is cut 50 s after the ack (owner, 2026-10-29), 15 s
+without an ack, 70 s at the very latest. A request always runs to the end, also if the key comes back, and
 the Pi is powered again after the off time (quick key cycle = clean Pi restart, car unaffected:
 it runs in the web task, never in the control task). Deep sleep waits until the Pi has no power
 (`StateManager::handleStandbyState`), IO21 is held low through it. The Pi side is
@@ -78,6 +94,8 @@ Not compiled for the ESP32 yet.
   both flags 0, and the BMS starts sending a moment after the VCU boots (flags count as
   "not allowed" until then).
   Discharge flag 0 while plugged in is expected: Orion charge/drive interlock (owner).
+- Regen (RUN) = fresh 0x010 and CCL > 0 only, not the charge flag: the Orion sets charge-allowed
+  only for the charger, never while driving (owner, 2026-10-29). Charge flag gates the charger.
 - Allow flags are safety critical: missing frame = not allowed. Override `ignoreAllowFlags` in
   `/api/config/bms`, runtime only (never saved), DCL/CCL still apply.
 - Max SOC 100 % = no SOC check, charge until unplugged (BMS CCL and charge flag decide).
@@ -97,9 +115,26 @@ ran inside the CAN task at 128 SPS, ~47 ms blocked per loop in RUN. Now an ADC t
 priority 2) owns I2C, 860 SPS, sleeps during conversions, full set every ~7 ms; the CAN task uses
 the cached values. Older than 100 ms (`INPUT_STALE_MS`) = 0 % torque and neutral (owner approved).
 
+## Precharge (state_manager.cpp `armBattery`, owner approved 2026-10-28)
+
+- Starts (and counts) only with fresh BMS data (`BMS_TIMEOUT_MS`) and a pack voltage within
+  `Battery::MIN_VOLTAGE..MAX_VOLTAGE`; otherwise BSC off, "Precharge waiting" every 5 s.
+- RUN only: no precharge and no BSC (boost or buck) while the BMS does not allow discharging
+  (`dischargeAllowed()`, so `ignoreAllowFlags` applies). Flag drops after closing: BSC off,
+  contactor stays closed, BSC back 2 s after it returns. CHARGING ignores the flag (Orion
+  interlock clears it while plugged in, and the DC-DC must run). Owner, 2026-10-29.
+- Max 3 timeouts, then `PRECHARGE_FAILED` (ERROR) and no more tries until `transitionToStandby()`
+  (ignition off / charge session over), which also clears the fault. Before: retried forever.
+- BSC HV target (0x260 byte 2, offset 220 V) is clamped to 220..475 V; it used to wrap
+  (100 V pack -> 356 V target).
+- DMC KL15 (IO13) is HIGH for all of RUN, on purpose: the same line powers the Orion BMS
+  (owner, 2026-10-28), and precharge needs its pack voltage. Gating it on precharge deadlocked.
+  Driving stays gated: 0x210 enable needs `isPreCharged()`. Not HIGH in CHARGING (open item).
+
 ## Open items
 
-- Station WiFi credentials: API `GET|POST /api/config/wifi` exists (applies on next boot).
+- Station WiFi credentials: API `GET|POST /api/config/wifi` exists (used by the next `service on`).
+- LIVI/Pi side of the Ethernet link (static 192.168.5.2 on the Pi, LIVI host 192.168.5.1).
 - Orion frame details to confirm with a capture (cell frame, thermistor layout, charge limit byte
   `x2` decode); BSC `modeAct` values unnamed (need the DBC for 0x26A).
-- AP IP in `startAP()` is 192.168.4.3, LIVI's default host is 192.168.4.1.
+- AP IP in `startAP()` is 192.168.4.3 (service mode only).

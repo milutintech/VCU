@@ -18,6 +18,7 @@
 class CANManager; // Forward declaration
 class VehicleControl;
 class PiPower;  
+class ErrorMonitor;
 class StateManager {
 public:
     explicit StateManager(CANManager& canMgr, VehicleControl* vc = nullptr);
@@ -116,6 +117,8 @@ public:
      */
     void setVehicleControl(VehicleControl* vc) { vehicleControl = vc; }
     void setPiPower(PiPower* p) { piPower = p; }
+    void setErrorMonitor(ErrorMonitor* em) { errorMonitor = em; }
+    bool prechargeGaveUp() const { return prechargeFailed; }
     void handleConnectorUnlockInterrupt() { conUlockInterrupt = true; }
     void setErrorLatch(bool state) { errorLatch = state; }
     void resetErrorLatch();
@@ -141,6 +144,7 @@ private:
     void addPinToWakeSources(uint8_t pin);
     VehicleControl* vehicleControl;
     PiPower* piPower = nullptr;   ///< Pi shutdown sequence, deep sleep waits for it
+    ErrorMonitor* errorMonitor = nullptr;   ///< for PRECHARGE_FAILED
     // System references
     CANManager& canManager;
     
@@ -179,6 +183,16 @@ private:
     // Timing management
     unsigned long lastModeChangeTime;      // Last state change timestamp
     unsigned long lastPrechargeAttempt;    // Last precharge attempt timestamp
+
+    // Precharge gives up after this many timeouts (PRECHARGE_FAILED) until the next STANDBY
+    // (ignition off, or charging over). Attempts only start, and only count, while the BMS
+    // reports a fresh pack voltage within MIN_VOLTAGE..MAX_VOLTAGE.
+    static constexpr uint8_t MAX_PRECHARGE_ATTEMPTS = 3;
+    uint8_t prechargeAttempts = 0;
+    bool prechargeFailed = false;
+    bool packVoltageValid() const;
+    bool hvDrawAllowed() const;
+    void resetPrecharge();
 
     unsigned long pumpStartTime = 0;
     unsigned long fanStartTime = 0;

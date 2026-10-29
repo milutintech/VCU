@@ -114,11 +114,12 @@ float VehicleControl::calculateImmediateTorqueFromPedal() {
     // Apply simplified three-zone pedal mapping
     float baseTorquePercent = applyPedalZones(rawThrottle);
 
-    // Regen charges the pack. With the BMS charge limit at 0 A or charge enable off (full
-    // pack, cold cells) request no regen torque at all: the DMC's 0 A generator current
-    // limit alone lets some current through (Orion P0A06, charge limit exceeded).
+    // Regen charges the pack. With the BMS charge limit at 0 A (full pack, cold cells) or no
+    // fresh BMS data request no regen torque at all: the DMC's 0 A generator current limit
+    // alone lets some current through (Orion P0A06, charge limit exceeded). Not the charge
+    // flag: the Orion only sets it for the charger, never while driving.
     if (baseTorquePercent < 0.0f) {
-        const bool regenAllowed = canManager && canManager->chargeAllowed() &&
+        const bool regenAllowed = canManager && canManager->bmsPackFresh() &&
                                   canManager->getBMSData().maxCharge > 0;
         if (!regenAllowed) {
             baseTorquePercent = 0.0f;

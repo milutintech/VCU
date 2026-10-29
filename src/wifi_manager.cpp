@@ -18,6 +18,8 @@ WiFiManager::WiFiManager()
 }
 
 void WiFiManager::begin() {
+    if (started) return;
+    started = true;
     loadConfig();
 
     // Try station mode first if enabled and credentials exist
@@ -60,7 +62,22 @@ void WiFiManager::tryStationFromAP() {
 }
 
 void WiFiManager::update() {
-    checkConnection();
+    if (started) checkConnection();
+}
+
+void WiFiManager::stop() {
+    if (!started) return;
+    // mDNS stays: it also answers on Ethernet
+    WiFi.softAPdisconnect(true);
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+    started = false;
+    connected = false;
+    apMode = false;
+    stationTrying = false;
+    initialJoin = false;
+    stationLostSince = 0;
+    Serial.println("[WiFi] Off (service mode ended)");
 }
 
 void WiFiManager::connectStation() {
@@ -223,7 +240,9 @@ void WiFiManager::enableStation(bool enable) {
 }
 
 String WiFiManager::getIPAddress() const {
-    if (apMode) {
+    if (!started) {
+        return "";
+    } else if (apMode) {
         return WiFi.softAPIP().toString();
     } else {
         return WiFi.localIP().toString();
@@ -320,7 +339,8 @@ void WiFiManager::clearStationCredentials() {
 
 String WiFiManager::statusJSON() const {
     JsonDocument doc;
-    doc["mode"] = apMode ? "AP" : "STA";
+    doc["serviceMode"] = started;
+    doc["mode"] = !started ? "OFF" : apMode ? "AP" : "STA";
     doc["connected"] = connected;
     doc["ip"] = getIPAddress();
     doc["rssi"] = getRSSI();

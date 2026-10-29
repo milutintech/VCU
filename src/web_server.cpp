@@ -89,10 +89,6 @@ void VCUWebServer::setupRoutes() {
     });
 
     // Status endpoints
-    server.on("/api/status", HTTP_GET, [this](AsyncWebServerRequest* request) {
-        handleGetStatus(request);
-    });
-
     server.on("/api/status/live", HTTP_GET, [this](AsyncWebServerRequest* request) {
         handleGetLiveData(request);
     });
@@ -103,6 +99,11 @@ void VCUWebServer::setupRoutes() {
 
     server.on("/api/status/faults", HTTP_GET, [this](AsyncWebServerRequest* request) {
         handleGetFaults(request);
+    });
+
+    // After the specific /api/status/* routes: a route also matches everything below it.
+    server.on("/api/status", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetStatus(request);
     });
 
     server.on("/api/bms/cells", HTTP_GET, [this](AsyncWebServerRequest* request) {
@@ -1083,6 +1084,9 @@ String VCUWebServer::createSystemInfoJSON() {
     can["frames"] = canManager->getRxCount();
     can["rxOverflows"] = canManager->getRxOverflowCount();
     can["intPinLow"] = digitalRead(Pins::CAN_INT_PIN) == LOW;
+
+    if (ethernet) ethernet->toJSON(doc["eth"].to<JsonObject>());
+    if (wifiManager) doc["wifiServiceMode"] = wifiManager->isStarted();
 
     String response;
     serializeJson(doc, response);

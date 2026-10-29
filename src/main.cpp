@@ -9,8 +9,6 @@
 #include <Wire.h>
 #include <SPI.h>
 #include "mcp2515_can.h"
-#include <esp_adc_cal.h>
-#include <esp32-hal-adc.h>
 #include "ADS1X15.h"
 
 // Enhanced includes
@@ -24,7 +22,8 @@
 #include "fault_handler.h"            // Fault detection and reactions
 #include "configuration.h"            // Extended configuration
 #include "can_monitoring.h"           // CAN monitoring extensions
-#include "wifi_manager.h"             // WiFi management
+#include "wifi_manager.h"             // WiFi management (service mode only)
+#include "ethernet_link.h"            // W5500, the cable to the Pi
 #include "pi_power.h"                // Pi power and shutdown sequence
 #include "web_server.h"               // Web server
 
@@ -38,6 +37,7 @@ ErrorMonitor* errorMonitor = nullptr;             // New error monitor
 FaultHandler* faultHandler = nullptr;             // Fault detection and reactions
 CANMonitor* canMonitor = nullptr;                 // New CAN monitor
 WiFiManager* wifiManager = nullptr;               // WiFi manager
+EthernetLink* ethernet = nullptr;                 // W5500 Ethernet
 PiPower* piPower = nullptr;                       // Power and shutdown of the infotainment Pi
 VCUWebServer* webServer = nullptr;                // Web server
 
@@ -113,9 +113,9 @@ void canTask(void* parameter) {
     Serial.print("Enhanced CAN Task running on core: ");
     Serial.println(xPortGetCoreID());
     
-    // Initialize communication hardware
-    SPI.begin(Pins::SCK, Pins::MISO, Pins::MOSI, Pins::SPI_CS_PIN);
-    
+    // No SPI.begin() here: a second SPI peripheral on the same pins would take SCK/MOSI away
+    // from the bus the MCP2515 and the W5500 share (CANManager::spiBus()).
+
     // Initialize CAN with enhanced monitoring
     canManager->begin();
     // Note: CAN logging methods need to be implemented in CANManager
@@ -271,6 +271,45 @@ void controlTask(void* parameter) {
 }
 
 /**
+ * @brief Serial commands, one per line (115200 baud). Runs in the web task, which also
+ * runs the WiFi manager.
+ *   service on   WiFi on as before (saved station, else the AP VCU_xxxx), until reboot
+ *   service off  WiFi off again
+ *   net          Ethernet and WiFi status
+ */
+static void handleSerialCommands() {
+    static String line;
+    while (Serial.available()) {
+        const char c = Serial.read();
+        if (c != '\n' && c != '\r') {
+            if (line.length() < 64) line += c;
+            continue;
+        }
+        line.trim();
+        line.toLowerCase();
+        if (line == "service on") {
+            errorMonitor->logInfo("Service mode on: WiFi started", "NETWORK");
+            wifiManager->begin();
+        } else if (line == "service off") {
+            errorMonitor->logInfo("Service mode off: WiFi stopped", "NETWORK");
+            wifiManager->stop();
+        } else if (line == "net") {
+            Serial.printf("[ETH] %s, link %s, IP %s\n", ethernet->started() ? "present" : "not found",
+                          ethernet->linkUp() ? "up" : "down", ethernet->ip().c_str());
+            if (wifiManager->isStarted()) {
+                Serial.printf("[WiFi] service mode, %s \"%s\", IP %s\n", wifiManager->isAPMode() ? "AP" : "station",
+                              wifiManager->getSSID().c_str(), wifiManager->getIPAddress().c_str());
+            } else {
+                Serial.println("[WiFi] off (service on: start it)");
+            }
+        } else if (line.length() > 0) {
+            Serial.println("Commands: service on | service off | net");
+        }
+        line = "";
+    }
+}
+
+/**
  * @brief Web Server Task - Handles WiFi and HTTP/WebSocket
  */
 void webServerTask(void* parameter) {
@@ -280,6 +319,8 @@ void webServerTask(void* parameter) {
     errorMonitor->logInfo("Web server task started successfully", "SYSTEM");
 
     for(;;) {
+        handleSerialCommands();
+
         // Update WiFi connection status
         if (wifiManager) {
             wifiManager->update();
@@ -371,9 +412,18 @@ void setup() {
     piPower = new PiPower();
     piPower->begin();
     stateManager->setPiPower(piPower);
+    stateManager->setErrorMonitor(errorMonitor);
     vehicleControl->setCanManager(canManager);
     vehicleControl->setErrorMonitor(errorMonitor);
     
+    // Ethernet to the Pi. Before the web server: it also starts the network stack.
+    ethernet = new EthernetLink();
+    if (ethernet->begin(canManager->spiBus())) {
+        errorMonitor->logInfo("Ethernet initialized", "NETWORK");
+    } else {
+        errorMonitor->logWarning("W5500 not found, no Ethernet", "NETWORK");
+    }
+
     // Initialize WiFi Manager
     wifiManager = new WiFiManager();
     if (!wifiManager) {
@@ -381,21 +431,8 @@ void setup() {
         while(1);
     }
 
-    // ====== WIFI CONFIGURATION OPTIONS ======
-    // Uncomment ONE of these options as needed:
-
-    // Option 1: Clear all WiFi settings (force AP mode)
-    //wifiManager->clearStationCredentials();
-
-    // Option 2: Set WiFi credentials to connect to your network
-    //wifiManager->setStationCredentials("YOUR_SSID", "YOUR_PASSWORD");
-    //wifiManager->saveConfig();
-
-    // Option 3: Do nothing - use saved settings or default to AP mode
-    // =========================================
-
-    wifiManager->begin();
-    errorMonitor->logInfo("WiFi Manager initialized", "NETWORK");
+    // WiFi stays off: the Pi is on the cable. "service on" on the serial console starts it.
+    errorMonitor->logInfo("WiFi off (serial: service on)", "NETWORK");
 
     // Initialize Web Server
     webServer = new VCUWebServer(&config, stateManager, vehicleControl, canManager, errorMonitor);
@@ -404,12 +441,13 @@ void setup() {
         while(1);
     }
     webServer->setWifiManager(wifiManager);
+    webServer->setEthernet(ethernet);
     webServer->setPiPower(piPower);
     webServer->begin();
     errorMonitor->logInfo("Web Server initialized", "NETWORK");
 
     Serial.print("Web Interface: http://");
-    Serial.println(wifiManager->getIPAddress());
+    Serial.println(ethernet->ip());
 
     // Apply current configuration to vehicle control
     vehicleControl->setDrivingMode(config.getDriveMode());    
@@ -430,9 +468,6 @@ void setup() {
     
     SystemSetup::initializeSleep();
     
-    // Print system information (don't force WiFi mode - let WiFiManager handle it)
-    Serial.print("Device MAC Address: ");
-    Serial.println(WiFi.macAddress());
     
     errorMonitor->logInfo("Hardware initialization complete", "SYSTEM");
     
@@ -481,9 +516,8 @@ void setup() {
     Serial.println("Enhanced VCU initialization complete!");
     Serial.println("==========================================");
     Serial.print("Web Interface: http://");
-    Serial.println(wifiManager->getIPAddress());
-    Serial.print("WiFi SSID: ");
-    Serial.println(wifiManager->getSSID());
+    Serial.println(ethernet->ip());
+    Serial.println("WiFi off, serial \"service on\" starts it");
     Serial.println("==========================================");
 }
 

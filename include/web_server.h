@@ -11,6 +11,7 @@
 #include "error_monitor.h"
 #include "wifi_manager.h"
 #include "pi_power.h"
+#include "ethernet_link.h"
 
 class VCUWebServer {
 public:
@@ -24,6 +25,7 @@ public:
 
     void setWifiManager(WiFiManager* wm) { wifiManager = wm; }
     void setPiPower(PiPower* p) { piPower = p; }
+    void setEthernet(EthernetLink* e) { ethernet = e; }
 
     // Enable/disable debug mode
     void setDebugMode(bool enabled);
@@ -41,6 +43,7 @@ private:
     ErrorMonitor* errorMonitor;
     WiFiManager* wifiManager = nullptr;
     PiPower* piPower = nullptr;
+    EthernetLink* ethernet = nullptr;
 
     // System flags
     bool debugMode;

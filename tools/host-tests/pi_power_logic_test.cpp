@@ -62,7 +62,7 @@ static void the_hard_limit_cuts_even_when_the_pi_keeps_acknowledging_late() {
     run(l, t, req + 14000, false);                     // ack arrives just before the timeout
     run(l, t, req + 14010, false, true);
     assert(l.state() == PiState::ACKED);
-    // POST_ACK_MS (20 s) after 14 s would be 34 s, well inside the 60 s limit.
+    // POST_ACK_MS (50 s) after 14 s would be 64 s, inside the 70 s limit.
     assert(!run(l, t, req + 14010 + POST_ACK_MS + 100, false).powerOn);
     assert(t - req < HARD_MAX_MS);
 }

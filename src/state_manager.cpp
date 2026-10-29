@@ -22,6 +22,8 @@
 #include "configuration.h"  // Add this include at the top
 #include "vehicle_control.h"
 #include "pi_power.h"
+#include "ethernet_link.h"
+#include "error_monitor.h"
 
 
 /**
@@ -234,6 +236,7 @@ void StateManager::handleStandbyState() {
     // Once we're sure connector is unlocked if needed, we can sleep
     Serial.println("No wake signals, entering deep sleep");
     if (piPower) piPower->holdForSleep();
+    EthernetLink::holdForSleep();
     delay(100); // Small delay to allow serial to finish
     esp_deep_sleep_start();
 }
@@ -273,14 +276,9 @@ void StateManager::handleRunState() {
     armCoolingSys(true);
     armBattery(true);
 
-    // Only enable DMC if HV system is ready
-    if (batteryArmed && hasPreCharged &&
-        hvVoltageActual >= VehicleParams::Battery::MIN_VOLTAGE) {
-        digitalWrite(Pins::DMCKL15, HIGH);
-    } else {
-        digitalWrite(Pins::DMCKL15, LOW);  // Keep DMC off until HV is ready
-    }
-
+    // DMC KL15 (IO13) also powers the Orion BMS, so it is on for all of RUN: precharge needs the
+    // BMS pack voltage. It is only the DMC's logic supply; the DMC is enabled to drive (0x210)
+    // only once precharged (canTask, isPreCharged()).
     digitalWrite(Pins::DMCKL15, HIGH);
     digitalWrite(Pins::BSCKL15, HIGH);
 }
@@ -337,6 +335,34 @@ void StateManager::armBattery(bool arm) {
     
     if (arm) {
         if (!hasPreCharged) {
+            if (prechargeFailed) {
+                return;   // gave up, BSC already off; STANDBY resets it
+            }
+            const bool voltageOk = packVoltageValid();
+            if (!voltageOk || !hvDrawAllowed()) {
+                // No attempt without a plausible pack voltage, or in RUN while the BMS forbids
+                // discharging: BSC off, and the attempt (including the mode change delay)
+                // starts over once both are fine. Waiting does not count as an attempt.
+                static unsigned long lastWaitPrint = 0;
+                if (millis() - lastWaitPrint >= 5000) {
+                    lastWaitPrint = millis();
+                    if (!voltageOk) {
+                        Serial.println("Precharge waiting: pack voltage " + String(batteryVoltage) + "V not in " +
+                                       String(VehicleParams::Battery::MIN_VOLTAGE) + "-" +
+                                       String(VehicleParams::Battery::MAX_VOLTAGE) + "V or no BMS data");
+                    } else {
+                        Serial.println("Precharge waiting: BMS does not allow discharging");
+                    }
+                }
+                if (enableBSC) {
+                    enableBSC = false;
+                    canManager.setEnableBSC(enableBSC);
+                }
+                inErrorClearSequence = false;
+                lastModeChangeTime = millis();
+                return;
+            }
+
             // Start precharge process
             if (modeBSC != BSCModes::BSC6_BOOST) {
                 Serial.println("Starting precharge - Setting BOOST mode");
@@ -397,10 +423,21 @@ void StateManager::armBattery(bool arm) {
                     // While in the 100ms wait period, continue normal operation
                 }
                 else if (millis() - lastModeChangeTime > Constants::PRECHARGE_TIMEOUT_MS) {
-                    Serial.println("Precharge timeout - Voltage not reached");
                     enableBSC = false;
                     canManager.setEnableBSC(enableBSC);  // Update when enable changes
                     lastModeChangeTime = millis(); // Reset for next attempt
+                    prechargeAttempts++;
+                    Serial.println("Precharge timeout - Voltage not reached (attempt " +
+                                   String(prechargeAttempts) + "/" + String(MAX_PRECHARGE_ATTEMPTS) + ")");
+                    if (prechargeAttempts >= MAX_PRECHARGE_ATTEMPTS) {
+                        prechargeFailed = true;
+                        Serial.println("Precharge failed, giving up until ignition off");
+                        if (errorMonitor) {
+                            errorMonitor->raiseFault(ErrorCode::PRECHARGE_FAILED, ErrorSeverity::ERROR,
+                                                     "Precharge failed after " + String(prechargeAttempts) +
+                                                     " attempts", hvVoltageActual, "BSC");
+                        }
+                    }
                 }
             }
         }
@@ -416,7 +453,16 @@ void StateManager::armBattery(bool arm) {
                 canManager.setEnableBSC(enableBSC);  // Update when enable changes
             }
 
-            if (millis() - lastModeChangeTime >= Constants::MODE_CHANGE_DELAY_MS) {
+            if (!hvDrawAllowed()) {
+                // Buck draws from the pack. The contactor stays closed (DMC is already
+                // disabled by the fault); the BSC comes back 2 s after discharge is allowed.
+                if (enableBSC) {
+                    Serial.println("BSC off: BMS does not allow discharging");
+                    enableBSC = false;
+                    canManager.setEnableBSC(enableBSC);
+                }
+                lastModeChangeTime = millis();
+            } else if (millis() - lastModeChangeTime >= Constants::MODE_CHANGE_DELAY_MS) {
                 enableBSC = true;
                 canManager.setEnableBSC(enableBSC);  // Update when enable changes
             }
@@ -765,6 +811,7 @@ uint8_t StateManager::getWakeupReason() {
  */
 void StateManager::transitionToStandby() {
     Serial.println("Transitioning to STANDBY state");
+    resetPrecharge();
     currentState = VehicleState::STANDBY;
     nlgCharged = false;
     enableBSC = false;
@@ -808,6 +855,34 @@ void StateManager::transitionToCharging() {
     Serial.println("Transitioning to CHARGING state");
     currentState = VehicleState::CHARGING;
     Serial.println("Now in CHARGING state");
+}
+
+/** Fresh BMS frame and a pack voltage within the battery limits. */
+bool StateManager::packVoltageValid() const {
+    const unsigned long lastBms = canManager.getLastBMSMs();
+    return lastBms != 0 &&
+           millis() - lastBms <= VehicleParams::Timing::BMS_TIMEOUT_MS &&
+           batteryVoltage >= VehicleParams::Battery::MIN_VOLTAGE &&
+           batteryVoltage <= VehicleParams::Battery::MAX_VOLTAGE;
+}
+
+/**
+ * May the BSC draw from the pack? In RUN only while the BMS allows discharging. In CHARGING
+ * always: the Orion clears discharge-allowed while plugged in (interlock), and the DC-DC has
+ * to keep the 12 V side up during charging.
+ */
+bool StateManager::hvDrawAllowed() const {
+    return currentState != VehicleState::RUN || canManager.dischargeAllowed();
+}
+
+/** New ignition cycle (or charge session): precharge may try again. */
+void StateManager::resetPrecharge() {
+    prechargeAttempts = 0;
+    if (prechargeFailed) {
+        prechargeFailed = false;
+        // Cleared here, not in FaultHandler: only this sequence knows when it may retry.
+        if (errorMonitor) errorMonitor->clearFault(ErrorCode::PRECHARGE_FAILED);
+    }
 }
 
 void StateManager::removePinFromWakeSources(uint8_t pin) {

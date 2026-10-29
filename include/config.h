@@ -9,6 +9,10 @@ namespace Pins {
     constexpr uint8_t MISO = 5;
     constexpr uint8_t SPI_CS_PIN = 36;
     constexpr uint8_t CAN_INT_PIN = 37;  // New interrupt pin
+    // W5500 Ethernet, on the same SCK/MOSI/MISO as the MCP2515
+    constexpr uint8_t ETH_CS = 15;       // EXT_CS
+    constexpr uint8_t ETH_INT = 3;
+    constexpr uint8_t ETH_RST = 20;
     constexpr uint8_t SDA = 1;
     constexpr uint8_t SCL = 2;
     
