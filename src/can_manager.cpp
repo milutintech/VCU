@@ -11,6 +11,7 @@
  * Uses MCP2515 CAN controller via SPI interface.
  */
 
+#include <cmath>
 #include "can_manager.h"
 #include "state_manager.h"
 #include <esp_task_wdt.h>
@@ -24,6 +25,8 @@
  * 
  * Initializes communication buffers and system state.
  */
+volatile uint32_t CANManager::intCount = 0;
+
 CANManager::CANManager(uint8_t cs_pin)
     : CAN(cs_pin)
     , stateManager(nullptr)
@@ -53,6 +56,48 @@ CANManager::~CANManager() {
 
 
 
+bool LockedMcp2515::readFrame(uint32_t& id, uint8_t& len, uint8_t* buf) {
+    pSPI->beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));   // as the library
+
+    digitalWrite(SPICS, LOW);
+    pSPI->transfer(MCP_READ_STATUS);
+    const uint8_t status = pSPI->transfer(0x00);
+    digitalWrite(SPICS, HIGH);
+
+    uint8_t cmd;
+    if (status & MCP_STAT_RX0IF) {
+        cmd = MCP_READ_RX0;
+    } else if (status & MCP_STAT_RX1IF) {
+        cmd = MCP_READ_RX1;
+    } else {
+        pSPI->endTransaction();
+        return false;
+    }
+
+    // READ RX BUFFER: SIDH, SIDL, EID8, EID0, DLC, data; clears RXnIF when CS goes high.
+    digitalWrite(SPICS, LOW);
+    pSPI->transfer(cmd);
+    uint8_t hdr[5];
+    for (uint8_t& b : hdr) b = pSPI->transfer(0x00);
+    id = (uint32_t(hdr[MCP_SIDH]) << 3) | (hdr[MCP_SIDL] >> 5);
+    if (hdr[MCP_SIDL] & MCP_TXB_EXIDE_M) {
+        id = (id << 2) | (hdr[MCP_SIDL] & 0x03);
+        id = (id << 8) | hdr[MCP_EID8];
+        id = (id << 8) | hdr[MCP_EID0];
+    }
+    len = min<uint8_t>(hdr[4] & MCP_DLC_MASK, CAN_MAX_CHAR_IN_MESSAGE);
+    for (uint8_t i = 0; i < len; i++) buf[i] = pSPI->transfer(0x00);
+    digitalWrite(SPICS, HIGH);
+
+    pSPI->endTransaction();
+    return true;
+}
+
+SPIClass& CANManager::spiBus() {
+    customSPI->begin(Pins::SCK, Pins::MISO, Pins::MOSI, Pins::SPI_CS_PIN);  // no-op once started
+    return *customSPI;
+}
+
 /**
  * @brief Initialize CAN communication hardware
  * 
@@ -60,13 +105,13 @@ CANManager::~CANManager() {
  * with 500kbps baudrate. Retries initialization until successful.
  */
 void CANManager::begin() {
+    bmsCells.begin();
     if (!customSPI) {
         Serial.println("SPI not initialized");
         return;
     }
     
-    customSPI->begin(Pins::SCK, Pins::MISO, Pins::MOSI, Pins::SPI_CS_PIN);
-    CAN.setSPI(customSPI);
+    CAN.setSPI(&spiBus());
     
     uint8_t retries = 0;
     const uint8_t MAX_RETRIES = 5;
@@ -109,6 +154,14 @@ void CANManager::update() {
     // Process all incoming CAN messages
     checkAndProcessMessages();
 
+    // Receive overflow = a frame arrived while both RX buffers were full and was lost.
+    // checkError() also clears the flags.
+    uint8_t eflg = 0;
+    CAN.checkError(&eflg);
+    if (eflg & (MCP_EFLG_RX0OVR | MCP_EFLG_RX1OVR)) {
+        rxOverflowCount = rxOverflowCount + 1;
+    }
+
     // Update state manager with latest data
     if (stateManager) {
         stateManager->setBatteryVoltage(bmsData.voltage);
@@ -137,18 +190,6 @@ void CANManager::update() {
         sendBSC();
     }
     
-    // ESP-NOW transmission for BMS data
-    if (espNowInitialized && currentTime - lastBMSSendTime >= ESPNOW::BMS_SEND_INTERVAL) {
-        lastBMSSendTime = currentTime;
-       // sendBMSDataESPNOW();
-    }
-    
-    // ESP-NOW transmission for DMC temperature data
-    if (espNowInitialized && currentTime - lastDMCSendTime >= ESPNOW::DMC_SEND_INTERVAL) {
-        lastDMCSendTime = currentTime;
-       // sendDMCTempESPNOW();
-    }
-    
 
 }
 
@@ -158,40 +199,45 @@ void CANManager::update() {
 void CANManager::checkAndProcessMessages() {
     uint8_t len;
     uint8_t buf[8];
-    while (CAN_MSGAVAIL == CAN.checkReceive()) {
-        if (CAN.readMsgBuf(&len, buf) == CAN_OK) {
-            uint32_t id = CAN.getCanId();
-            
-            // FIXED: Use pointer access with null checks
-            if (canMonitor && canMonitor->isLoggingEnabled()) {
-                canMonitor->logMessage(id, buf, len, false);  // false = received
-                if (systemMonitor) {
-                    systemMonitor->logCANMessage(id, buf, len, false, canMonitor->getMessageDescription(id));
-                }
+    uint32_t id;
+    while (CAN.readFrame(id, len, buf)) {
+        rxCount = rxCount + 1;
+        
+        // FIXED: Use pointer access with null checks
+        if (canMonitor && canMonitor->isLoggingEnabled()) {
+            canMonitor->logMessage(id, buf, len, false);  // false = received
+            if (systemMonitor) {
+                systemMonitor->logCANMessage(id, buf, len, false, canMonitor->getMessageDescription(id));
             }
-            
-            switch(id) {
-                case 0x010:  // BMS message
-                    processBMSMessage(buf);
-                    break;
-                case CANIds::CONFIG_MESSAGE:
-                    processConfigMessage(buf);
-                    break;
-                case CANIds::BSC_VAL:
-                    processBSCMessage(buf);
-                    break;
-                    
-                case 0x258:  // DMC Status
-                case 0x259:  // DMC Power
-                case 0x458:  // DMC Temperature
-                    processDMCMessage(id, buf);
-                    break;
-                    
-                case CANIds::NLG_ACT_LIM:
-                case CANIds::NLG_ACT_PLUG:
-                    processNLGMessage(id, buf);
-                    break;
-            }
+        }
+        
+        // Orion per-cell broadcast, IDs come from configuration.
+        if (bmsCells.handleFrame(id, buf, len)) continue;
+
+        switch(id) {
+            case CANIds::BMS_PACK:
+                processBMSMessage(buf);
+                break;
+            case CANIds::BMS_MINMAX:
+                processBMSMinMaxMessage(buf, len);
+                break;
+            case CANIds::CONFIG_MESSAGE:
+                processConfigMessage(buf);
+                break;
+            case CANIds::BSC_VAL:
+                processBSCMessage(buf);
+                break;
+                
+            case 0x258:  // DMC Status
+            case 0x259:  // DMC Power
+            case 0x458:  // DMC Temperature
+                processDMCMessage(id, buf);
+                break;
+                
+            case CANIds::NLG_ACT_LIM:
+            case CANIds::NLG_ACT_PLUG:
+                processNLGMessage(id, buf);
+                break;
         }
     }
 }
@@ -199,8 +245,6 @@ void CANManager::checkAndProcessMessages() {
 /**
  * @brief Process BMS status message
  */
-
-unsigned long lastBMSUpdate = 0;  // Variable to track last update timestamp
 
 void CANManager::processBMSMessage(uint8_t* buf) {
     if (!buf) return;
@@ -212,7 +256,40 @@ void CANManager::processBMSMessage(uint8_t* buf) {
     bmsData.maxCharge = buf[7] * 2;
     //Serial.println("BMS Data - SOC: " + String(bmsData.soc) + "%, Voltage: " + String(bmsData.voltage) + "V, Current: " + String(bmsData.current) + "A, Max Discharge: " + String(bmsData.maxDischarge) + "A, Max Charge: " + String(bmsData.maxCharge) + "A");;
 
-    lastBMSUpdate = millis(); // Update timestamp on valid message
+    lastBMSMs = millis(); // Update timestamp on valid message
+}
+
+/**
+ * @brief Process BMS min/max message (Lada.dbc BMS_MINMAX, 7 bytes, big endian)
+ */
+void CANManager::processBMSMinMaxMessage(uint8_t* buf, uint8_t len) {
+    if (!buf || len < 7) return;
+
+    bmsData.tempHigh = static_cast<int8_t>(buf[0]);
+    bmsData.tempLow = static_cast<int8_t>(buf[1]);
+    bmsData.cellLowDeciMv = (buf[2] << 8) | buf[3];
+    bmsData.cellHighDeciMv = (buf[4] << 8) | buf[5];
+    bmsData.chargeRelay = buf[6] & 0x01;
+    bmsData.dischargeRelay = buf[6] & 0x02;
+
+    lastBMSFlagsMs = millis();
+}
+
+bool CANManager::bmsPackFresh() const {
+    return lastBMSMs != 0 && (millis() - lastBMSMs) <= VehicleParams::Timing::BMS_TIMEOUT_MS;
+}
+
+bool CANManager::bmsFlagsFresh() const {
+    const unsigned long last = lastBMSFlagsMs;
+    return last != 0 && (millis() - last) <= VehicleParams::Timing::BMS_TIMEOUT_MS;
+}
+
+bool CANManager::chargeAllowed() const {
+    return ignoreAllowFlags || (bmsFlagsFresh() && bmsData.chargeRelay);
+}
+
+bool CANManager::dischargeAllowed() const {
+    return ignoreAllowFlags || (bmsFlagsFresh() && bmsData.dischargeRelay);
 }
 
 /**
@@ -220,6 +297,7 @@ void CANManager::processBMSMessage(uint8_t* buf) {
  */
 void CANManager::processBSCMessage(uint8_t* buf) {
     if (!buf || !stateManager) return;
+    lastBSCMs = millis();
     
     bscData.hvVoltageAct = ((buf[0] << 8) | buf[1]) * 0.1;
     bscData.lvVoltageAct = buf[2] * 0.1;
@@ -235,6 +313,7 @@ void CANManager::processBSCMessage(uint8_t* buf) {
  */
 void CANManager::processDMCMessage(uint32_t id, uint8_t* buf) {
     if (!buf) return;
+    lastDMCMs = millis();
 
     switch(id) {
         case 0x258:  // Status message
@@ -272,6 +351,7 @@ void CANManager::processDMCMessage(uint32_t id, uint8_t* buf) {
  */
 void CANManager::processNLGMessage(uint32_t id, uint8_t* buf) {
     if (!buf) return;
+    lastNLGMs = millis();
 
     switch(id) {
         case CANIds::NLG_ACT_LIM:
@@ -297,8 +377,11 @@ void CANManager::processNLGMessage(uint32_t id, uint8_t* buf) {
  * @brief Enhanced sendBSC() method with CAN logging - REPLACE EXISTING
  */
 void CANManager::sendBSC() {
-    uint8_t lvVoltageScale = static_cast<uint8_t>(VehicleParams::Battery::MIN_LVVOLTAGE * 10);
-    uint8_t hvVoltageScale = static_cast<uint8_t>(hvVoltage - 220);  // Changed to match DBC
+    uint8_t lvVoltageScale = static_cast<uint8_t>(lroundf(VehicleParams::Battery::MIN_LVVOLTAGE * 10.0f));
+    // DBC: 1 V per bit, offset 220 V. Clamped: a pack value below 220 V used to wrap
+    // around (100 V became a 356 V target).
+    const uint16_t hvTarget = constrain(hvVoltage, (uint16_t)220, (uint16_t)(220 + 255));
+    uint8_t hvVoltageScale = static_cast<uint8_t>(hvTarget - 220);
     
     // BSC control message (0x260)
     controlBufferBSC[0] = (enableBSC << 0) | (modeBSC << 1) | 0x80;  // Set BSC6_RUNCOMM
@@ -314,7 +397,7 @@ void CANManager::sendBSC() {
     limitBufferBSC[5] = static_cast<uint8_t>(VehicleParams::Battery::PRECHARGE_CURRENT * 10);
     
     // Send BSC Control message with logging
-    CAN.sendMsgBuf(CANIds::BSC_COMM, 0, 3, controlBufferBSC);
+    CAN.queueFrame(CANIds::BSC_COMM, 3, controlBufferBSC);
     if (canMonitor && canMonitor->isLoggingEnabled()) {
         canMonitor->logMessage(CANIds::BSC_COMM, controlBufferBSC, 3, true);
         
@@ -328,7 +411,7 @@ void CANManager::sendBSC() {
     }
     
     // Send BSC Limits message with logging
-    CAN.sendMsgBuf(CANIds::BSC_LIM, 0, 6, limitBufferBSC);
+    CAN.queueFrame(CANIds::BSC_LIM, 6, limitBufferBSC);
     if (canMonitor && canMonitor->isLoggingEnabled()) {
         canMonitor->logMessage(CANIds::BSC_LIM, limitBufferBSC, 6, true);
         
@@ -412,8 +495,17 @@ void CANManager::sendDMC() {
     // DMC limits message (0x211)
     int dcVoltLimMotor = VehicleParams::Battery::MIN_VOLTAGE * 10;
     int dcVoltLimGen = (VehicleParams::Battery::MAX_VOLTAGE + 4) * 10;
-    int dcCurrLimMotor = VehicleParams::Battery::MAX_DMC_CURRENT * 10;
-    int dcCurrLimGen = VehicleParams::Power::DMC_DC_GEN * 10;
+    // The BMS's own current limits win over the fixed ones. Without fresh BMS data both are 0:
+    // the same rule the charger already follows. Drive also needs the discharge flag. Regen
+    // only the charge limit (CCL): the Orion's charge flag is never set while driving, it is
+    // the charger's enable (owner, 2026-10-29).
+    const bool bmsFresh = bmsPackFresh();
+    const int driveLimitA = bmsFresh && dischargeAllowed() ? std::min<int>(VehicleParams::Battery::MAX_DMC_CURRENT,
+                                                     bmsData.maxDischarge) : 0;
+    const int regenLimitA = bmsFresh ? std::min<int>(VehicleParams::Power::DMC_DC_GEN,
+                                                     bmsData.maxCharge) : 0;
+    int dcCurrLimMotor = driveLimitA * 10;
+    int dcCurrLimGen = regenLimitA * 10;
     
     limitBufferDMC[0] = dcVoltLimMotor >> 8;
     limitBufferDMC[1] = dcVoltLimMotor & 0xFF;
@@ -425,7 +517,7 @@ void CANManager::sendDMC() {
     limitBufferDMC[7] = dcCurrLimGen & 0xFF;
     
     // Send DMC Control message with logging
-    CAN.sendMsgBuf(CANIds::DMCCTRL, 0, 8, controlBufferDMC);
+    CAN.queueFrame(CANIds::DMCCTRL, 8, controlBufferDMC);
     if (canMonitor && canMonitor->isLoggingEnabled()) {
         canMonitor->logMessage(CANIds::DMCCTRL, controlBufferDMC, 8, true);
         
@@ -441,7 +533,7 @@ void CANManager::sendDMC() {
     }
     
     // Send DMC Limits message with logging
-    CAN.sendMsgBuf(CANIds::DMCLIM, 0, 8, limitBufferDMC);
+    CAN.queueFrame(CANIds::DMCLIM, 8, limitBufferDMC);
     if (canMonitor && canMonitor->isLoggingEnabled()) {
         canMonitor->logMessage(CANIds::DMCLIM, limitBufferDMC, 8, true);
         
@@ -473,13 +565,10 @@ void CANManager::sendDMC() {
  */
 void CANManager::sendNLG() {
     int nlgVoltageScale = static_cast<int>(VehicleParams::Battery::MAX_VOLTAGE * 10);
-    Serial.println(bmsData.maxCharge);
     // Check if BMS timeout has occurred
-    // Note: You need to update lastBMSUpdate in your processBMSMessage() method
-    if (millis() - lastBMSUpdate > VehicleParams::Timing::BMS_TIMEOUT_MS) {
+    if (millis() - lastBMSMs > VehicleParams::Timing::BMS_TIMEOUT_MS) {
         bmsData.maxCharge = 0;  // Set max charge current to 0 if timeout occurs
     }
-    static unsigned long lastBMSUpdate = 0; // Track BMS messages
 
     // Use the configuration value for maximum charging current
     uint8_t maxNlgCurrentAC = config.getMaxChargingCurrent();
@@ -487,11 +576,15 @@ void CANManager::sendNLG() {
     // Limit charging current by smaller of max charger current and BMS max charge
     float limitedCurrentDC = std::min(static_cast<int>(VehicleParams::Battery::MAX_NLG_CURRENT), 
                                     static_cast<int>(bmsData.maxCharge));
+    // BMS charge enable off: no DC current. Not latched, charging resumes when it comes back.
+    if (!chargeAllowed()) {
+        limitedCurrentDC = 0;
+    }
     // Recovery mode for low voltage
    /* if (bmsData.voltage < VehicleParams::Battery::MIN_VOLTAGE && bmsData.maxCharge == 0) {
         limitedCurrentDC = 5;  // Force 5A in recovery mode
     }*/
-    
+    //limitedCurrentDC = 20;  
     int nlgCurrentScaleDC = static_cast<int>((limitedCurrentDC + 102.4) * 10);
     int nlgCurrentScaleAC = static_cast<int>((maxNlgCurrentAC + 102.4) * 10);
     
@@ -507,7 +600,7 @@ void CANManager::sendNLG() {
     controlBufferNLG[7] = 0; // Reserved
     
     // Send NLG Control message with logging
-    CAN.sendMsgBuf(CANIds::NLG_DEM_LIM, 0, 8, controlBufferNLG);
+    CAN.queueFrame(CANIds::NLG_DEM_LIM, 8, controlBufferNLG);
     if (canMonitor && canMonitor->isLoggingEnabled()) {
         canMonitor->logMessage(CANIds::NLG_DEM_LIM, controlBufferNLG, 8, true);
         
@@ -696,134 +789,6 @@ void CANManager::resetMessageBuffers() {
     memset(limitBufferDMC, 0, 8);
     memset(controlBufferNLG, 0, 8);
 }
-// Define static member variables first
-uint32_t CANManager::messagesSent = 0;
-uint32_t CANManager::messagesFailed = 0;
-
-/**
- * @brief Initialize ESP-NOW communication
- * Sets up ESP-NOW for peer-to-peer data transmission
- * @param macAddress Target receiver MAC address
- */
-void CANManager::beginESPNOW(uint8_t* macAddress) {
-    if (espNowInitialized) {
-        return; // Already initialized
-    }
-    
-    // Store the MAC address
-    memcpy(receiverMacAddress, macAddress, 6);
-    
-    // Initialize WiFi in STA mode
-    WiFi.mode(WIFI_STA);
-    
-    // Print MAC Address for debugging
-    Serial.print("Sender MAC Address: ");
-    Serial.println(WiFi.macAddress());
-    
-    // Initialize ESP-NOW
-    if (esp_now_init() != ESP_OK) {
-        Serial.println("Error initializing ESP-NOW");
-        return;
-    }
-    
-    // Register callback
-    esp_now_register_send_cb(OnDataSent);
-    
-    // Register peer
-    esp_now_peer_info_t peerInfo = {};
-    memcpy(peerInfo.peer_addr, receiverMacAddress, 6);
-    peerInfo.channel = 0;
-    peerInfo.encrypt = false;
-    
-    // Add peer
-    if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-        Serial.println("Failed to add peer");
-        return;
-    }
-    
-    // Print target device
-    char macStr[18];
-    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
-             receiverMacAddress[0], receiverMacAddress[1], receiverMacAddress[2], 
-             receiverMacAddress[3], receiverMacAddress[4], receiverMacAddress[5]);
-    Serial.printf("ESP-NOW Target receiver: %s\n", macStr);
-    
-    espNowInitialized = true;
-    lastBMSSendTime = 0;
-    lastDMCSendTime = 0;
-    
-    Serial.println("ESP-NOW initialized successfully");
-}
-
-/**
- * @brief Callback function for ESP-NOW send status
- * Static function to handle ESP-NOW send status
- */
-void CANManager::OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-    char macStr[18];
-    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
-             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-    
-    if (status == ESP_NOW_SEND_SUCCESS) {
-        messagesSent++;
-    } else {
-        messagesFailed++;
-    }
-    
-    Serial.printf("ESP-NOW sent to: %s, Status: %s, Success/Fail: %u/%u\n", 
-                  macStr, 
-                  status == ESP_NOW_SEND_SUCCESS ? "Success" : "Failed",
-                  messagesSent,
-                  messagesFailed);
-}
-
-/**
- * @brief Send BMS data via ESP-NOW
- * Transmits battery management system data to receiver
- */
-void CANManager::sendBMSDataESPNOW() {
-    if (!espNowInitialized) {
-        return; // Not initialized
-    }
-    
-    // Create a message buffer for BMS data
-    uint8_t buffer[6]; // Buffer size: 1 (msgType) + 2 (voltage) + 2 (current) + 1 (SOC)
-    
-    // Prepare the message buffer
-    buffer[0] = MSG_TYPE_BMS;  // Message type
-    
-    // Convert voltage to integer (multiply by 10 to preserve 1 decimal place)
-    uint16_t voltageInt = (uint16_t)(bmsData.voltage * 10.0);
-    buffer[1] = (voltageInt >> 8) & 0xFF;  // high byte
-    buffer[2] = voltageInt & 0xFF;         // low byte
-    
-    // Current as int16_t 
-    buffer[3] = (bmsData.current >> 8) & 0xFF;  // high byte
-    buffer[4] = bmsData.current & 0xFF;         // low byte
-    
-    // SOC as direct byte
-    buffer[5] = bmsData.soc;
-    
-    // Debug print
-    Serial.printf("Sending BMS data: SOC=%d%%, Voltage=%.1fV, Current=%dA\n", 
-                  bmsData.soc, (float)bmsData.voltage, bmsData.current);
-    
-    // Debug raw data
-    Serial.print("Raw data: ");
-    for (int i = 0; i < 6; i++) {
-        Serial.printf("%02X ", buffer[i]);
-    }
-    Serial.println();
-    
-    // Send the message
-    esp_err_t result = esp_now_send(receiverMacAddress, buffer, 6);
-    
-    if (result != ESP_OK) {
-        Serial.println("Error sending BMS message via ESP-NOW");
-    }
-}
-
-
 /**
  * @brief Set torque demand as percentage and convert to Nm
  * @param torquePercent Torque percentage (-100% to +100%)
@@ -838,17 +803,14 @@ void CANManager::setTorquePercentage(float torquePercent) {
     // Store percentage for reference
     torquePercentage = torquePercent;
     
-    // Convert percentage to Nm
-    float maxTorqueNm = config.getMaxTorque(); // User-configurable max torque
-    float torqueNm = (torquePercent / 100.0f) * 850;//maxTorqueNm;
+    // Full pedal is the configured maximum: forward in drive, reverse in reverse (both set in LIVI).
+    const float maxTorqueNm = (currentGear == GearState::REVERSE)
+                                  ? config.getMaxReverseTorque()
+                                  : config.getMaxTorque();
+    float torqueNm = (torquePercent / 100.0f) * maxTorqueNm;
     
-    // Limit to motor capabilities
+    // The motor's own limit stays on top, whatever the settings say.
     torqueNm = constrain(torqueNm, -VehicleParams::Motor::MAX_TRQ, VehicleParams::Motor::MAX_TRQ);
-    
-    // For reverse, limit to reverse torque capability
-    if (currentGear == GearState::REVERSE) {
-        torqueNm = constrain(torqueNm, -VehicleParams::Motor::MAX_REVERSE_TRQ, VehicleParams::Motor::MAX_REVERSE_TRQ);
-    }
     
     // Set the converted torque demand
     torqueDemand = torqueNm;

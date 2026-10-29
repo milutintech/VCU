@@ -2,7 +2,6 @@
 #define WEB_SERVER_H
 
 #include <ESPAsyncWebServer.h>
-#include <LittleFS.h>
 #include <ArduinoJson.h>
 #include "config.h"
 #include "configuration.h"
@@ -10,6 +9,9 @@
 #include "vehicle_control.h"
 #include "can_manager.h"
 #include "error_monitor.h"
+#include "wifi_manager.h"
+#include "pi_power.h"
+#include "ethernet_link.h"
 
 class VCUWebServer {
 public:
@@ -20,6 +22,10 @@ public:
 
     // Update (for WebSocket broadcasts)
     void update();
+
+    void setWifiManager(WiFiManager* wm) { wifiManager = wm; }
+    void setPiPower(PiPower* p) { piPower = p; }
+    void setEthernet(EthernetLink* e) { ethernet = e; }
 
     // Enable/disable debug mode
     void setDebugMode(bool enabled);
@@ -35,6 +41,9 @@ private:
     VehicleControl* vehicleControl;
     CANManager* canManager;
     ErrorMonitor* errorMonitor;
+    WiFiManager* wifiManager = nullptr;
+    PiPower* piPower = nullptr;
+    EthernetLink* ethernet = nullptr;
 
     // System flags
     bool debugMode;
@@ -51,6 +60,14 @@ private:
     void handleGetStatus(AsyncWebServerRequest* request);
     void handleGetLiveData(AsyncWebServerRequest* request);
     void handleGetErrors(AsyncWebServerRequest* request);
+    void handleGetFaults(AsyncWebServerRequest* request);
+    void handleGetBmsCells(AsyncWebServerRequest* request);
+    void handleGetBmsConfig(AsyncWebServerRequest* request);
+    void handleSetBmsConfig(AsyncWebServerRequest* request, JsonVariant& json);
+    void handleGetWifiConfig(AsyncWebServerRequest* request);
+    void handleGetPi(AsyncWebServerRequest* request);
+    void handlePiAck(AsyncWebServerRequest* request);
+    void handleSetWifiConfig(AsyncWebServerRequest* request, JsonVariant& json);
 
     // API Endpoints - Configuration
     void handleGetConfig(AsyncWebServerRequest* request);
@@ -64,6 +81,9 @@ private:
     void handleSetPedalConfig(AsyncWebServerRequest* request, JsonVariant& json);
     void handleGetTransitionConfig(AsyncWebServerRequest* request);
     void handleSetTransitionConfig(AsyncWebServerRequest* request, JsonVariant& json);
+    void handleGetThrottleConfig(AsyncWebServerRequest* request);
+    void handleSetThrottleConfig(AsyncWebServerRequest* request, JsonVariant& json);
+    void handleGetRawThrottle(AsyncWebServerRequest* request);
 
     // API Endpoints - System
     void handleSaveConfig(AsyncWebServerRequest* request);
@@ -71,6 +91,7 @@ private:
     void handleExportConfig(AsyncWebServerRequest* request);
     void handleImportConfig(AsyncWebServerRequest* request, JsonVariant& json);
     void handleSystemInfo(AsyncWebServerRequest* request);
+    void handleGetLimits(AsyncWebServerRequest* request);
     void handleSetDebugMode(AsyncWebServerRequest* request, JsonVariant& json);
 
     // API Endpoints - CAN Monitor

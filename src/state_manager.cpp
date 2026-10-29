@@ -17,9 +17,13 @@
 #include "state_manager.h"
 #include "can_manager.h"  // Add this include
 #include "config.h"
+#include "fault_handler.h"  // FaultLimits::NLG_TIMEOUT_MS, shared with FaultHandler's own NLG_TIMEOUT fault
 #include <esp_sleep.h>
 #include "configuration.h"  // Add this include at the top
 #include "vehicle_control.h"
+#include "pi_power.h"
+#include "ethernet_link.h"
+#include "error_monitor.h"
 
 
 /**
@@ -61,7 +65,7 @@ StateManager::StateManager(CANManager& canMgr, VehicleControl* vc)
     digitalWrite(Pins::BSCKL15, LOW);
     digitalWrite(Pins::NLGKL15, LOW);
     digitalWrite(Pins::CONTACTOR, LOW);
-    digitalWrite(Pins::PUMP, LOW);
+    digitalWrite(Pins::FAN, LOW);
 }
 
 /**
@@ -184,7 +188,6 @@ void StateManager::update() {
  */
 void StateManager::handleStandbyState() {
     // Disable all systems in standby
-    Serial.println("In STANDBY state handler");
 
     digitalWrite(Pins::DMCKL15, LOW);
     digitalWrite(Pins::BSCKL15, LOW);
@@ -224,8 +227,16 @@ void StateManager::handleStandbyState() {
         return; // Don't sleep yet, wait until connector is unlocked
     }*/
     
+    // The Pi gets its shutdown first: no deep sleep while it has power or is shutting down.
+    // The transitions above stay live, so the car can still start in the meantime.
+    if (piPower && !piPower->mayDeepSleep()) {
+        return;
+    }
+
     // Once we're sure connector is unlocked if needed, we can sleep
     Serial.println("No wake signals, entering deep sleep");
+    if (piPower) piPower->holdForSleep();
+    EthernetLink::holdForSleep();
     delay(100); // Small delay to allow serial to finish
     esp_deep_sleep_start();
 }
@@ -265,14 +276,9 @@ void StateManager::handleRunState() {
     armCoolingSys(true);
     armBattery(true);
 
-    // Only enable DMC if HV system is ready
-    if (batteryArmed && hasPreCharged &&
-        hvVoltageActual >= VehicleParams::Battery::MIN_VOLTAGE) {
-        digitalWrite(Pins::DMCKL15, HIGH);
-    } else {
-        digitalWrite(Pins::DMCKL15, LOW);  // Keep DMC off until HV is ready
-    }
-
+    // DMC KL15 (IO13) also powers the Orion BMS, so it is on for all of RUN: precharge needs the
+    // BMS pack voltage. It is only the DMC's logic supply; the DMC is enabled to drive (0x210)
+    // only once precharged (canTask, isPreCharged()).
     digitalWrite(Pins::DMCKL15, HIGH);
     digitalWrite(Pins::BSCKL15, HIGH);
 }
@@ -329,6 +335,34 @@ void StateManager::armBattery(bool arm) {
     
     if (arm) {
         if (!hasPreCharged) {
+            if (prechargeFailed) {
+                return;   // gave up, BSC already off; STANDBY resets it
+            }
+            const bool voltageOk = packVoltageValid();
+            if (!voltageOk || !hvDrawAllowed()) {
+                // No attempt without a plausible pack voltage, or in RUN while the BMS forbids
+                // discharging: BSC off, and the attempt (including the mode change delay)
+                // starts over once both are fine. Waiting does not count as an attempt.
+                static unsigned long lastWaitPrint = 0;
+                if (millis() - lastWaitPrint >= 5000) {
+                    lastWaitPrint = millis();
+                    if (!voltageOk) {
+                        Serial.println("Precharge waiting: pack voltage " + String(batteryVoltage) + "V not in " +
+                                       String(VehicleParams::Battery::MIN_VOLTAGE) + "-" +
+                                       String(VehicleParams::Battery::MAX_VOLTAGE) + "V or no BMS data");
+                    } else {
+                        Serial.println("Precharge waiting: BMS does not allow discharging");
+                    }
+                }
+                if (enableBSC) {
+                    enableBSC = false;
+                    canManager.setEnableBSC(enableBSC);
+                }
+                inErrorClearSequence = false;
+                lastModeChangeTime = millis();
+                return;
+            }
+
             // Start precharge process
             if (modeBSC != BSCModes::BSC6_BOOST) {
                 Serial.println("Starting precharge - Setting BOOST mode");
@@ -340,11 +374,16 @@ void StateManager::armBattery(bool arm) {
             }
 
             if (millis() - lastModeChangeTime >= Constants::MODE_CHANGE_DELAY_MS) {
-                Serial.println("Precharge Status:");
-                Serial.println("Battery Voltage: " + String(batteryVoltage) + "V");
-                Serial.println("HV Actual: " + String(hvVoltageActual) + "V");
-                Serial.println("BSC Enable State: " + String(enableBSC));
-                Serial.println("BSC Mode: " + String(modeBSC));
+                // Status once per second, this runs every control cycle
+                static unsigned long lastStatusPrint = 0;
+                if (millis() - lastStatusPrint >= 1000) {
+                    lastStatusPrint = millis();
+                    Serial.println("Precharge Status:");
+                    Serial.println("Battery Voltage: " + String(batteryVoltage) + "V");
+                    Serial.println("HV Actual: " + String(hvVoltageActual) + "V");
+                    Serial.println("BSC Enable State: " + String(enableBSC));
+                    Serial.println("BSC Mode: " + String(modeBSC));
+                }
                 hvVoltage = batteryVoltage;  // Set target voltage
                 canManager.setHVVoltage(hvVoltage);
                 enableBSC = true;
@@ -384,10 +423,21 @@ void StateManager::armBattery(bool arm) {
                     // While in the 100ms wait period, continue normal operation
                 }
                 else if (millis() - lastModeChangeTime > Constants::PRECHARGE_TIMEOUT_MS) {
-                    Serial.println("Precharge timeout - Voltage not reached");
                     enableBSC = false;
                     canManager.setEnableBSC(enableBSC);  // Update when enable changes
                     lastModeChangeTime = millis(); // Reset for next attempt
+                    prechargeAttempts++;
+                    Serial.println("Precharge timeout - Voltage not reached (attempt " +
+                                   String(prechargeAttempts) + "/" + String(MAX_PRECHARGE_ATTEMPTS) + ")");
+                    if (prechargeAttempts >= MAX_PRECHARGE_ATTEMPTS) {
+                        prechargeFailed = true;
+                        Serial.println("Precharge failed, giving up until ignition off");
+                        if (errorMonitor) {
+                            errorMonitor->raiseFault(ErrorCode::PRECHARGE_FAILED, ErrorSeverity::ERROR,
+                                                     "Precharge failed after " + String(prechargeAttempts) +
+                                                     " attempts", hvVoltageActual, "BSC");
+                        }
+                    }
                 }
             }
         }
@@ -403,13 +453,25 @@ void StateManager::armBattery(bool arm) {
                 canManager.setEnableBSC(enableBSC);  // Update when enable changes
             }
 
-            if (millis() - lastModeChangeTime >= Constants::MODE_CHANGE_DELAY_MS) {
+            if (!hvDrawAllowed()) {
+                // Buck draws from the pack. The contactor stays closed (DMC is already
+                // disabled by the fault); the BSC comes back 2 s after discharge is allowed.
+                if (enableBSC) {
+                    Serial.println("BSC off: BMS does not allow discharging");
+                    enableBSC = false;
+                    canManager.setEnableBSC(enableBSC);
+                }
+                lastModeChangeTime = millis();
+            } else if (millis() - lastModeChangeTime >= Constants::MODE_CHANGE_DELAY_MS) {
                 enableBSC = true;
                 canManager.setEnableBSC(enableBSC);  // Update when enable changes
             }
         }
     } else {
-        Serial.println("Disabling battery system");
+        // Called every cycle while disarmed: only report when something was actually on.
+        if (batteryArmed || hasPreCharged || enableBSC || inErrorClearSequence) {
+            Serial.println("Disabling battery system");
+        }
         batteryArmed = false;
         enableBSC = false;
         hasPreCharged = false;
@@ -437,7 +499,7 @@ void StateManager::armCoolingSys(bool arm) {
             if (currentState == VehicleState::CHARGING) {
                 // Pump control when charging
                 if (coolingRequest > 50) {
-                    digitalWrite(Pins::LWP7, HIGH); // Turn on pump
+                    digitalWrite(Pins::PUMP, HIGH); // Turn on pump
                     if (!pumpRunningTimer) {
                         pumpStartTime = currentTime;
                         pumpRunningTimer = true;
@@ -445,14 +507,14 @@ void StateManager::armCoolingSys(bool arm) {
                 } else if(coolingRequest < 2) {
                     // Only turn off if minimum run time has elapsed
                     if (!pumpRunningTimer || (currentTime - pumpStartTime >= MIN_RUN_TIME)) {
-                        digitalWrite(Pins::LWP7, LOW); // Turn off pump
+                        digitalWrite(Pins::PUMP, LOW); // Turn off pump
                         pumpRunningTimer = false;
                     }
                 }
                 
                 // Fan control when charging
                 if (coolingRequest >= 53) {
-                    digitalWrite(Pins::LWP6, HIGH); // Turn on fan
+                    digitalWrite(Pins::FAN, HIGH); // Turn on fan
                     if (!fanRunningTimer) {
                         fanStartTime = currentTime;
                         fanRunningTimer = true;
@@ -460,7 +522,7 @@ void StateManager::armCoolingSys(bool arm) {
                 } else if(coolingRequest == 0) {
                     // Only turn off if minimum run time has elapsed
                     if (!fanRunningTimer || (currentTime - fanStartTime >= MIN_RUN_TIME)) {
-                        digitalWrite(Pins::LWP6, LOW); // Turn off fan
+                        digitalWrite(Pins::FAN, LOW); // Turn off fan
                         fanRunningTimer = false;
                     }
                 }
@@ -472,40 +534,40 @@ void StateManager::armCoolingSys(bool arm) {
                 // Pump control when driving
                 if ((inverterTemp > VehicleParams::Temperature::INV_HIGH) || 
                     (motorTemp > VehicleParams::Temperature::MOT_HIGH)) {
-                    digitalWrite(Pins::LWP7, HIGH); // Turn on pump
-                } else if ((inverterTemp < VehicleParams::Temperature::INV_LOW) && 
+                    digitalWrite(Pins::PUMP, HIGH); // Turn on pump
+                } else if ((inverterTemp < VehicleParams::Temperature::INV_LOW) &&
                           (motorTemp < VehicleParams::Temperature::MOT_LOW)) {
-                    digitalWrite(Pins::LWP7, LOW); // Turn off pump
+                    digitalWrite(Pins::PUMP, LOW); // Turn off pump
                 }
                 
                 // Fan control when driving
-                if ((inverterTemp > (VehicleParams::Temperature::INV_HIGH + 10)) || 
-                    (motorTemp > (VehicleParams::Temperature::MOT_HIGH + 10))) {
-                    digitalWrite(Pins::LWP6, HIGH); // Turn on fan
-                } else if ((inverterTemp < VehicleParams::Temperature::INV_LOW) && 
+                if ((inverterTemp > VehicleParams::Temperature::FAN_ON) || 
+                    (motorTemp > VehicleParams::Temperature::FAN_ON)) {
+                    digitalWrite(Pins::FAN, HIGH); // Turn on fan
+                } else if ((inverterTemp < VehicleParams::Temperature::INV_LOW) &&
                           (motorTemp < VehicleParams::Temperature::MOT_LOW)) {
-                    digitalWrite(Pins::LWP6, LOW); // Turn off fan
+                    digitalWrite(Pins::FAN, LOW); // Turn off fan
                 }
             } else {
                 // In standby, cooling should be off
-                digitalWrite(Pins::LWP6, LOW); // Fan off
-                digitalWrite(Pins::LWP7, LOW); // Pump off
+                digitalWrite(Pins::FAN, LOW); // Fan off
+                digitalWrite(Pins::PUMP, LOW); // Pump off
                 // Reset timers
                 pumpRunningTimer = false;
                 fanRunningTimer = false;
             }
         } else {
             // If not armed, turn cooling off
-            digitalWrite(Pins::LWP6, LOW); // Fan off
-            digitalWrite(Pins::LWP7, LOW); // Pump off
+            digitalWrite(Pins::FAN, LOW); // Fan off
+            digitalWrite(Pins::PUMP, LOW); // Pump off
             // Reset timers
             pumpRunningTimer = false;
             fanRunningTimer = false;
         }
     } else {
         // If battery not armed, turn cooling off
-        digitalWrite(Pins::LWP6, LOW); // Fan off
-        digitalWrite(Pins::LWP7, LOW); // Pump off
+        digitalWrite(Pins::FAN, LOW); // Fan off
+        digitalWrite(Pins::PUMP, LOW); // Pump off
         // Reset timers
         pumpRunningTimer = false;
         fanRunningTimer = false;
@@ -585,74 +647,75 @@ void StateManager::chargeManage() {
         }
 
         chargerState = canManager.getNLGData().stateAct;
-        
-        // Check SOC limit - now with special case for 100% SOC
-        if (config.getMaxSOC() < 100 && canManager.getBMSData().soc >= config.getMaxSOC()) {
-            // For less than 100% SOC, use the standard behavior
-            Serial.println("SOC limit reached! Stopping charge.");
-            Serial.print("Max SOC limit: ");
-            Serial.print(config.getMaxSOC());
-            Serial.println("%");
-            chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
-            unlockConnectorRequest = true;
-            unlockPersist = true;
-            unlockTimeout = currentTime;
-        } else if (config.getMaxSOC() == 100) {
-            // For 100% SOC, we check current instead
-            if (canManager.getBMSData().soc >= 100 && 
-                canManager.getNLGData().dcHvCurrentAct < 30) { // 3 Amps (assuming scale factor of 10)
-                Serial.println("Charge current below 3A with 100% SOC - BMS drift reset complete");
+
+        // NLG CAN link lost: chargerState above is stale, so don't drive the switch below
+        // off it (it could keep demanding CHARGE on a charger we can no longer hear from).
+        // Fail safe by holding at STANDBY until a fresh NLG_ACT frame arrives.
+        const unsigned long nlgAge = currentTime - canManager.getLastNLGMs();
+        const bool nlgTimedOut = canManager.getLastNLGMs() != 0 &&
+                                  nlgAge > FaultLimits::NLG_TIMEOUT_MS;
+        if (nlgTimedOut) {
+            chargerStateDemand = ChargerStates::NLG_DEM_STANDBY;
+        } else {
+            // SOC limit. At 100 % the SOC is ignored: charging continues until unplugged and
+            // is governed only by the BMS (charge limit CCL and charge enable flag).
+            if (config.getMaxSOC() < 100 && canManager.getBMSData().soc >= config.getMaxSOC()) {
+                // For less than 100% SOC, use the standard behavior
+                Serial.println("SOC limit reached! Stopping charge.");
+                Serial.print("Max SOC limit: ");
+                Serial.print(config.getMaxSOC());
+                Serial.println("%");
                 chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
                 unlockConnectorRequest = true;
                 unlockPersist = true;
                 unlockTimeout = currentTime;
             }
-        }
 
-        switch (chargerState) {
-            case ChargerStates::NLG_ACT_SLEEP:
-                chargeLedDemand = 0;
-                if (!digitalRead(Pins::NLG_HW_Wakeup)) {
-                    // Charger is unplugged, wait for connector to unlock before going to standby
-                    unlockConnectorRequest = true;
-                    waitingForUnlockComplete = true;
-                    connectorUnlockStartTime = currentTime;
-                } else {
-                    chargerStateDemand = ChargerStates::NLG_DEM_STANDBY;
-                }
-                break;
+            switch (chargerState) {
+                case ChargerStates::NLG_ACT_SLEEP:
+                    chargeLedDemand = 0;
+                    if (!digitalRead(Pins::NLG_HW_Wakeup)) {
+                        // Charger is unplugged, wait for connector to unlock before going to standby
+                        unlockConnectorRequest = true;
+                        waitingForUnlockComplete = true;
+                        connectorUnlockStartTime = currentTime;
+                    } else {
+                        chargerStateDemand = ChargerStates::NLG_DEM_STANDBY;
+                    }
+                    break;
 
-            case ChargerStates::NLG_ACT_STANDBY:
-                chargeLedDemand = 1;
-                if (nlgCharged) {
-                    chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
-                    unlockConnectorRequest = true;
-                    unlockPersist = true;
-                    unlockTimeout = currentTime;
-                    // Don't transition to standby yet - wait for connector to unlock
-                    waitingForUnlockComplete = true;
-                    connectorUnlockStartTime = currentTime;
-                }
-                break;
+                case ChargerStates::NLG_ACT_STANDBY:
+                    chargeLedDemand = 1;
+                    if (nlgCharged) {
+                        chargerStateDemand = ChargerStates::NLG_DEM_SLEEP;
+                        unlockConnectorRequest = true;
+                        unlockPersist = true;
+                        unlockTimeout = currentTime;
+                        // Don't transition to standby yet - wait for connector to unlock
+                        waitingForUnlockComplete = true;
+                        connectorUnlockStartTime = currentTime;
+                    }
+                    break;
 
-            case ChargerStates::NLG_ACT_READY2CHARGE:
-                chargeLedDemand = 3;
-                if (unlockPersist || unlockConnectorRequest) {
-                    chargerStateDemand = ChargerStates::NLG_DEM_STANDBY;
-                } else if (hasPreCharged) {
-                    chargerStateDemand = ChargerStates::NLG_DEM_CHARGE;
-                }
-                armBattery(true);
-                break;
+                case ChargerStates::NLG_ACT_READY2CHARGE:
+                    chargeLedDemand = 3;
+                    if (unlockPersist || unlockConnectorRequest) {
+                        chargerStateDemand = ChargerStates::NLG_DEM_STANDBY;
+                    } else if (hasPreCharged) {
+                        chargerStateDemand = ChargerStates::NLG_DEM_CHARGE;
+                    }
+                    armBattery(true);
+                    break;
 
-            case ChargerStates::NLG_ACT_CHARGE:
-                chargeLedDemand = 4;
-                armBattery(true);
-                break;
+                case ChargerStates::NLG_ACT_CHARGE:
+                    chargeLedDemand = 4;
+                    armBattery(true);
+                    break;
 
-            default:
-                armBattery(false);
-                break;
+                default:
+                    armBattery(false);
+                    break;
+            }
         }
 
         if (unlockPersist) {
@@ -748,6 +811,7 @@ uint8_t StateManager::getWakeupReason() {
  */
 void StateManager::transitionToStandby() {
     Serial.println("Transitioning to STANDBY state");
+    resetPrecharge();
     currentState = VehicleState::STANDBY;
     nlgCharged = false;
     enableBSC = false;
@@ -791,6 +855,34 @@ void StateManager::transitionToCharging() {
     Serial.println("Transitioning to CHARGING state");
     currentState = VehicleState::CHARGING;
     Serial.println("Now in CHARGING state");
+}
+
+/** Fresh BMS frame and a pack voltage within the battery limits. */
+bool StateManager::packVoltageValid() const {
+    const unsigned long lastBms = canManager.getLastBMSMs();
+    return lastBms != 0 &&
+           millis() - lastBms <= VehicleParams::Timing::BMS_TIMEOUT_MS &&
+           batteryVoltage >= VehicleParams::Battery::MIN_VOLTAGE &&
+           batteryVoltage <= VehicleParams::Battery::MAX_VOLTAGE;
+}
+
+/**
+ * May the BSC draw from the pack? In RUN only while the BMS allows discharging. In CHARGING
+ * always: the Orion clears discharge-allowed while plugged in (interlock), and the DC-DC has
+ * to keep the 12 V side up during charging.
+ */
+bool StateManager::hvDrawAllowed() const {
+    return currentState != VehicleState::RUN || canManager.dischargeAllowed();
+}
+
+/** New ignition cycle (or charge session): precharge may try again. */
+void StateManager::resetPrecharge() {
+    prechargeAttempts = 0;
+    if (prechargeFailed) {
+        prechargeFailed = false;
+        // Cleared here, not in FaultHandler: only this sequence knows when it may retry.
+        if (errorMonitor) errorMonitor->clearFault(ErrorCode::PRECHARGE_FAILED);
+    }
 }
 
 void StateManager::removePinFromWakeSources(uint8_t pin) {

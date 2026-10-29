@@ -5,8 +5,34 @@
 #include "config.h"
 #include "vehicle_parameters.h"
 #include "state_manager.h"
+#include "bms_cells.h"
 #include <WiFi.h>
-#include <esp_now.h>
+
+/**
+ * @brief mcp2515_can whose frame read holds the SPI bus lock.
+ *
+ * The library reads received frames (mcp2515_read_canMsg) without beginTransaction(), unlike
+ * every other access. With the W5500 on the same bus that read could run in the middle of an
+ * Ethernet transfer from the other core (both chip selects low) or at the W5500's 20 MHz
+ * (MCP2515 max 10 MHz): garbage or no frames.
+ */
+class LockedMcp2515 : public mcp2515_can {
+public:
+    using mcp2515_can::mcp2515_can;
+
+    /** One received frame (RX0 first); status and frame are read under one bus lock. */
+    bool readFrame(uint32_t& id, uint8_t& len, uint8_t* buf);
+
+    /**
+     * Puts a standard frame into a free TX buffer and returns. The library's sendMsgBuf()
+     * waits until the frame is on the wire (polling, up to ~1.5 ms per frame): with the DMC
+     * and BMS talking, frames arrived faster than the two RX buffers could hold meanwhile
+     * (~100 overflows per 10 s). Only waits if all three TX buffers are still busy.
+     */
+    byte queueFrame(uint32_t id, uint8_t len, const uint8_t* buf) {
+        return sendMsgBuf(id, 0, 0, len, buf, false);
+    }
+};
 
 // Forward declarations
 class StateManager;
@@ -18,11 +44,19 @@ class ErrorMonitor;
  * Contains battery state information from BMS
  */
 struct BMSData {
-    uint8_t soc;              ///< State of charge (%)
-    uint16_t voltage;         ///< Battery voltage (V)
-    int16_t current;         ///< Battery current (A)
-    uint16_t maxDischarge;    ///< Maximum discharge current (A)
-    uint16_t maxCharge;       ///< Maximum charge current (A)
+    // From BMS_PACK (0x010)
+    uint8_t soc = 0;                ///< State of charge (%)
+    uint16_t voltage = 0;           ///< Battery voltage (V)
+    int16_t current = 0;            ///< Battery current (0.1 A, negative while charging)
+    uint16_t maxDischarge = 0;      ///< Maximum discharge current (A)
+    uint16_t maxCharge = 0;         ///< Maximum charge current (A)
+    // From BMS_MINMAX (0x001)
+    int8_t tempHigh = 0;            ///< Highest pack temperature (°C)
+    int8_t tempLow = 0;             ///< Lowest pack temperature (°C)
+    uint16_t cellLowDeciMv = 0;     ///< Lowest cell voltage (0.1 mV)
+    uint16_t cellHighDeciMv = 0;    ///< Highest cell voltage (0.1 mV)
+    bool chargeRelay = false;       ///< BMS allows charging (charge enable)
+    bool dischargeRelay = false;    ///< BMS allows discharging (discharge enable)
 };
 
 /**
@@ -73,10 +107,6 @@ struct NLGData {
     uint8_t ledDemand;        ///< Charge LED state request
 };
 
-// Define ESP-NOW message types
-#define MSG_TYPE_BMS 0x01
-#define MSG_TYPE_DMC_TEMP 0x02
-
 /**
  * @brief CAN Communication Manager Class
  * 
@@ -112,6 +142,12 @@ public:
     void begin();
 
     /**
+     * @brief The SPI bus, started on first use. The W5500 shares it: both drivers use
+     * SPIClass transactions, whose lock keeps them from talking over each other.
+     */
+    SPIClass& spiBus();
+
+    /**
      * @brief Update CAN communication
      * Handles message reception and transmission timing
      * Should be called in fast control loop
@@ -136,30 +172,44 @@ public:
      */
     void sendNLG();
     
-    /**
-     * @brief Initialize ESP-NOW communication
-     * Sets up ESP-NOW for peer-to-peer data transmission
-     * @param macAddress Target receiver MAC address
-     */
-    void beginESPNOW(uint8_t* macAddress);
-    
-    /**
-     * @brief Send BMS data via ESP-NOW
-     * Transmits battery management system data to receiver
-     */
-    void sendBMSDataESPNOW();
+    /** Read every frame waiting in the MCP2515 (also done at the start of update()). */
+    void receive() { checkAndProcessMessages(); }
 
-    /**
-     * @brief Send DMC temperature data via ESP-NOW
-     * Transmits motor temperature data to receiver
-     */
-    void sendDMCTempESPNOW();
-    
+    /// Receive diagnostics (for testing the INT pin and checking for lost frames)
+    static volatile uint32_t intCount;   ///< MCP2515 INT falling edges, counted in the ISR
+    uint32_t getRxCount() const { return rxCount; }
+    /// update() cycles in which the MCP2515 reported a receive overflow (frames lost)
+    uint32_t getRxOverflowCount() const { return rxOverflowCount; }
+
     // Data access methods
     const BMSData& getBMSData() const { return bmsData; }
     const DMCData& getDMCData() const { return dmcData; }
     const BSCData& getBSCData() const { return bscData; }
     const NLGData& getNLGData() const { return nlgData; }
+    BmsCells& getBmsCells() { return bmsCells; }
+
+    /// millis() of the last frame received from each node; 0 = nothing received yet.
+    unsigned long getLastBMSMs() const { return lastBMSMs; }
+    unsigned long getLastDMCMs() const { return lastDMCMs; }
+    unsigned long getLastBSCMs() const { return lastBSCMs; }
+    bool isBSCEnabled() const { return enableBSC; }
+    bool isBSCBoost() const { return modeBSC; }
+    uint16_t getHVVoltageDemand() const { return hvVoltage; }
+    unsigned long getLastNLGMs() const { return lastNLGMs; }
+    unsigned long getLastBMSFlagsMs() const { return lastBMSFlagsMs; }
+
+    /// BMS allow flags (0x001) received within the BMS timeout.
+    bool bmsFlagsFresh() const;
+    /** 0x010 (pack voltage, current limits) received within BMS_TIMEOUT_MS. */
+    bool bmsPackFresh() const;
+    /// Charger allowed: flag set and fresh, or flags ignored. Not used for regen (CCL only).
+    bool chargeAllowed() const;
+    /// Discharging (drive current) allowed: flag set and fresh, or flags ignored.
+    bool dischargeAllowed() const;
+    /// Ignore the BMS allow flags (breakdown, trailer loading, debugging). Not saved: every
+    /// boot starts with the flags enforced. Current limits (DCL/CCL) still apply.
+    void setIgnoreAllowFlags(bool ignore) { ignoreAllowFlags = ignore; }
+    bool getIgnoreAllowFlags() const { return ignoreAllowFlags; }
     
     // Control methods
     void setCurrentGear(GearState gear) { currentGear = gear; }
@@ -212,6 +262,11 @@ private:
     void processBMSMessage(uint8_t* buf);
 
     /**
+     * @brief Process BMS min/max message (0x001): cells, temps, allow flags
+     */
+    void processBMSMinMaxMessage(uint8_t* buf, uint8_t len);
+
+    /**
      * @brief Process BSC status message
      * @param buf Message data buffer
      */
@@ -241,20 +296,13 @@ private:
      */
     void checkAndProcessMessages();
     
-    /**
-     * @brief Callback function for ESP-NOW send status
-     * @param mac_addr MAC address of the receiver
-     * @param status Send status (success or failure)
-     */
-    static void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
-    
     bool needsClearError = false;  // Flag to indicate error clearing needed
     unsigned long errorClearStartTime = 0;  // Timestamp for error clearing
     bool inErrorClearSequence = false;  // Track if we're in the middle of error clearing
     int calculateTaperedDMCCurrent();
 
     // Hardware interfaces
-    mcp2515_can CAN;         ///< CAN controller instance
+    LockedMcp2515 CAN;       ///< CAN controller instance
     SPIClass* customSPI;     ///< Custom SPI interface
     
     // Message buffers for different subsystems
@@ -269,6 +317,7 @@ private:
     DMCData dmcData;         ///< Motor controller data
     BSCData bscData;         ///< DC-DC converter data
     NLGData nlgData;         ///< Charging system data
+    BmsCells bmsCells;       ///< Orion BMS per-cell data, decoded from the CAN broadcast
     
     StateManager* stateManager;  ///< Pointer to state manager
     GearState currentGear = GearState::NEUTRAL;
@@ -283,17 +332,17 @@ private:
     uint16_t lvVoltage;      ///< Low voltage system voltage
     uint16_t hvVoltage;      ///< High voltage system voltage
     
-    // ESP-NOW variables
-    uint8_t receiverMacAddress[6]; ///< MAC address of the ESP-NOW receiver
-    bool espNowInitialized = false; ///< Flag to indicate if ESP-NOW is initialized
-    static uint32_t messagesSent;   ///< Counter for successful messages
-    static uint32_t messagesFailed; ///< Counter for failed messages
-    
     // Timing management
     unsigned long lastFastCycle;   ///< Last fast update cycle timestamp
     unsigned long lastSlowCycle;   ///< Last slow update cycle timestamp
-    unsigned long lastBMSSendTime; ///< Last BMS data send timestamp
-    unsigned long lastDMCSendTime; ///< Last DMC data send timestamp
+    volatile unsigned long lastBMSMs = 0; ///< Last BMS frame (millis), written in CAN task
+    volatile unsigned long lastDMCMs = 0; ///< Last DMC frame (any of 0x258/0x259/0x458)
+    volatile unsigned long lastBSCMs = 0; ///< Last BSC frame
+    volatile unsigned long lastNLGMs = 0; ///< Last NLG frame
+    volatile uint32_t rxCount = 0;           ///< frames read from the MCP2515
+    volatile uint32_t rxOverflowCount = 0;   ///< see getRxOverflowCount()
+    volatile unsigned long lastBMSFlagsMs = 0; ///< Last BMS_MINMAX frame (allow flags)
+    volatile bool ignoreAllowFlags = false;    ///< set from the web task, read in the CAN task
 
     // CAN Monitoring - FIXED: Use pointers instead of direct objects
     CANMonitor* canMonitor = nullptr;      ///< CAN bus monitor instance

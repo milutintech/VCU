@@ -1,4 +1,6 @@
 #include "web_server.h"
+#include "fault_handler.h"
+#include "vehicle_parameters.h"
 
 // Helper functions for state/gear conversion
 static String stateToString(VehicleState state) {
@@ -37,37 +39,6 @@ void VCUWebServer::begin() {
     Serial.println("\n========================================");
     Serial.println("    Initializing Web Server...");
     Serial.println("========================================");
-
-    // Initialize LittleFS
-    Serial.print("[WebServer] Mounting LittleFS... ");
-    if (!LittleFS.begin(true)) {
-        Serial.println("FAILED!");
-        Serial.println("[WebServer] ERROR: LittleFS Mount Failed");
-        Serial.println("[WebServer] Web interface files may not be available");
-        Serial.println("[WebServer] Run: pio run --target uploadfs");
-        // Continue anyway - API will still work
-    } else {
-        Serial.println("OK");
-        Serial.println("[WebServer] LittleFS Mounted Successfully");
-
-        // List files in LittleFS for debugging
-        Serial.println("[WebServer] Files in LittleFS:");
-        File root = LittleFS.open("/");
-        File file = root.openNextFile();
-        int fileCount = 0;
-        while (file) {
-            Serial.print("  - ");
-            Serial.print(file.name());
-            Serial.print(" (");
-            Serial.print(file.size());
-            Serial.println(" bytes)");
-            file = root.openNextFile();
-            fileCount++;
-        }
-        if (fileCount == 0) {
-            Serial.println("  (No files found - run: pio run --target uploadfs)");
-        }
-    }
 
     // Setup routes and handlers
     Serial.print("[WebServer] Setting up routes... ");
@@ -112,39 +83,12 @@ void VCUWebServer::setupRoutes() {
     // Register API routes first (they take priority over static files)
     // This ensures /api/* requests go to handlers, not filesystem
 
-    // Add fallback root handler in case LittleFS is empty
-    server.on("/", HTTP_GET, [this](AsyncWebServerRequest* request) {
-        // Try to serve from LittleFS first
-        if (LittleFS.exists("/index.html")) {
-            request->send(LittleFS, "/index.html", "text/html");
-            return;
-        }
-
-        // If no index.html, serve a simple fallback page
-        String html = "<!DOCTYPE html><html><head><title>VCU Web Server</title></head><body>";
-        html += "<h1>VCU Web Server Running!</h1>";
-        html += "<p>The web server is operational, but web interface files are not uploaded.</p>";
-        html += "<h2>System Status</h2>";
-        html += "<p>State: " + stateToString(stateManager->getCurrentState()) + "</p>";
-        html += "<p>Battery SOC: " + String(canManager->getBMSData().soc) + "%</p>";
-        html += "<p>Battery Voltage: " + String(canManager->getBMSData().voltage / 10.0f) + "V</p>";
-        html += "<h2>How to upload web interface:</h2>";
-        html += "<pre>pio run --target uploadfs</pre>";
-        html += "<h2>Available API Endpoints:</h2>";
-        html += "<ul>";
-        html += "<li><a href='/api/status'>/api/status</a> - Full system status</li>";
-        html += "<li><a href='/api/status/live'>/api/status/live</a> - Live data</li>";
-        html += "<li><a href='/api/config'>/api/config</a> - Configuration</li>";
-        html += "</ul>";
-        html += "</body></html>";
-        request->send(200, "text/html", html);
+    // The UI lives in LIVI; the root only says what this is.
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+        request->send(200, "text/plain", "VCU API. Use LIVI to configure and monitor.");
     });
 
     // Status endpoints
-    server.on("/api/status", HTTP_GET, [this](AsyncWebServerRequest* request) {
-        handleGetStatus(request);
-    });
-
     server.on("/api/status/live", HTTP_GET, [this](AsyncWebServerRequest* request) {
         handleGetLiveData(request);
     });
@@ -153,8 +97,37 @@ void VCUWebServer::setupRoutes() {
         handleGetErrors(request);
     });
 
+    server.on("/api/status/faults", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetFaults(request);
+    });
+
+    // After the specific /api/status/* routes: a route also matches everything below it.
+    server.on("/api/status", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetStatus(request);
+    });
+
+    server.on("/api/bms/cells", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetBmsCells(request);
+    });
+
     // Configuration endpoints - GET
     // IMPORTANT: Register ALL specific routes BEFORE the generic /api/config route to avoid prefix matching
+    server.on("/api/config/bms", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetBmsConfig(request);
+    });
+
+    server.on("/api/config/wifi", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetWifiConfig(request);
+    });
+
+    // The infotainment Pi asks here whether it is to shut down, and says that it does.
+    server.on("/api/pi", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetPi(request);
+    });
+    server.on("/api/pi/ack", HTTP_POST, [this](AsyncWebServerRequest* request) {
+        handlePiAck(request);
+    });
+
     server.on("/api/config/driving", HTTP_GET, [this](AsyncWebServerRequest* request) {
         handleGetDrivingConfig(request);
     });
@@ -173,6 +146,14 @@ void VCUWebServer::setupRoutes() {
 
     server.on("/api/config/transition", HTTP_GET, [this](AsyncWebServerRequest* request) {
         handleGetTransitionConfig(request);
+    });
+
+    server.on("/api/config/throttle", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetThrottleConfig(request);
+    });
+
+    server.on("/api/throttle/raw", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetRawThrottle(request);
     });
 
     // Generic config endpoint - MUST be last to avoid catching specific routes
@@ -263,6 +244,54 @@ void VCUWebServer::setupRoutes() {
     });
     server.addHandler(transitionHandler);
 
+    AsyncCallbackWebHandler* throttleHandler = new AsyncCallbackWebHandler();
+    throttleHandler->setUri("/api/config/throttle");
+    throttleHandler->setMethod(HTTP_POST);
+    throttleHandler->onRequest([](AsyncWebServerRequest* request) {});
+    throttleHandler->onBody([this](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, data, len);
+        if (!error) {
+            JsonVariant json = doc.as<JsonVariant>();
+            handleSetThrottleConfig(request, json);
+        } else {
+            request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid JSON\"}");
+        }
+    });
+    server.addHandler(throttleHandler);
+
+    AsyncCallbackWebHandler* bmsHandler = new AsyncCallbackWebHandler();
+    bmsHandler->setUri("/api/config/bms");
+    bmsHandler->setMethod(HTTP_POST);
+    bmsHandler->onRequest([](AsyncWebServerRequest* request) {});
+    bmsHandler->onBody([this](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, data, len);
+        if (!error) {
+            JsonVariant json = doc.as<JsonVariant>();
+            handleSetBmsConfig(request, json);
+        } else {
+            request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid JSON\"}");
+        }
+    });
+    server.addHandler(bmsHandler);
+
+    AsyncCallbackWebHandler* wifiHandler = new AsyncCallbackWebHandler();
+    wifiHandler->setUri("/api/config/wifi");
+    wifiHandler->setMethod(HTTP_POST);
+    wifiHandler->onRequest([](AsyncWebServerRequest* request) {});
+    wifiHandler->onBody([this](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, data, len);
+        if (!error) {
+            JsonVariant json = doc.as<JsonVariant>();
+            handleSetWifiConfig(request, json);
+        } else {
+            request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid JSON\"}");
+        }
+    });
+    server.addHandler(wifiHandler);
+
     // System endpoints
     server.on("/api/system/save", HTTP_POST, [this](AsyncWebServerRequest* request) {
         handleSaveConfig(request);
@@ -296,6 +325,10 @@ void VCUWebServer::setupRoutes() {
         handleSystemInfo(request);
     });
 
+    server.on("/api/system/limits", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        handleGetLimits(request);
+    });
+
     AsyncCallbackWebHandler* debugHandler = new AsyncCallbackWebHandler();
     debugHandler->setUri("/api/system/debug");
     debugHandler->setMethod(HTTP_POST);
@@ -316,10 +349,6 @@ void VCUWebServer::setupRoutes() {
     server.on("/api/can/messages", HTTP_GET, [this](AsyncWebServerRequest* request) {
         handleGetCANMessages(request);
     });
-
-    // Serve static files from LittleFS (AFTER all API routes)
-    // API routes registered above take priority, so this won't interfere
-    server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
 
     // 404 handler
     server.onNotFound([](AsyncWebServerRequest* request) {
@@ -370,6 +399,83 @@ void VCUWebServer::handleGetErrors(AsyncWebServerRequest* request) {
     request->send(200, "application/json", response);
 }
 
+void VCUWebServer::handleGetFaults(AsyncWebServerRequest* request) {
+    request->send(200, "application/json", errorMonitor->getFaultsJSON());
+}
+
+void VCUWebServer::handleGetBmsCells(AsyncWebServerRequest* request) {
+    request->send(200, "application/json", canManager->getBmsCells().cellsJSON());
+}
+
+void VCUWebServer::handleGetBmsConfig(AsyncWebServerRequest* request) {
+    JsonDocument doc;
+    deserializeJson(doc, canManager->getBmsCells().mapJSON());
+    doc["ignoreAllowFlags"] = canManager->getIgnoreAllowFlags();
+    String out;
+    serializeJson(doc, out);
+    request->send(200, "application/json", out);
+}
+
+void VCUWebServer::handleSetBmsConfig(AsyncWebServerRequest* request, JsonVariant& json) {
+    // Cell map: persisted by BmsCells itself, no config->save() needed.
+    // ignoreAllowFlags: runtime only, every boot starts with the flags enforced.
+    JsonObject obj = json.as<JsonObject>();
+    if (!obj["ignoreAllowFlags"].isNull()) {
+        const bool ignore = obj["ignoreAllowFlags"].as<bool>();
+        if (ignore != canManager->getIgnoreAllowFlags()) {
+            errorMonitor->logWarning(ignore ? "BMS allow flags override ON" : "BMS allow flags override OFF",
+                                     "BMS");
+        }
+        canManager->setIgnoreAllowFlags(ignore);
+    }
+    if (canManager->getBmsCells().applyMapJSON(obj)) {
+        request->send(200, "application/json", "{\"success\":true}");
+    } else {
+        request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid parameters\"}");
+    }
+}
+
+void VCUWebServer::handleGetPi(AsyncWebServerRequest* request) {
+    if (!piPower) {
+        request->send(503, "application/json", "{\"success\":false,\"error\":\"Pi power unavailable\"}");
+        return;
+    }
+    JsonDocument doc;
+    doc["state"] = PiPower::name(piPower->state());
+    doc["shutdownRequested"] = piPower->shutdownRequested();
+    doc["cutInMs"] = piPower->cutInMs();
+    String out;
+    serializeJson(doc, out);
+    request->send(200, "application/json", out);
+}
+
+void VCUWebServer::handlePiAck(AsyncWebServerRequest* request) {
+    if (!piPower) {
+        request->send(503, "application/json", "{\"success\":false}");
+        return;
+    }
+    piPower->acknowledge();
+    request->send(200, "application/json", "{\"success\":true}");
+}
+
+void VCUWebServer::handleGetWifiConfig(AsyncWebServerRequest* request) {
+    if (!wifiManager) {
+        request->send(503, "application/json", "{\"success\":false,\"error\":\"WiFi unavailable\"}");
+        return;
+    }
+    request->send(200, "application/json", wifiManager->statusJSON());
+}
+
+void VCUWebServer::handleSetWifiConfig(AsyncWebServerRequest* request, JsonVariant& json) {
+    // Stored at once, applied on the next boot: switching networks live would cut the
+    // link to the reply and is not something to do while driving.
+    if (wifiManager && wifiManager->applyJSON(json.as<JsonObjectConst>())) {
+        request->send(200, "application/json", "{\"success\":true,\"appliesOnReboot\":true}");
+    } else {
+        request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid parameters\"}");
+    }
+}
+
 // ===== CONFIGURATION ENDPOINTS - GET =====
 
 void VCUWebServer::handleGetConfig(AsyncWebServerRequest* request) {
@@ -382,6 +488,7 @@ void VCUWebServer::handleGetDrivingConfig(AsyncWebServerRequest* request) {
 
     doc["driveMode"] = config->getDriveModeString();
     doc["maxTorque"] = config->getMaxTorque();
+    doc["maxReverseTorque"] = config->getMaxReverseTorque();
     doc["maxSOC"] = config->getMaxSOC();
 
     String response;
@@ -452,6 +559,27 @@ void VCUWebServer::handleGetTransitionConfig(AsyncWebServerRequest* request) {
     request->send(200, "application/json", response);
 }
 
+void VCUWebServer::handleGetThrottleConfig(AsyncWebServerRequest* request) {
+    JsonDocument doc;
+
+    doc["throttleMinADC"] = config->getThrottleMinADC();
+    doc["throttleMaxADC"] = config->getThrottleMaxADC();
+
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+}
+
+void VCUWebServer::handleGetRawThrottle(AsyncWebServerRequest* request) {
+    JsonDocument doc;
+
+    doc["rawADC"] = vehicleControl->getRawThrottleADC();
+
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+}
+
 // ===== CONFIGURATION ENDPOINTS - POST =====
 
 void VCUWebServer::handleSetDrivingConfig(AsyncWebServerRequest* request, JsonVariant& json) {
@@ -465,6 +593,10 @@ void VCUWebServer::handleSetDrivingConfig(AsyncWebServerRequest* request, JsonVa
 
     if (!obj["maxTorque"].isNull()) {
         success &= config->setMaxTorque(obj["maxTorque"].as<int>());
+    }
+
+    if (!obj["maxReverseTorque"].isNull()) {
+        success &= config->setMaxReverseTorque(obj["maxReverseTorque"].as<int>());
     }
 
     if (!obj["maxSOC"].isNull()) {
@@ -643,6 +775,33 @@ void VCUWebServer::handleSetTransitionConfig(AsyncWebServerRequest* request, Jso
     }
 }
 
+void VCUWebServer::handleSetThrottleConfig(AsyncWebServerRequest* request, JsonVariant& json) {
+    JsonObject obj = json.as<JsonObject>();
+    bool success = true;
+
+    // min must stay below max at every step, so when the whole range moves up the
+    // new max goes in first.
+    bool hasMin = !obj["throttleMinADC"].isNull();
+    bool hasMax = !obj["throttleMaxADC"].isNull();
+    int newMin = hasMin ? obj["throttleMinADC"].as<int>() : 0;
+    int newMax = hasMax ? obj["throttleMaxADC"].as<int>() : 0;
+
+    if (hasMin && hasMax && newMin >= config->getThrottleMaxADC()) {
+        success &= config->setThrottleMaxADC(newMax);
+        success &= config->setThrottleMinADC(newMin);
+    } else {
+        if (hasMin) success &= config->setThrottleMinADC(newMin);
+        if (hasMax) success &= config->setThrottleMaxADC(newMax);
+    }
+
+    if (success) {
+        config->save();
+        request->send(200, "application/json", "{\"success\":true}");
+    } else {
+        request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid parameters\"}");
+    }
+}
+
 // ===== SYSTEM ENDPOINTS =====
 
 void VCUWebServer::handleSaveConfig(AsyncWebServerRequest* request) {
@@ -679,6 +838,46 @@ void VCUWebServer::handleImportConfig(AsyncWebServerRequest* request, JsonVarian
     } else {
         request->send(400, "application/json", "{\"success\":false,\"error\":\"Invalid configuration\"}");
     }
+}
+
+/**
+ * @brief Limits LIVI draws its gauges and slider ranges from, so the firmware stays the
+ *        single place they are defined.
+ */
+void VCUWebServer::handleGetLimits(AsyncWebServerRequest* request) {
+    JsonDocument doc;
+
+    doc["maxRpm"] = VehicleParams::Motor::MAX_RPM;  // the limit CANManager actually applies
+
+    JsonObject torque = doc["maxTorque"].to<JsonObject>();
+    torque["min"] = Configuration::minTorqueLimit();
+    torque["max"] = Configuration::maxTorqueLimit();
+
+    JsonObject soc = doc["maxSoc"].to<JsonObject>();
+    soc["min"] = Configuration::minSocLimit();
+    soc["max"] = Configuration::maxSocLimit();
+
+    JsonObject charge = doc["chargeCurrent"].to<JsonObject>();
+    charge["min"] = Configuration::minChargingCurrentLimit();
+    charge["max"] = Configuration::maxChargingCurrentLimit();
+
+    JsonObject motor = doc["motorTemp"].to<JsonObject>();
+    motor["derate"] = FaultLimits::TEMP_DERATE_C;
+    motor["cutoff"] = FaultLimits::TEMP_CUTOFF_C;
+
+    JsonObject inverter = doc["inverterTemp"].to<JsonObject>();
+    inverter["derate"] = FaultLimits::TEMP_DERATE_C;
+    inverter["cutoff"] = FaultLimits::TEMP_CUTOFF_C;
+
+    JsonObject pack = doc["packVoltage"].to<JsonObject>();
+    pack["min"] = VehicleParams::Battery::MIN_VOLTAGE;
+    pack["max"] = VehicleParams::Battery::MAX_VOLTAGE;
+
+    doc["chargerTempMax"] = VehicleParams::Temperature::NLG_MAX;
+
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
 }
 
 void VCUWebServer::handleSystemInfo(AsyncWebServerRequest* request) {
@@ -750,7 +949,26 @@ String VCUWebServer::createLiveDataJSON() {
     battery["soc"] = bms.soc;
     battery["voltage"] = bms.voltage;
     battery["current"] = bms.current / 10.0f;  // Scale: divide by 10
-    battery["minCell"] = 0.0f;
+    battery["maxDischarge"] = bms.maxDischarge;  // the BMS limits the VCU enforces
+    battery["maxCharge"] = bms.maxCharge;
+    if (piPower) {
+        JsonObject pi = doc["pi"].to<JsonObject>();
+        pi["state"] = PiPower::name(piPower->state());
+        pi["shutdownRequested"] = piPower->shutdownRequested();
+    }
+    // From BMS_MINMAX (0x001); allow flags as the BMS sends them, "allowed" after the override
+    const bool flagsFresh = canManager->bmsFlagsFresh();
+    battery["minCell"] = flagsFresh ? bms.cellLowDeciMv / 10000.0f : 0.0f;
+    battery["maxCell"] = flagsFresh ? bms.cellHighDeciMv / 10000.0f : 0.0f;
+    battery["tempHigh"] = bms.tempHigh;
+    battery["tempLow"] = bms.tempLow;
+    JsonObject allow = battery["allow"].to<JsonObject>();
+    allow["fresh"] = flagsFresh;
+    allow["chargeFlag"] = bms.chargeRelay;
+    allow["dischargeFlag"] = bms.dischargeRelay;
+    allow["ignored"] = canManager->getIgnoreAllowFlags();
+    allow["charge"] = canManager->chargeAllowed();
+    allow["discharge"] = canManager->dischargeAllowed();
 
     // DMC data
     const DMCData& dmc = canManager->getDMCData();
@@ -786,8 +1004,13 @@ String VCUWebServer::createLiveDataJSON() {
 
     inputs["throttle"] = throttlePercent;
     inputs["torque"] = torquePercent;
+    inputs["rawThrottleADC"] = vehicleControl ? vehicleControl->getRawThrottleADC() : 0;
     inputs["connectorLock"] = stateManager->isConnectorLocked();
     inputs["ignition"] = digitalRead(Pins::IGNITION) == HIGH;
+
+    // Safety status
+    JsonObject safety = doc["safety"].to<JsonObject>();
+    safety["throttleBlockingShift"] = vehicleControl ? vehicleControl->isThrottleBlockingShift() : false;
 
     // Temperatures
     JsonObject temps = doc["temperatures"].to<JsonObject>();
@@ -797,6 +1020,23 @@ String VCUWebServer::createLiveDataJSON() {
 
     // Charging status
     const NLGData& nlg = canManager->getNLGData();
+    // DC-DC converter (BSC): what the VCU asks for and what the converter reports.
+    const BSCData& bsc = canManager->getBSCData();
+    JsonObject dcdc = doc["dcdc"].to<JsonObject>();
+    dcdc["enabled"] = canManager->isBSCEnabled();
+    dcdc["modeDemand"] = canManager->isBSCBoost() ? "BOOST" : "BUCK";
+    dcdc["modeAct"] = bsc.mode;
+    dcdc["hvVoltage"] = bsc.hvVoltageAct;
+    dcdc["lvVoltage"] = bsc.lvVoltageAct;
+    dcdc["hvCurrent"] = bsc.hvCurrentAct;
+    dcdc["lvCurrent"] = bsc.lvCurrentAct;
+    dcdc["hvVoltageDemand"] = canManager->getHVVoltageDemand();
+    dcdc["lvVoltageDemand"] = VehicleParams::Battery::MIN_LVVOLTAGE;
+    dcdc["lvCurrentLimit"] = canManager->isBSCBoost() ? VehicleParams::Power::BSC_LV_BOOST
+                                                      : VehicleParams::Power::BSC_LV_BUCK;
+    unsigned long bscMs = canManager->getLastBSCMs();
+    dcdc["ageMs"] = bscMs ? (long)(millis() - bscMs) : -1L;
+
     JsonObject charging = doc["charging"].to<JsonObject>();
 
     // Map NLG state to readable string
@@ -837,6 +1077,16 @@ String VCUWebServer::createSystemInfoJSON() {
     doc["freeSketchSpace"] = ESP.getFreeSketchSpace();
     doc["uptime"] = millis() / 1000;
     doc["debugMode"] = debugMode;
+
+    // CAN receive diagnostics: interrupts should track frames, overflows should stay 0
+    JsonObject can = doc["can"].to<JsonObject>();
+    can["interrupts"] = CANManager::intCount;
+    can["frames"] = canManager->getRxCount();
+    can["rxOverflows"] = canManager->getRxOverflowCount();
+    can["intPinLow"] = digitalRead(Pins::CAN_INT_PIN) == LOW;
+
+    if (ethernet) ethernet->toJSON(doc["eth"].to<JsonObject>());
+    if (wifiManager) doc["wifiServiceMode"] = wifiManager->isStarted();
 
     String response;
     serializeJson(doc, response);

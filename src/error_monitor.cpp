@@ -28,16 +28,49 @@ ErrorMonitor::ErrorMonitor(size_t maxLogEntries, size_t maxCANMessages)
  */
 void ErrorMonitor::logError(ErrorSeverity severity, ErrorCode code, const String& description, 
                           float value, const String& component) {
-    LogEntry entry(severity, code, description, value, component);
-    
-    // Add to log
-    errorLog.push_back(entry);
-    
-    // Maintain size limit
-    if (errorLog.size() > maxLogEntries) {
-        errorLog.pop_front();
+    // Generic info/warning/error helpers log under SYSTEM_BOOT; only real codes are faults,
+    // at any severity (INFO faults such as BMS_CHARGE_NOT_ALLOWED are raised every cycle too).
+    // Edge-triggered: a repeat while the fault is already active only refreshes
+    // lastSeen/severity and is neither logged nor counted again.
+    if (code != ErrorCode::SYSTEM_BOOT) {
+        std::lock_guard<std::mutex> lock(faultMutex);
+        bool found = false;
+        for (auto& f : faults) {
+            if (f.code != code) continue;
+            found = true;
+            f.lastMs = millis();
+            if (severity > f.severity) f.severity = severity;
+            if (f.active) return;
+            f.severity = severity;
+            f.description = description;
+            if (f.count < UINT16_MAX) f.count++;
+            f.active = true;
+            break;
+        }
+        if (!found) {
+            if (faults.size() >= MAX_FAULTS) {
+                // Drop the oldest inactive entry, else the oldest overall.
+                auto it = faults.begin();
+                for (auto j = faults.begin(); j != faults.end(); ++j) {
+                    if (!j->active) { it = j; break; }
+                }
+                faults.erase(it);
+            }
+            faults.push_back({code, severity, description, 1, millis(), true});
+        }
     }
-    
+
+    // Add to log
+    {
+        std::lock_guard<std::mutex> lock(logMutex);
+        errorLog.emplace_back(severity, code, description, value, component);
+        
+        // Maintain size limit
+        if (errorLog.size() > maxLogEntries) {
+            errorLog.pop_front();
+        }
+    }
+
     // Print to serial for debugging
     String severityStr = severityToString(severity);
     String codeStr = errorCodeToString(code);
@@ -86,7 +119,10 @@ void ErrorMonitor::logCritical(const String& message, const String& component) {
  * @brief Clear error log
  */
 void ErrorMonitor::clearErrorLog() {
-    errorLog.clear();
+    {
+        std::lock_guard<std::mutex> lock(logMutex);
+        errorLog.clear();
+    }
     logInfo("Error log cleared", "MONITOR");
 }
 
@@ -94,6 +130,7 @@ void ErrorMonitor::clearErrorLog() {
  * @brief Get error count by severity
  */
 uint16_t ErrorMonitor::getErrorCount(ErrorSeverity minSeverity) {
+    std::lock_guard<std::mutex> lock(logMutex);
     uint16_t count = 0;
     for (const auto& entry : errorLog) {
         if (entry.severity >= minSeverity) {
@@ -110,6 +147,7 @@ String ErrorMonitor::getErrorLogJSON(uint16_t maxEntries) {
     JsonDocument doc;
     JsonArray errors = doc["errors"].to<JsonArray>();
     
+    std::lock_guard<std::mutex> lock(logMutex);
     uint16_t count = 0;
     for (auto it = errorLog.rbegin(); it != errorLog.rend() && count < maxEntries; ++it, ++count) {
         JsonObject error = errors.add<JsonObject>();
@@ -135,98 +173,113 @@ String ErrorMonitor::getErrorLogJSON(uint16_t maxEntries) {
  * @brief Update monitoring data
  */
 void ErrorMonitor::updateMonitoringData(const CANManager& canManager, const StateManager& stateManager) {
-    currentData.timestamp = millis();
-    
+    // Build the snapshot off to the side, then publish it under the lock with one
+    // assignment, so a concurrent reader never sees a partially-updated struct.
+    MonitoringData data;
+    data.timestamp = millis();
+
     // System status
-    currentData.vehicleState = stateManager.getCurrentState();
-    currentData.batteryArmed = stateManager.isBatteryArmed();
-    currentData.prechargeComplete = stateManager.isPreCharged();
-    
+    data.vehicleState = stateManager.getCurrentState();
+    data.batteryArmed = stateManager.isBatteryArmed();
+    data.prechargeComplete = stateManager.isPreCharged();
+
     // BMS data
     const BMSData& bms = canManager.getBMSData();
-    currentData.soc = bms.soc;
-    currentData.packVoltage = bms.voltage;
-    currentData.packCurrent = bms.current;
-    currentData.maxDischarge = bms.maxDischarge;
-    currentData.maxCharge = bms.maxCharge;
-    
+    data.soc = bms.soc;
+    data.packVoltage = bms.voltage;
+    data.packCurrent = bms.current;
+    data.maxDischarge = bms.maxDischarge;
+    data.maxCharge = bms.maxCharge;
+
     // DMC data
     const DMCData& dmc = canManager.getDMCData();
-    currentData.motorTemp = dmc.tempMotor;
-    currentData.inverterTemp = dmc.tempInverter;
-    currentData.motorSpeedRPM = dmc.speedActual;
-    
+    data.motorTemp = dmc.tempMotor;
+    data.inverterTemp = dmc.tempInverter;
+    data.motorSpeedRPM = dmc.speedActual;
+
     // BSC data
     const BSCData& bsc = canManager.getBSCData();
-    currentData.bscHVVoltage = bsc.hvVoltageAct;
-    currentData.bscLVVoltage = bsc.lvVoltageAct;
-    currentData.bscHVCurrent = bsc.hvCurrentAct;
-    currentData.bscLVCurrent = bsc.lvCurrentAct;
-    currentData.bscMode = bsc.mode;
-    
+    data.bscHVVoltage = bsc.hvVoltageAct;
+    data.bscLVVoltage = bsc.lvVoltageAct;
+    data.bscHVCurrent = bsc.hvCurrentAct;
+    data.bscLVCurrent = bsc.lvCurrentAct;
+    data.bscMode = bsc.mode;
+
     // NLG data
     const NLGData& nlg = canManager.getNLGData();
-    currentData.chargerState = nlg.stateAct;
-    currentData.chargingVoltage = nlg.dcHvVoltageAct;
-    currentData.chargingCurrent = nlg.dcHvCurrentAct;
-    currentData.connectorLocked = nlg.connectorLocked;
-    currentData.chargerTemp = nlg.tempCoolPlate;
-    currentData.coolingRequest = nlg.coolingRequest;
-    
+    data.chargerState = nlg.stateAct;
+    data.chargingVoltage = nlg.dcHvVoltageAct;
+    data.chargingCurrent = nlg.dcHvCurrentAct;
+    data.connectorLocked = nlg.connectorLocked;
+    data.chargerTemp = nlg.tempCoolPlate;
+    data.coolingRequest = nlg.coolingRequest;
+
     // System health
-    currentData.uptime = millis();
-    currentData.freeMemory = ESP.getFreeHeap();
-    currentData.activeErrors = getErrorCount(ErrorSeverity::ERROR);
+    data.uptime = millis();
+    data.freeMemory = ESP.getFreeHeap();
+    data.activeErrors = getErrorCount(ErrorSeverity::ERROR);
+
+    std::lock_guard<std::mutex> lock(dataMutex);
+    currentData = data;
+}
+
+/**
+ * @brief Thread-safe snapshot of the monitoring data
+ */
+MonitoringData ErrorMonitor::getMonitoringData() const {
+    std::lock_guard<std::mutex> lock(dataMutex);
+    return currentData;
 }
 
 /**
  * @brief Get monitoring data as JSON
  */
 String ErrorMonitor::getMonitoringJSON() {
+    const MonitoringData data = getMonitoringData();
     JsonDocument doc;
-    
+
     // System info
-    doc["timestamp"] = currentData.timestamp;
-    doc["uptime"] = currentData.uptime;
-    doc["vehicleState"] = vehicleStateToString(currentData.vehicleState);
-    doc["batteryArmed"] = currentData.batteryArmed;
-    doc["prechargeComplete"] = currentData.prechargeComplete;
-    
+    doc["timestamp"] = data.timestamp;
+    doc["uptime"] = data.uptime;
+    doc["vehicleState"] = vehicleStateToString(data.vehicleState);
+    doc["batteryArmed"] = data.batteryArmed;
+    doc["prechargeComplete"] = data.prechargeComplete;
+
     // Power system
     JsonObject power = doc["power"].to<JsonObject>();
-    power["soc"] = currentData.soc;
-    power["packVoltage"] = currentData.packVoltage;
-    power["packCurrent"] = currentData.packCurrent;
-    power["maxDischarge"] = currentData.maxDischarge;
-    power["maxCharge"] = currentData.maxCharge;
-    power["bscHVVoltage"] = currentData.bscHVVoltage;
-    power["bscLVVoltage"] = currentData.bscLVVoltage;
-    
+    power["soc"] = data.soc;
+    power["packVoltage"] = data.packVoltage;
+    power["packCurrent"] = data.packCurrent;
+    power["maxDischarge"] = data.maxDischarge;
+    power["maxCharge"] = data.maxCharge;
+    power["bscHVVoltage"] = data.bscHVVoltage;
+    power["bscLVVoltage"] = data.bscLVVoltage;
+
     // Thermal
     JsonObject thermal = doc["thermal"].to<JsonObject>();
-    thermal["motorTemp"] = currentData.motorTemp;
-    thermal["inverterTemp"] = currentData.inverterTemp;
-    thermal["chargerTemp"] = currentData.chargerTemp;
-    thermal["coolingRequest"] = currentData.coolingRequest;
-    
+    thermal["motorTemp"] = data.motorTemp;
+    thermal["inverterTemp"] = data.inverterTemp;
+    thermal["chargerTemp"] = data.chargerTemp;
+    thermal["coolingRequest"] = data.coolingRequest;
+
     // Motion
     JsonObject motion = doc["motion"].to<JsonObject>();
-    motion["motorSpeedRPM"] = currentData.motorSpeedRPM;
-    motion["vehicleSpeedKPH"] = currentData.vehicleSpeedKPH;
-    motion["torquePercent"] = currentData.torquePercent;
-    
+    motion["motorSpeedRPM"] = data.motorSpeedRPM;
+    motion["vehicleSpeedKPH"] = data.vehicleSpeedKPH;
+    motion["torquePercent"] = data.torquePercent;
+
     // Charging
     JsonObject charging = doc["charging"].to<JsonObject>();
-    charging["state"] = currentData.chargerState;
-    charging["voltage"] = currentData.chargingVoltage;
-    charging["current"] = currentData.chargingCurrent;
-    charging["connectorLocked"] = currentData.connectorLocked;
-    
+    charging["state"] = data.chargerState;
+    charging["voltage"] = data.chargingVoltage;
+    charging["current"] = data.chargingCurrent;
+    charging["connectorLocked"] = data.connectorLocked;
+
     // System health
     JsonObject health = doc["health"].to<JsonObject>();
-    health["freeMemory"] = currentData.freeMemory;
-    health["activeErrors"] = currentData.activeErrors;
-    
+    health["freeMemory"] = data.freeMemory;
+    health["activeErrors"] = data.activeErrors;
+
     String result;
     serializeJson(doc, result);
     return result;
@@ -365,7 +418,7 @@ void ErrorMonitor::resetPerformanceMetrics() {
  */
 bool ErrorMonitor::isSystemHealthy() {
     // Check for critical errors
-    if (getErrorCount(ErrorSeverity::CRITICAL) > 0) {
+    if (hasActiveFault(ErrorSeverity::CRITICAL)) {
         return false;
     }
     
@@ -375,10 +428,10 @@ bool ErrorMonitor::isSystemHealthy() {
     }
     
     // Check data freshness (basic check)
-    if (millis() - currentData.timestamp > 5000) { // Data older than 5 seconds
+    if (millis() - getMonitoringData().timestamp > 5000) { // Data older than 5 seconds
         return false;
     }
-    
+
     return true;
 }
 
@@ -387,13 +440,14 @@ bool ErrorMonitor::isSystemHealthy() {
  */
 String ErrorMonitor::getSystemHealthJSON() {
     JsonDocument doc;
-    
+
     doc["healthy"] = isSystemHealthy();
     doc["criticalErrors"] = getErrorCount(ErrorSeverity::CRITICAL);
+    doc["activeCriticalFault"] = hasActiveFault(ErrorSeverity::CRITICAL);
     doc["errors"] = getErrorCount(ErrorSeverity::ERROR);
     doc["warnings"] = getErrorCount(ErrorSeverity::WARNING);
     doc["freeMemory"] = ESP.getFreeHeap();
-    doc["dataAge"] = millis() - currentData.timestamp;
+    doc["dataAge"] = millis() - getMonitoringData().timestamp;
     doc["uptime"] = millis();
     
     String result;
@@ -416,12 +470,41 @@ String ErrorMonitor::severityToString(ErrorSeverity severity) {
 String ErrorMonitor::errorCodeToString(ErrorCode code) {
     switch (code) {
         case ErrorCode::SYSTEM_BOOT: return "SYSTEM_BOOT";
+        case ErrorCode::SYSTEM_SHUTDOWN: return "SYSTEM_SHUTDOWN";
+        case ErrorCode::WATCHDOG_RESET: return "WATCHDOG_RESET";
+        case ErrorCode::MEMORY_ERROR: return "MEMORY_ERROR";
+        case ErrorCode::LV_BATTERY_LOW: return "LV_BATTERY_LOW";
         case ErrorCode::CAN_INIT_FAILED: return "CAN_INIT_FAILED";
+        case ErrorCode::CAN_BUS_OFF: return "CAN_BUS_OFF";
+        case ErrorCode::BMS_TIMEOUT: return "BMS_TIMEOUT";
+        case ErrorCode::DMC_TIMEOUT: return "DMC_TIMEOUT";
+        case ErrorCode::BSC_TIMEOUT: return "BSC_TIMEOUT";
+        case ErrorCode::NLG_TIMEOUT: return "NLG_TIMEOUT";
         case ErrorCode::BATTERY_UNDERVOLTAGE: return "BATTERY_UNDERVOLTAGE";
         case ErrorCode::BATTERY_OVERVOLTAGE: return "BATTERY_OVERVOLTAGE";
+        case ErrorCode::BATTERY_OVERCURRENT: return "BATTERY_OVERCURRENT";
+        case ErrorCode::PRECHARGE_FAILED: return "PRECHARGE_FAILED";
+        case ErrorCode::PRECHARGE_TIMEOUT: return "PRECHARGE_TIMEOUT";
+        case ErrorCode::SOC_OUT_OF_RANGE: return "SOC_OUT_OF_RANGE";
+        case ErrorCode::BMS_DISCHARGE_NOT_ALLOWED: return "BMS_DISCHARGE_NOT_ALLOWED";
+        case ErrorCode::BMS_CHARGE_NOT_ALLOWED: return "BMS_CHARGE_NOT_ALLOWED";
+        case ErrorCode::BMS_FLAGS_IGNORED: return "BMS_FLAGS_IGNORED";
         case ErrorCode::MOTOR_OVERTEMP: return "MOTOR_OVERTEMP";
         case ErrorCode::INVERTER_OVERTEMP: return "INVERTER_OVERTEMP";
-        // Add more codes as needed
+        case ErrorCode::DMC_ERROR: return "DMC_ERROR";
+        case ErrorCode::TORQUE_LIMIT_EXCEEDED: return "TORQUE_LIMIT_EXCEEDED";
+        case ErrorCode::SPEED_LIMIT_EXCEEDED: return "SPEED_LIMIT_EXCEEDED";
+        case ErrorCode::CHARGER_ERROR: return "CHARGER_ERROR";
+        case ErrorCode::CHARGER_OVERTEMP: return "CHARGER_OVERTEMP";
+        case ErrorCode::CONNECTOR_ERROR: return "CONNECTOR_ERROR";
+        case ErrorCode::CHARGE_CURRENT_ERROR: return "CHARGE_CURRENT_ERROR";
+        case ErrorCode::CONFIG_INVALID: return "CONFIG_INVALID";
+        case ErrorCode::CONFIG_SAVE_FAILED: return "CONFIG_SAVE_FAILED";
+        case ErrorCode::CONFIG_LOAD_FAILED: return "CONFIG_LOAD_FAILED";
+        case ErrorCode::CALIBRATION_ERROR: return "CALIBRATION_ERROR";
+        case ErrorCode::GEAR_SHIFT_ERROR: return "GEAR_SHIFT_ERROR";
+        case ErrorCode::PEDAL_ERROR: return "PEDAL_ERROR";
+        case ErrorCode::USER_ABORT: return "USER_ABORT";
         default: return "UNKNOWN_ERROR";
     }
 }
@@ -433,4 +516,66 @@ String ErrorMonitor::vehicleStateToString(VehicleState state) {
         case VehicleState::CHARGING: return "CHARGING";
         default: return "UNKNOWN";
     }
+}
+
+// ===== FAULT LIST =====
+
+void ErrorMonitor::clearFault(ErrorCode code) {
+    bool wasActive = false;
+    {
+        std::lock_guard<std::mutex> lock(faultMutex);
+        for (auto& f : faults) {
+            if (f.code == code && f.active) { f.active = false; wasActive = true; }
+        }
+    }
+    if (wasActive) logInfo("Fault cleared: " + errorCodeToString(code), "FAULT");
+}
+
+void ErrorMonitor::clearAllFaults() {
+    std::lock_guard<std::mutex> lock(faultMutex);
+    for (auto& f : faults) f.active = false;
+}
+
+bool ErrorMonitor::isFaultActive(ErrorCode code) {
+    std::lock_guard<std::mutex> lock(faultMutex);
+    for (const auto& f : faults) {
+        if (f.code == code) return f.active;
+    }
+    return false;
+}
+
+bool ErrorMonitor::hasActiveFault(ErrorSeverity minSeverity) {
+    std::lock_guard<std::mutex> lock(faultMutex);
+    for (const auto& f : faults) {
+        if (f.active && f.severity >= minSeverity) return true;
+    }
+    return false;
+}
+
+/**
+ * @brief Fault list for LIVI: `{ "faults": [{ code, name, severity, active, count, lastSeenS }] }`
+ */
+String ErrorMonitor::getFaultsJSON() {
+    JsonDocument doc;
+    JsonArray arr = doc["faults"].to<JsonArray>();
+    std::lock_guard<std::mutex> lock(faultMutex);
+
+    for (const auto& f : faults) {
+        JsonObject o = arr.add<JsonObject>();
+        o["code"] = (uint16_t)f.code;
+        o["name"] = f.description.length() ? f.description : errorCodeToString(f.code);
+        switch (f.severity) {
+            case ErrorSeverity::INFO: o["severity"] = "info"; break;
+            case ErrorSeverity::WARNING: o["severity"] = "warning"; break;
+            case ErrorSeverity::ERROR: o["severity"] = "error"; break;
+            default: o["severity"] = "critical"; break;
+        }
+        o["active"] = f.active;
+        o["count"] = f.count;
+        o["lastSeenS"] = f.lastMs / 1000;
+    }
+
+    String out;
+    serializeJson(doc, out);
+    return out;
 }

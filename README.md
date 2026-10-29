@@ -1,6 +1,6 @@
-# VCU - Vehicle Control Unit with Web Interface
+# VCU - Vehicle Control Unit
 
-A professional FreeRTOS-based vehicle control unit for ESP32-S3 with a modern web interface for real-time monitoring and configuration.
+A professional FreeRTOS-based vehicle control unit for ESP32-S3 with a JSON/WebSocket API. [LIVI](../../LIVI) is the user interface; the VCU serves no web page of its own.
 
 ## Features
 
@@ -11,18 +11,10 @@ A professional FreeRTOS-based vehicle control unit for ESP32-S3 with a modern we
 - **Persistent Configuration**: JSON-based flash storage with validation
 - **Real-time Monitoring**: Error logging, performance metrics, and system health checks
 
-### Web Interface
-- **Always-On Web Server**: Configure and monitor from any device on the network
-- **Modern Dashboard**: Real-time charts for speed and power, live vehicle status
-- **Tabbed Interface**:
-  - **Dashboard**: Live monitoring with gauges and graphs
-  - **Charging**: Configure charging current and target SOC
-  - **Configuration**: Driving modes, pedal zones, torque transitions
-  - **CAN Monitor**: Live CAN bus message viewer
-  - **Task Monitor**: FreeRTOS task statistics
-  - **System**: WiFi settings, debug mode, firmware info
-- **WebSocket Updates**: 10Hz real-time data streaming
-- **Dark Theme**: Professional automotive UI with purple/blue accents
+### API
+- **Always-On Web Server**: REST + WebSocket on port 80, used by LIVI
+- **WebSocket Updates**: 10Hz live data streaming
+- **BMS cells and faults**: see the end of this file
 
 ## Hardware
 
@@ -56,9 +48,6 @@ pio run
 
 # Upload firmware
 pio run --target upload
-
-# Upload filesystem (web interface)
-pio run --target uploadfs
 ```
 
 ### 2. First-Time Setup
@@ -66,73 +55,7 @@ pio run --target uploadfs
 1. Power on the VCU
 2. Look for WiFi network: `VCU_XXXXX` (XXXXX = chip ID)
 3. Connect with password: `vcu12345`
-4. Open browser to: `http://192.168.4.1`
-
-### 3. Configure WiFi
-
-1. Navigate to **System** tab
-2. Enter your WiFi SSID and password
-3. VCU will connect to your network
-4. Note the new IP address displayed
-
-## Web Interface
-
-### Dashboard Tab
-- **Live Data** (updates every 100ms):
-  - Vehicle state, gear, speed, torque
-  - Battery SOC, voltage, current
-  - Motor/inverter/battery temperatures
-  - Throttle, regen, brake inputs
-- **Real-time Charts**:
-  - Speed chart (last 100 samples)
-  - Power chart (positive = discharge, negative = charge)
-
-### Charging Tab
-- Set maximum charging current (6-32A)
-- Configure target SOC (50-100%)
-- Monitor charger state and current
-
-### Configuration Tab
-
-#### Driving Mode
-- **Legacy**: Traditional throttle response
-- **Regen**: Regenerative braking enabled
-- **OPD**: One Pedal Drive mode
-
-#### Pedal Zones
-- **Regen Zone End**: 10-50% (default 16%)
-- **Coast Zone End**: 15-60% (default 17%)
-- **Regen Progression**: 1.0-3.0 (curve aggressiveness)
-- **Accel Progression**: 1.0-3.0 (curve aggressiveness)
-
-#### Torque Transitions
-- **Regen Engage**: Time for 0 → negative torque
-- **Regen Release**: Time for negative → 0 torque
-- **Power Engage**: Time for 0 → positive torque
-- **Power Release**: Time for positive → 0 torque
-- **Crossover**: Time for regen ↔ power transitions
-
-### CAN Monitor Tab
-- Live view of CAN messages from:
-  - BMS (0x0F1) - Battery data
-  - DMC (0x280) - Motor controller
-  - BSC (0x26A) - DC-DC converter
-  - NLG (0x728) - Charger
-
-### Task Monitor Tab
-- FreeRTOS task information
-- Heap memory usage
-- CPU frequency
-- System performance metrics
-
-### System Tab
-- **WiFi Configuration**: Change network settings
-- **Debug Mode**: Enable/disable (prevents deep sleep)
-- **Firmware Info**: Chip model, version, uptime
-- **Configuration Management**:
-  - Export configuration to JSON file
-  - Import configuration from JSON file
-  - Factory reset
+4. Point LIVI at `192.168.4.1` (Settings → Vehicle → Status)
 
 ## REST API
 
@@ -187,7 +110,6 @@ Debug mode prevents the VCU from entering deep sleep, useful for:
 - Debugging CAN communication issues
 
 Enable via:
-- Web interface: System tab → Enable Debug Mode
 - API: `POST /api/system/debug {"enabled": true}`
 
 ## FreeRTOS Task Structure
@@ -200,7 +122,7 @@ Enable via:
   - Temperature monitoring
   - 1ms cycle time
 
-### Core 1 (Control & Web)
+### Core 1 (Control & API)
 - **Control Task** (Priority 1, 24KB stack)
   - State machine updates
   - Interrupt handling
@@ -227,16 +149,10 @@ Enable via:
 ## Configuration Backup
 
 ### Export Configuration
-1. Open web interface
-2. Navigate to System tab
-3. Click "Export Configuration"
-4. Save `vcu_config.json` file
+`GET /api/system/export` returns the configuration as JSON; save it as `vcu_config.json`.
 
 ### Import Configuration
-1. Open web interface
-2. Navigate to System tab
-3. Click "Import Configuration"
-4. Select previously saved JSON file
+`POST /api/system/import` with the saved JSON, then `POST /api/system/save`.
 
 ## Network Configuration
 
@@ -246,7 +162,7 @@ Enable via:
 - IP Address: `192.168.4.1`
 
 ### Station Mode
-- Configure via web interface System tab
+- The VCU has no API for station credentials; see `wifi_manager`
 - Automatically falls back to AP if connection fails
 - Reconnects automatically if WiFi drops
 
@@ -257,20 +173,19 @@ Enable via:
 2. Default password is `vcu12345`
 3. Try factory reset if needed
 
-### Web Interface Not Loading
-1. Check IP address in serial monitor
-2. Ensure device is on same network
-3. Try clearing browser cache
-4. Use incognito/private browsing mode
+### LIVI Can't Reach the VCU
+1. Check the VCU's IP address in the serial monitor
+2. Ensure LIVI's host is on the VCU's network
+3. Check `http://<ip>/api/system/info` answers
 
 ### Configuration Not Saving
-1. Click "Save Configuration" button after changes
-2. Check API response in browser console
+1. Writes are saved by the VCU itself; check the API response of `POST /api/system/save`
+2. Look at the error LIVI shows under Adjustments
 3. Verify flash storage isn't full
 
 ### Real-time Data Not Updating
-1. Check WebSocket connection status (indicator in header)
-2. Refresh page to reconnect
+1. Check that `/ws` accepts a connection (LIVI reconnects with backoff)
+2. Confirm the link state under Settings → Vehicle → Status
 3. Ensure CAN bus is connected and operational
 
 ## Development
@@ -288,11 +203,6 @@ VCU/
 │   └── web_server.cpp            - Web server
 ├── include/
 │   └── [corresponding headers]
-├── data/
-│   ├── index.html                - Main web page
-│   ├── styles.css                - Styling
-│   ├── app.js                    - API/config logic
-│   └── dashboard.js              - Charts/live data
 ├── platformio.ini                - Build configuration
 └── min_spiffs.csv                - Partition table
 ```
@@ -311,9 +221,6 @@ pio run
 
 # Upload firmware
 pio run --target upload
-
-# Upload web interface
-pio run --target uploadfs
 
 # Monitor serial output
 pio device monitor
@@ -335,3 +242,79 @@ Built with:
 ## Support
 
 For issues, questions, or contributions, please open an issue on GitHub.
+
+
+## BMS cells and faults API (for LIVI)
+
+- `GET /api/bms/cells` → `{ "cellsMv": [...], "balancing": [idx...], "temps": [...], "ageMs": n }`.
+  Cells come from the Orion *Battery Cell Broadcast* frame (see `include/bms_cells.h`).
+  `cellsMv` is empty until a valid frame has been decoded.
+- `GET|POST /api/config/bms` → `{ cellId, tempId, bigEndian, checkChecksum, cellCount, tempCount, ignoreAllowFlags }`.
+  `ignoreAllowFlags` (override of the BMS charge/discharge allow flags, for breakdown, trailer
+  loading or debugging) is **not saved**: every boot starts with the flags enforced. The BMS current
+  limits (DCL/CCL) still apply while it is on, and `BMS_FLAGS_IGNORED` stays active as a reminder.
+- Live JSON `battery`: `minCell`, `maxCell` (V), `tempHigh`, `tempLow` (°C) from BMS 0x001, and
+  `allow { fresh, chargeFlag, dischargeFlag, ignored, charge, discharge }` (`charge`/`discharge` =
+  what the VCU acts on).
+  `cellId`/`tempId` are the CAN IDs set in the Orion BMS Utility; `0` turns decoding off (default).
+  Stored in its own NVS namespace, applied immediately.
+- `GET /api/status/faults` → `{ "faults": [{ code, name, severity, active, count, lastSeenS }] }`.
+  Every fault code raised by `FaultHandler`, INFO included (e.g. `BMS_CHARGE_NOT_ALLOWED`, `CHARGER_OVERTEMP`). `active` is edge-triggered: set on raise, cleared by `FaultHandler` once the value is back inside the hysteresis band (no time-based expiry). `count` is the number of inactive→active transitions.
+
+
+## Fault handling
+
+`FaultHandler` (`include/fault_handler.h`, `src/fault_handler.cpp`) runs every CAN-task cycle in `main.cpp`.
+It is the only place that raises/clears the fault codes below and the only place that maps faults to reactions.
+`ErrorMonitor` just stores them. Raising an already active fault does not log or count again.
+
+### Faults and thresholds
+
+Values marked *existing* come from `include/vehicle_parameters.h` and are unchanged (`INV_HIGH`/`MOT_HIGH` = 45 °C, `INV_LOW`/`MOT_LOW` = 30 °C and `FAN_ON` = 65 °C are the cooling thresholds in `StateManager`, the pump on above 45 and off below 30, the fan on above 65, and are not used for derating); the others are new and live in `FaultLimits` (`fault_handler.h`) so the safety header was not touched.
+
+| Code | Severity | Raised when | Cleared when |
+|---|---|---|---|
+| `BMS_TIMEOUT` | ERROR | no BMS frame (0x010) for > 1500 ms (*existing* `Timing::BMS_TIMEOUT_MS`) | a BMS frame is fresh again |
+| `DMC_TIMEOUT` | CRITICAL | in RUN, no DMC frame (0x258/0x259/0x458) for > 500 ms (new) | frame fresh again, or leaving RUN |
+| `BSC_TIMEOUT` | WARNING | no BSC status frame for > 1500 ms (new) | frame fresh again |
+| `NLG_TIMEOUT` | WARNING | in CHARGING, no NLG frame for > 1500 ms (new) | frame fresh again, or leaving CHARGING |
+| `CHARGER_OVERTEMP` | INFO | in CHARGING, charger cooling plate > 85 °C (new; the charger itself is good to 95 °C) | plate <= 80 °C, or leaving CHARGING |
+| `BATTERY_UNDERVOLTAGE` | ERROR | pack < 300 V (`Battery::MIN_VOLTAGE`), BMS data fresh | pack >= 305 V (+5 V, new) |
+| `BMS_DISCHARGE_NOT_ALLOWED` | CRITICAL | in RUN, BMS discharge flag (0x001 byte 6 bit 1) off or no 0x001 frame for > 1600 ms, override off | flag on again, or leaving RUN |
+| `BMS_CHARGE_NOT_ALLOWED` | INFO | in CHARGING, BMS charge flag (0x001 byte 6 bit 0) off or frame missing, override off | flag on again, or leaving CHARGING |
+| `BMS_FLAGS_IGNORED` | WARNING | allow-flag override on (`ignoreAllowFlags`) | override off (or restart) |
+| `BATTERY_OVERVOLTAGE` | CRITICAL | pack > 422 V (`Battery::OVERVOLTAGE`), BMS data fresh | pack <= 417 V (-5 V, new) |
+| `INVERTER_OVERTEMP` | ERROR | inverter > 100 °C (new `TEMP_DERATE_C`); CRITICAL above 105 °C (new `TEMP_CUTOFF_C`) | inverter < 95 °C (-5 °C, new) |
+| `MOTOR_OVERTEMP` | ERROR | motor > 100 °C (new `TEMP_DERATE_C`); CRITICAL above 105 °C (new `TEMP_CUTOFF_C`) | motor < 95 °C (-5 °C, new) |
+
+Nodes that never sent anything are timed from boot (BMS, BSC) or from entering the state that needs them (DMC, NLG), so an unpowered node in standby does not raise a fault. Temperature faults are evaluated only after the first DMC frame, voltage faults only while BMS data is fresh.
+Not wired yet (no source signal in the firmware): `BATTERY_OVERCURRENT`, `DMC_ERROR`, `SOC_OUT_OF_RANGE`, precharge and charger codes.
+
+### Reactions
+
+Applied in `canTask` (`main.cpp`) in RUN state; the fault reaction is the minimum over all active faults.
+
+| Active fault | Reaction |
+|---|---|
+| `INVERTER_OVERTEMP` / `MOTOR_OVERTEMP` | torque request x 0.5 (drive and regen); x 0 above 105 °C |
+| `BATTERY_UNDERVOLTAGE` | torque request x 0.5 |
+| `BATTERY_OVERVOLTAGE` | torque request x 0 |
+| `BMS_TIMEOUT` | torque request x 0 |
+| any active CRITICAL fault (`DMC_TIMEOUT`, `BATTERY_OVERVOLTAGE`, overtemp above 105 °C) | torque x 0 and DMC enable bit forced off |
+| `BSC_TIMEOUT`, `NLG_TIMEOUT`, `CHARGER_OVERTEMP` | log/report only (the charger reduces its own power) |
+
+The allow flags also act directly in `CANManager`, in every state: discharge not allowed sets the DMC
+drive current limit to 0; charge not allowed sets the charger DC current and the DMC regen current
+limit to 0. Not latched: current flows again as soon as the BMS sets the flag again.
+Regen torque itself is also not requested while charge is not allowed or the BMS charge limit
+(CCL) is 0 A: the DMC's 0 A generator current limit alone still let some current into a full
+pack (Orion P0A06). The pedal's regen zone then behaves like coasting.
+With max SOC at 100 % the SOC is not checked at all: charging continues until the plug is pulled,
+governed only by the BMS charge limit (CCL) and charge flag.
+
+Reactions are not latched: they release automatically once the fault clears. `isSystemHealthy()` now reports unhealthy while a CRITICAL fault is active (instead of whenever any critical line was ever logged). `/api/status/faults` output shape is unchanged. CAN IDs and task timing are unchanged.
+
+- `GET /api/system/limits` → the limits LIVI uses for gauges and slider ranges: `maxRpm`
+  (`VehicleParams::Motor::MAX_RPM`, the one applied in `CANManager`), `maxTorque`, `maxSoc`,
+  `chargeCurrent` (min/max), `motorTemp`/`inverterTemp` (`derate`, `cutoff`),
+  `packVoltage` (min/max), `chargerTempMax`.

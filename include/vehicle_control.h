@@ -18,6 +18,9 @@
 #include "vehicle_parameters.h"
 #include "ADS1X15.h"
 
+// Forward declarations
+class ErrorMonitor;
+
 class CANManager;
 
 class VehicleControl {
@@ -46,6 +49,16 @@ public:
      * Handles gear selection with anti-jerk protection
      */
     void updateGearState();
+
+    /**
+     * @brief Read pedal (average of 4) and gear switches from the ADS1115.
+     * Runs only in the ADC task, which owns the I2C bus. Everything else uses the
+     * cached values, so the CAN task never waits for a conversion.
+     */
+    void sampleInputs();
+
+    /// Cached inputs older than this count as missing: 0 % torque and neutral.
+    static constexpr unsigned long INPUT_STALE_MS = 100;
 
     /**
      * @brief Updates current motor speed
@@ -154,6 +167,24 @@ public:
      * @return Current gear (DRIVE/NEUTRAL/REVERSE)
      */
     GearState getCurrentGear() const { return currentGear; }
+
+    /**
+     * @brief Check if throttle is blocking gear shift
+     * @return true if throttle position is blocking shift from neutral
+     */
+    bool isThrottleBlockingShift() const { return throttleBlockingShift; }
+
+    /**
+     * @brief Set error monitor reference for logging
+     * @param monitor Pointer to ErrorMonitor instance
+     */
+    void setErrorMonitor(ErrorMonitor* monitor) { errorMonitor = monitor; }
+
+    /**
+     * @brief Get raw throttle ADC value (for calibration wizard)
+     * @return Raw ADC value from pedal position sensor
+     */
+    int getRawThrottleADC() const { return rawThrottleADC; }
 
     static constexpr float MAX_VEHICLE_SPEED = 120.0f;  // kph
 
@@ -283,8 +314,28 @@ private:
     float lastTorquePercent;         ///< Last calculated torque percentage
     float filteredTorquePercent;     ///< Filtered torque percentage
     float motorSpeed;                ///< Current motor speed
-    CANManager* canManager = nullptr; 
-    
+    CANManager* canManager = nullptr;
+
+    // Throttle safety for gear shifts
+    bool throttleBlockingShift = false;           ///< Flag indicating shift blocked by throttle
+    unsigned long lastThrottleBlockTime = 0;      ///< Last time throttle blocked a shift
+    ErrorMonitor* errorMonitor = nullptr;         ///< Reference to error monitor
+    static constexpr float THROTTLE_SHIFT_THRESHOLD = 10.0f; ///< Throttle % threshold for shifts
+
+    int rawThrottleADC;              ///< Raw throttle ADC value (for calibration display)
+
+    // Written by the ADC task (sampleInputs), read by the CAN task
+    volatile int32_t cachedPedalADC = 0;      ///< pedal, average of 4 conversions
+    volatile int32_t cachedForwardADC = 0;    ///< drive switch (A2)
+    volatile int32_t cachedReverseADC = 0;    ///< reverse switch (A3)
+    volatile unsigned long inputsMs = 0;      ///< millis() of the last complete sample, 0 = none
+    bool inputsFresh() const {
+        const unsigned long t = inputsMs;
+        return t != 0 && millis() - t <= INPUT_STALE_MS;
+    }
+    /// One conversion without busy waiting: sleeps while the ADS1115 converts.
+    int32_t readChannel(uint8_t channel);
+
     // NEW: Smooth torque transition system
     float currentTorqueOutput;       ///< Actual torque being output
     float targetTorqueFromPedal;     ///< Target torque from pedal input

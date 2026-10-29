@@ -12,6 +12,7 @@ const char* Configuration::NAMESPACE = "vcu_config";
 // Storage keys - Basic
 const char* Configuration::KEY_DRIVE_MODE = "drive_mode";
 const char* Configuration::KEY_MAX_TORQUE = "max_torque";
+const char* Configuration::KEY_MAX_REVERSE_TORQUE = "max_rev_torque";
 const char* Configuration::KEY_MAX_SOC = "max_soc";
 const char* Configuration::KEY_MAX_CHARGING_CURRENT = "max_ac_curr";
 
@@ -34,6 +35,10 @@ const char* Configuration::KEY_REGEN_RELEASE_TIME = "trn_reg_rel";    // 10 char
 const char* Configuration::KEY_POWER_ENGAGE_TIME = "trn_pwr_engage";  // 14 chars
 const char* Configuration::KEY_POWER_RELEASE_TIME = "trn_pwr_rel";    // 10 chars
 const char* Configuration::KEY_CROSSOVER_TIME = "trn_crossover";      // 14 chars
+
+// Storage keys - Throttle calibration
+const char* Configuration::KEY_THROTTLE_MIN = "throt_min_adc";  // 14 chars
+const char* Configuration::KEY_THROTTLE_MAX = "throt_max_adc";  // 14 chars
 
 // Global configuration instance
 Configuration config;
@@ -66,6 +71,7 @@ void Configuration::resetToDefaults() {
     // Basic defaults
     driveMode = DriveMode::REGEN;
     maxTorque = VehicleParams::Motor::MAX_TRQ;
+    maxReverseTorque = VehicleParams::Motor::MAX_REVERSE_TRQ;
     maxSOC = 100;
     maxChargingCurrent = VehicleParams::Power::NLG_MAX_AC;
     
@@ -74,9 +80,12 @@ void Configuration::resetToDefaults() {
     
     // Pedal zone defaults
     resetPedalDefaults();
-    
+
     // NEW: Transition timing defaults
     resetTransitionDefaults();
+
+    // Throttle calibration defaults
+    resetThrottleDefaults();
 }
 
 /**
@@ -124,6 +133,14 @@ void Configuration::resetTransitionDefaults() {
 }
 
 /**
+ * @brief Reset throttle calibration to defaults
+ */
+void Configuration::resetThrottleDefaults() {
+    throttleMinADC = 7140;   // Match ADC::MinValPot from config.h
+    throttleMaxADC = 23910;  // Match ADC::MaxValPot from config.h
+}
+
+/**
  * @brief Save current settings to flash
  *
  * IMPORTANT: ESP32 NVS key names must be ≤15 characters!
@@ -145,6 +162,9 @@ bool Configuration::save() {
 
     written = preferences.putInt(KEY_MAX_TORQUE, maxTorque);
     if (written == 0) { Serial.printf("[Config] FAIL: max_torque\n"); success = false; }
+
+    written = preferences.putInt(KEY_MAX_REVERSE_TORQUE, maxReverseTorque);
+    if (written == 0) { Serial.printf("[Config] FAIL: max_rev_torque\n"); success = false; }
 
     written = preferences.putUChar(KEY_MAX_SOC, maxSOC);
     if (written == 0) { Serial.printf("[Config] FAIL: max_soc\n"); success = false; }
@@ -197,6 +217,13 @@ bool Configuration::save() {
     written = preferences.putFloat(KEY_CROSSOVER_TIME, crossoverTime);
     if (written == 0) { Serial.printf("[Config] FAIL: trn_crossover\n"); success = false; }
 
+    // Save throttle calibration
+    written = preferences.putInt(KEY_THROTTLE_MIN, throttleMinADC);
+    if (written == 0) { Serial.printf("[Config] FAIL: throt_min_adc\n"); success = false; }
+
+    written = preferences.putInt(KEY_THROTTLE_MAX, throttleMaxADC);
+    if (written == 0) { Serial.printf("[Config] FAIL: throt_max_adc\n"); success = false; }
+
     preferences.end();
 
     Serial.printf("[Config] Save %s\n", success ? "SUCCESSFUL" : "FAILED");
@@ -227,6 +254,13 @@ bool Configuration::load() {
         }
     }
     
+    if (preferences.isKey(KEY_MAX_REVERSE_TORQUE)) {
+        int torque = preferences.getInt(KEY_MAX_REVERSE_TORQUE, maxReverseTorque);
+        if (torque >= MIN_TORQUE_LIMIT && torque <= MAX_TORQUE_LIMIT) {
+            maxReverseTorque = torque;
+        }
+    }
+
     if (preferences.isKey(KEY_MAX_SOC)) {
         uint8_t soc = preferences.getUChar(KEY_MAX_SOC, maxSOC);
         Serial.printf("[Config] Loading maxSOC from preferences: %d%%\n", soc);
@@ -354,7 +388,22 @@ bool Configuration::load() {
             crossoverTime = time;
         }
     }
-    
+
+    // Load throttle calibration
+    if (preferences.isKey(KEY_THROTTLE_MIN)) {
+        int value = preferences.getInt(KEY_THROTTLE_MIN, throttleMinADC);
+        if (value >= MIN_THROTTLE_ADC && value <= MAX_THROTTLE_ADC && value < throttleMaxADC) {
+            throttleMinADC = value;
+        }
+    }
+
+    if (preferences.isKey(KEY_THROTTLE_MAX)) {
+        int value = preferences.getInt(KEY_THROTTLE_MAX, throttleMaxADC);
+        if (value >= MIN_THROTTLE_ADC && value <= MAX_THROTTLE_ADC && value > throttleMinADC) {
+            throttleMaxADC = value;
+        }
+    }
+
     preferences.end();
     return success;
 }
@@ -395,6 +444,23 @@ bool Configuration::setPowerReleaseTime(float timeMs) {
 bool Configuration::setCrossoverTime(float timeMs) {
     if (timeMs >= MIN_TRANSITION_TIME && timeMs <= MAX_TRANSITION_TIME) {
         crossoverTime = timeMs;
+        return true;
+    }
+    return false;
+}
+
+// === THROTTLE CALIBRATION SETTERS ===
+bool Configuration::setThrottleMinADC(int value) {
+    if (value >= MIN_THROTTLE_ADC && value <= MAX_THROTTLE_ADC && value < throttleMaxADC) {
+        throttleMinADC = value;
+        return true;
+    }
+    return false;
+}
+
+bool Configuration::setThrottleMaxADC(int value) {
+    if (value >= MIN_THROTTLE_ADC && value <= MAX_THROTTLE_ADC && value > throttleMinADC) {
+        throttleMaxADC = value;
         return true;
     }
     return false;
@@ -479,6 +545,14 @@ bool Configuration::setMaxTorque(int torque) {
     return false;
 }
 
+bool Configuration::setMaxReverseTorque(int torque) {
+    if (torque >= MIN_TORQUE_LIMIT && torque <= MAX_TORQUE_LIMIT) {
+        maxReverseTorque = torque;
+        return true;
+    }
+    return false;
+}
+
 bool Configuration::setMaxSOC(uint8_t soc) {
     if (soc >= MIN_SOC_LIMIT && soc <= MAX_SOC_LIMIT) {
         maxSOC = soc;
@@ -557,6 +631,7 @@ String Configuration::toJSON() {
     JsonObject driving = doc["driving"].to<JsonObject>();
     driving["mode"] = getDriveModeString();
     driving["maxTorque"] = maxTorque;
+    driving["maxReverseTorque"] = maxReverseTorque;
     
     JsonObject battery = doc["battery"].to<JsonObject>();
     battery["maxSOC"] = maxSOC;
@@ -589,7 +664,12 @@ String Configuration::toJSON() {
     transitions["powerEngageTime"] = powerEngageTime;
     transitions["powerReleaseTime"] = powerReleaseTime;
     transitions["crossoverTime"] = crossoverTime;
-    
+
+    // Throttle calibration config
+    JsonObject throttle = doc["throttle"].to<JsonObject>();
+    throttle["throttleMinADC"] = throttleMinADC;
+    throttle["throttleMaxADC"] = throttleMaxADC;
+
     String result;
     serializeJson(doc, result);
     return result;
@@ -620,7 +700,12 @@ bool Configuration::fromJSON(const String& json) {
     if (doc["transitions"].is<JsonObject>()) {
         parseTransitionJSON(doc["transitions"]);
     }
-    
+
+    // Parse throttle calibration
+    if (doc["throttle"].is<JsonObject>()) {
+        parseThrottleJSON(doc["throttle"]);
+    }
+
     return true;
 }
 
@@ -645,8 +730,13 @@ String Configuration::getCategoryJSON(const String& category) {
         String result;
         serializeJson(doc, result);
         return result;
+    } else if (category == "throttle") {
+        JsonDocument doc = createThrottleJSON();
+        String result;
+        serializeJson(doc, result);
+        return result;
     }
-    
+
     return "{}";
 }
 
@@ -666,8 +756,10 @@ bool Configuration::setCategoryJSON(const String& category, const String& json) 
         return parsePedalJSON(doc.as<JsonObject>());
     } else if (category == "transitions") {  // NEW
         return parseTransitionJSON(doc.as<JsonObject>());
+    } else if (category == "throttle") {
+        return parseThrottleJSON(doc.as<JsonObject>());
     }
-    
+
     return false;
 }
 
@@ -676,6 +768,7 @@ JsonDocument Configuration::createDrivingJSON() {
     JsonDocument doc;
     doc["mode"] = getDriveModeString();
     doc["maxTorque"] = maxTorque;
+    doc["maxReverseTorque"] = maxReverseTorque;
     return doc;
 }
 
@@ -715,6 +808,13 @@ JsonDocument Configuration::createTransitionJSON() {
     return doc;
 }
 
+JsonDocument Configuration::createThrottleJSON() {
+    JsonDocument doc;
+    doc["throttleMinADC"] = throttleMinADC;
+    doc["throttleMaxADC"] = throttleMaxADC;
+    return doc;
+}
+
 bool Configuration::parseDrivingJSON(const JsonObject& obj) {
     if (obj["mode"].is<const char*>()) {
         setDriveMode(String(obj["mode"].as<const char*>()));
@@ -722,6 +822,10 @@ bool Configuration::parseDrivingJSON(const JsonObject& obj) {
     
     if (obj["maxTorque"].is<int>()) {
         setMaxTorque(obj["maxTorque"]);
+    }
+
+    if (obj["maxReverseTorque"].is<int>()) {
+        setMaxReverseTorque(obj["maxReverseTorque"]);
     }
     
     return true;
@@ -786,22 +890,36 @@ bool Configuration::parseTransitionJSON(const JsonObject& obj) {
     if (obj["regenEngageTime"].is<float>()) {
         setRegenEngageTime(obj["regenEngageTime"]);
     }
-    
+
     if (obj["regenReleaseTime"].is<float>()) {
         setRegenReleaseTime(obj["regenReleaseTime"]);
     }
-    
+
     if (obj["powerEngageTime"].is<float>()) {
         setPowerEngageTime(obj["powerEngageTime"]);
     }
-    
+
     if (obj["powerReleaseTime"].is<float>()) {
         setPowerReleaseTime(obj["powerReleaseTime"]);
     }
-    
+
     if (obj["crossoverTime"].is<float>()) {
         setCrossoverTime(obj["crossoverTime"]);
     }
-    
+
     return true;
+}
+
+bool Configuration::parseThrottleJSON(const JsonObject& obj) {
+    bool success = true;
+
+    if (obj["throttleMinADC"].is<int>()) {
+        success &= setThrottleMinADC(obj["throttleMinADC"]);
+    }
+
+    if (obj["throttleMaxADC"].is<int>()) {
+        success &= setThrottleMaxADC(obj["throttleMaxADC"]);
+    }
+
+    return success;
 }

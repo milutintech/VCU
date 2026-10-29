@@ -9,11 +9,15 @@ namespace Pins {
     constexpr uint8_t MISO = 5;
     constexpr uint8_t SPI_CS_PIN = 36;
     constexpr uint8_t CAN_INT_PIN = 37;  // New interrupt pin
+    // W5500 Ethernet, on the same SCK/MOSI/MISO as the MCP2515
+    constexpr uint8_t ETH_CS = 15;       // EXT_CS
+    constexpr uint8_t ETH_INT = 3;
+    constexpr uint8_t ETH_RST = 20;
     constexpr uint8_t SDA = 1;
     constexpr uint8_t SCL = 2;
     
     // Relay Pins
-    constexpr uint8_t PUMP = 38;         // Cooling Pump PW0
+    constexpr uint8_t FAN = 38;           // Cooling Fan PW0
     constexpr uint8_t PW1 = 39;
     
     constexpr uint8_t CONTACTOR = 11;    // HV Battery LPW0
@@ -23,7 +27,7 @@ namespace Pins {
     constexpr uint8_t BCKLIGHT = 17;     // Reverse Signal LWP4
     constexpr uint8_t LWP5 = 18;
     constexpr uint8_t LWP6 = 21;
-    constexpr uint8_t LWP7 = 16;
+    constexpr uint8_t PUMP = 16;
     
     // Input Pins
     constexpr uint8_t NLG_HW_Wakeup = 7;
@@ -34,6 +38,9 @@ namespace Pins {
 
 // CAN Message IDs
 namespace CANIds {
+    // BMS Messages (Orion, see Lada.dbc)
+    constexpr uint16_t BMS_PACK = 0x010;    ///< SOC, voltage, current, DCL, CCL (248 ms)
+    constexpr uint16_t BMS_MINMAX = 0x001;  ///< cell min/max, temps, charge/discharge allow (632 ms)
     // BSC Messages
     constexpr uint16_t BSC_COMM = 0x260;
     constexpr uint16_t BSC_LIM = 0x261;
@@ -50,21 +57,6 @@ namespace CANIds {
     constexpr uint16_t NLG_ACT_PLUG = 0x739;
 
     constexpr uint16_t CONFIG_MESSAGE = 0x011; 
-}
-
-// ESP-NOW Configuration
-namespace ESPNOW {
-    // Receiver MAC address - update with your display's MAC
-    // Format is in hex: {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
-    constexpr uint8_t RECEIVER_MAC[6] = {0xCC, 0x8D, 0xA2, 0xE9, 0x4E, 0xA8};
-    
-    // Message types
-    constexpr uint8_t MSG_TYPE_BMS = 0x01;
-    constexpr uint8_t MSG_TYPE_DMC_TEMP = 0x02;
-    
-    // Timing constants
-    constexpr unsigned long BMS_SEND_INTERVAL = 100;   // 1 second for BMS data
-    constexpr unsigned long DMC_SEND_INTERVAL = 100;   // 2 seconds for DMC data
 }
 
 // Timing Constants

@@ -37,6 +37,7 @@ public:
     // === EXISTING INTERFACE (backwards compatible) ===
     DriveMode getDriveMode() const { return driveMode; }
     int getMaxTorque() const { return maxTorque; }
+    int getMaxReverseTorque() const { return maxReverseTorque; }
     uint8_t getMaxSOC() const { return maxSOC; }
     uint8_t getMaxChargingCurrent() const { return maxChargingCurrent; }
     String getDriveModeString() const;
@@ -44,6 +45,7 @@ public:
     bool setDriveMode(DriveMode mode);
     bool setDriveMode(const String& modeStr);
     bool setMaxTorque(int torque);
+    bool setMaxReverseTorque(int torque);
     bool setMaxSOC(uint8_t soc);
     bool setMaxChargingCurrent(uint8_t current);
     bool setDriveModeFromByte(uint8_t modeByte);
@@ -87,13 +89,29 @@ public:
     bool setPowerReleaseTime(float timeMs);
     bool setCrossoverTime(float timeMs);
     void resetTransitionDefaults();
-    
+
+    // === THROTTLE CALIBRATION ===
+    int getThrottleMinADC() const { return throttleMinADC; }
+    int getThrottleMaxADC() const { return throttleMaxADC; }
+
+    bool setThrottleMinADC(int value);
+    bool setThrottleMaxADC(int value);
+    void resetThrottleDefaults();
+
     // === JSON INTERFACE ===
     String toJSON();
     bool fromJSON(const String& json);
     String getCategoryJSON(const String& category);
     bool setCategoryJSON(const String& category, const String& json);
     
+    // === VALIDATION RANGES (read-only, reported to LIVI via /api/system/limits) ===
+    static constexpr int minTorqueLimit() { return MIN_TORQUE_LIMIT; }
+    static constexpr int maxTorqueLimit() { return MAX_TORQUE_LIMIT; }
+    static constexpr int minSocLimit() { return MIN_SOC_LIMIT; }
+    static constexpr int maxSocLimit() { return MAX_SOC_LIMIT; }
+    static constexpr int minChargingCurrentLimit() { return MIN_CHARGING_CURRENT; }
+    static constexpr int maxChargingCurrentLimit() { return MAX_CHARGING_CURRENT; }
+
 private:
     Preferences preferences;
     static const char* NAMESPACE;
@@ -102,6 +120,7 @@ private:
     // Basic configuration
     DriveMode driveMode;
     int maxTorque;
+    int maxReverseTorque;   ///< pedal full scale in reverse gear (Nm)
     uint8_t maxSOC;
     uint8_t maxChargingCurrent;
     
@@ -124,10 +143,15 @@ private:
     float powerEngageTime;     ///< Power engagement time (0 -> positive torque)
     float powerReleaseTime;    ///< Power release time (positive -> 0 torque)
     float crossoverTime;       ///< Crossover transition time (regen <-> power)
-    
+
+    // Throttle calibration (raw ADC values)
+    int throttleMinADC;        ///< Minimum throttle ADC value (pedal released)
+    int throttleMaxADC;        ///< Maximum throttle ADC value (pedal pressed)
+
     // Storage keys - Basic
     static const char* KEY_DRIVE_MODE;
     static const char* KEY_MAX_TORQUE;
+    static const char* KEY_MAX_REVERSE_TORQUE;
     static const char* KEY_MAX_SOC;
     static const char* KEY_MAX_CHARGING_CURRENT;
     
@@ -150,7 +174,11 @@ private:
     static const char* KEY_POWER_ENGAGE_TIME;
     static const char* KEY_POWER_RELEASE_TIME;
     static const char* KEY_CROSSOVER_TIME;
-    
+
+    // Storage keys - Throttle calibration (max 15 chars for NVS)
+    static const char* KEY_THROTTLE_MIN;
+    static const char* KEY_THROTTLE_MAX;
+
     // Validation limits - Basic
     static constexpr int MIN_TORQUE_LIMIT = 100;
     static constexpr int MAX_TORQUE_LIMIT = 850;
@@ -173,16 +201,22 @@ private:
     // NEW: Validation limits - Transition timing
     static constexpr float MIN_TRANSITION_TIME = 0.0f;
     static constexpr float MAX_TRANSITION_TIME = 1000.0f;
-    
+
+    // Validation limits - Throttle calibration
+    static constexpr int MIN_THROTTLE_ADC = 0;
+    static constexpr int MAX_THROTTLE_ADC = 32767;  // 15-bit ADC range
+
     // Helper methods
     JsonDocument createDrivingJSON();
     JsonDocument createCurtisJSON();
     JsonDocument createPedalJSON();
-    JsonDocument createTransitionJSON();  // NEW
-    
+    JsonDocument createThrottleJSON();
+
     bool parseDrivingJSON(const JsonObject& obj);
     bool parseCurtisJSON(const JsonObject& obj);
     bool parsePedalJSON(const JsonObject& obj);
+    bool parseThrottleJSON(const JsonObject& obj);
+    JsonDocument createTransitionJSON();  // NEW
     bool parseTransitionJSON(const JsonObject& obj);  // NEW
 };
 

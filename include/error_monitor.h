@@ -7,6 +7,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <deque>
+#include <mutex>
 #include "config.h"
 #include "can_manager.h"
 #include "state_manager.h"
@@ -30,6 +31,7 @@ enum class ErrorCode : uint16_t {
     SYSTEM_SHUTDOWN = 101,
     WATCHDOG_RESET = 102,
     MEMORY_ERROR = 103,
+    LV_BATTERY_LOW = 104,
     
     // Communication Errors (200-299)
     CAN_INIT_FAILED = 200,
@@ -46,6 +48,9 @@ enum class ErrorCode : uint16_t {
     PRECHARGE_FAILED = 303,
     PRECHARGE_TIMEOUT = 304,
     SOC_OUT_OF_RANGE = 305,
+    BMS_DISCHARGE_NOT_ALLOWED = 306,
+    BMS_CHARGE_NOT_ALLOWED = 307,
+    BMS_FLAGS_IGNORED = 308,
     
     // Motor Errors (400-499)
     MOTOR_OVERTEMP = 400,
@@ -95,6 +100,16 @@ struct LogEntry {
 /**
  * @brief Real-time Monitoring Data Structure
  */
+/** One row per error code that reached WARNING or worse, for the fault list. */
+struct FaultEntry {
+    ErrorCode code;
+    ErrorSeverity severity;
+    String description;
+    uint16_t count;
+    unsigned long lastMs;
+    bool active;
+};
+
 struct MonitoringData {
     // System Status
     unsigned long timestamp;
@@ -218,14 +233,32 @@ public:
     void logCritical(const String& message, const String& component = "");
     
     // Log Management
-    std::deque<LogEntry>& getErrorLog() { return errorLog; }
     void clearErrorLog();
     uint16_t getErrorCount(ErrorSeverity minSeverity = ErrorSeverity::WARNING);
     String getErrorLogJSON(uint16_t maxEntries = 100);
+
+    // Fault list. Faults are edge-triggered: a fault becomes active on the first
+    // logError() with a real code (WARNING or worse) and stays active until
+    // clearFault() is called. Repeated raises while active only refresh lastSeen,
+    // so `count` is the number of inactive->active transitions. Hysteresis and
+    // timeouts live in FaultHandler, which is the only caller of clearFault().
+    static constexpr size_t MAX_FAULTS = 32;
+    void raiseFault(ErrorCode code, ErrorSeverity severity, const String& description,
+                    float value = 0.0f, const String& component = "") {
+        logError(severity, code, description, value, component);
+    }
+    void clearFault(ErrorCode code);
+    void clearAllFaults();
+    bool isFaultActive(ErrorCode code);
+    bool hasActiveFault(ErrorSeverity minSeverity);
+    static String errorCodeToString(ErrorCode code);
+    String getFaultsJSON();
     
     // Monitoring Data
     void updateMonitoringData(const CANManager& canManager, const StateManager& stateManager);
-    const MonitoringData& getMonitoringData() const { return currentData; }
+    // Returns a copy: currentData is written from the CAN task roughly every 100ms while
+    // this is read from the control task, so callers must not hold a reference into it.
+    MonitoringData getMonitoringData() const;
     String getMonitoringJSON();
     
     // CAN Message Monitoring
@@ -247,6 +280,10 @@ public:
     
 private:
     std::deque<LogEntry> errorLog;
+    std::deque<FaultEntry> faults;
+    std::mutex faultMutex;   ///< faults is touched by the CAN task and the web server
+    std::mutex logMutex;     ///< errorLog is written by every task and read by the web server
+    mutable std::mutex dataMutex;  ///< currentData is written by the CAN task, read by control/web tasks
     std::deque<CANMessageInfo> canLog;
     MonitoringData currentData;
     PerformanceMetrics performance;
@@ -260,7 +297,6 @@ private:
     
     // Helper methods
     String severityToString(ErrorSeverity severity);
-    String errorCodeToString(ErrorCode code);
     String vehicleStateToString(VehicleState state);
     String gearStateToString(GearState state);
     String driveModeToString(DriveMode mode);
