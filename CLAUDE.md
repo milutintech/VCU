@@ -144,6 +144,13 @@ NLG current scale is 0.1 A with -102.4 A offset (`dcHvCurrentAct` is the raw val
 by 100, which is wrong). Not compiled, not tested on hardware: check that the NLG still starts charging
 with the 0 A start value.
 
+Charger SLEEP/STANDBY ping-pong (2026-10-30): after the unlock button (`nlgCharged`) and a quick replug the
+VCU missed the unplug (500 ms poll), then the STANDBY branch restarted the 4 s / 15 s unlock timeout on every
+pass, and `connectorLocked` was only refreshed by the unlock interrupt, so `handlePersistentUnlock` never
+reached standby. Fixed in `chargeManage` / `handlePersistentUnlock`; not compiled or tested. Still open:
+`chargeManage` has local statics `waitingForUnlockComplete` / `connectorUnlockStartTime` that shadow the
+members of the same name, so `handleConnectorUnlock` sets variables nobody reads.
+
 ## Open items
 
 - Station WiFi credentials: API `GET|POST /api/config/wifi` exists (used by the next `service on`).

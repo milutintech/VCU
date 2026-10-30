@@ -691,9 +691,13 @@ void StateManager::chargeManage() {
                         unlockConnectorRequest = true;
                         unlockPersist = true;
                         unlockTimeout = currentTime;
-                        // Don't transition to standby yet - wait for connector to unlock
-                        waitingForUnlockComplete = true;
-                        connectorUnlockStartTime = currentTime;
+                        // Don't transition to standby yet - wait for connector to unlock.
+                        // Start the timeout once: this branch runs on every pass, restarting it
+                        // here kept the 4 s / 15 s exits below from ever expiring.
+                        if (!waitingForUnlockComplete) {
+                            waitingForUnlockComplete = true;
+                            connectorUnlockStartTime = currentTime;
+                        }
                     }
                     break;
 
@@ -742,6 +746,9 @@ void StateManager::chargeManage() {
  */
 void StateManager::handlePersistentUnlock(unsigned long& unlockTimeout) {
     unlockConnectorRequest = true;
+    // Follow the charger: the flag was only refreshed by the unlock interrupt, so it stayed
+    // "locked" and this function never reached standby.
+    connectorLocked = canManager.getNLGData().connectorLocked;
     if (!connectorLocked) {
         chargerStateDemand = ChargerStates::NLG_DEM_STANDBY;
         transitionToStandby();
