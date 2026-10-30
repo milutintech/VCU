@@ -574,12 +574,29 @@ void CANManager::sendNLG() {
     uint8_t maxNlgCurrentAC = config.getMaxChargingCurrent();
     
     // Limit charging current by smaller of max charger current and BMS max charge
-    float limitedCurrentDC = std::min(static_cast<int>(VehicleParams::Battery::MAX_NLG_CURRENT), 
+    float targetCurrentDC = std::min(static_cast<int>(VehicleParams::Battery::MAX_NLG_CURRENT),
                                     static_cast<int>(bmsData.maxCharge));
     // BMS charge enable off: no DC current. Not latched, charging resumes when it comes back.
     if (!chargeAllowed()) {
-        limitedCurrentDC = 0;
+        targetCurrentDC = 0;
     }
+
+    // A falling limit is passed on at once. A rising one is slew-limited, and every charge demand
+    // or pause longer than NLG_RAMP_RESTART_MS starts from 0 A: after balancing the CCL comes back
+    // and the charger must not step into the BMS limit (Orion P0A08 "charge limit exceeded").
+    const unsigned long nowMs = millis();
+    const unsigned long dtMs = nowMs - lastNlgRampMs;
+    lastNlgRampMs = nowMs;
+    if (nlgData.stateDemand != ChargerStates::NLG_DEM_CHARGE || dtMs > Constants::NLG_RAMP_RESTART_MS) {
+        nlgCurrentCmdA = 0;
+    } else if (targetCurrentDC > nlgCurrentCmdA) {
+        nlgCurrentCmdA = std::min(targetCurrentDC,
+                                  nlgCurrentCmdA + Constants::NLG_RAMP_UP_A_PER_S * dtMs / 1000.0f);
+    }
+    if (targetCurrentDC < nlgCurrentCmdA) {
+        nlgCurrentCmdA = targetCurrentDC;
+    }
+    float limitedCurrentDC = nlgCurrentCmdA;
     // Recovery mode for low voltage
    /* if (bmsData.voltage < VehicleParams::Battery::MIN_VOLTAGE && bmsData.maxCharge == 0) {
         limitedCurrentDC = 5;  // Force 5A in recovery mode
@@ -667,11 +684,11 @@ void CANManager::sendNLG() {
     
     // Log current limiting events
     static bool wasLimited = false;
-    if (limitedCurrentDC < VehicleParams::Battery::MAX_NLG_CURRENT) {
+    if (targetCurrentDC < VehicleParams::Battery::MAX_NLG_CURRENT) {
         if (!wasLimited) {
             String limitMsg = "Charging current limited by BMS: " + 
                             String(VehicleParams::Battery::MAX_NLG_CURRENT) + "A -> " + 
-                            String(limitedCurrentDC) + "A (SOC: " + String(bmsData.soc) + "%)";
+                            String(targetCurrentDC) + "A (SOC: " + String(bmsData.soc) + "%)";
             if (systemMonitor) {
                 systemMonitor->logWarning(limitMsg, "NLG");
             }
@@ -703,6 +720,27 @@ void CANManager::sendNLG() {
             }
             inRecoveryMode = false;
         }
+    }
+
+    // Trace for the Orion "charge limit exceeded" fault: what the charger was told and what it
+    // delivered at the moment the CCL drops to 0 and 1 s and 2 s later.
+    static bool cclWasZero = true;
+    static unsigned long cclZeroMs = 0;
+    static uint8_t cclLogStep = 2;
+    const bool cclZero = bmsData.maxCharge == 0;
+    if (cclZero && !cclWasZero) {
+        cclZeroMs = nowMs;
+        cclLogStep = 0;
+    }
+    cclWasZero = cclZero;
+    if (cclLogStep < 2 && (cclLogStep == 0 || nowMs - cclZeroMs >= 1000UL * cclLogStep)) {
+        if (systemMonitor) {
+            systemMonitor->logWarning("CCL dropped to 0 +" + String(cclLogStep) + "s: sent " +
+                                      String(limitedCurrentDC, 1) + "A, charger " +
+                                      String(nlgData.dcHvCurrentAct * 0.1f - 102.4f, 1) + "A, pack " +
+                                      String(bmsData.current * 0.1f, 1) + "A", "NLG");
+        }
+        cclLogStep++;
     }
 }
 /**

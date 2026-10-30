@@ -344,6 +344,10 @@ private:
     volatile unsigned long lastBMSFlagsMs = 0; ///< Last BMS_MINMAX frame (allow flags)
     volatile bool ignoreAllowFlags = false;    ///< set from the web task, read in the CAN task
 
+    // Charger current ramp (CAN task only), see sendNLG()
+    float nlgCurrentCmdA = 0.0f;       ///< DC current limit last sent to the NLG (A)
+    unsigned long lastNlgRampMs = 0;   ///< millis() of the last sendNLG()
+
     // CAN Monitoring - FIXED: Use pointers instead of direct objects
     CANMonitor* canMonitor = nullptr;      ///< CAN bus monitor instance
     ErrorMonitor* systemMonitor = nullptr; ///< System error monitor instance

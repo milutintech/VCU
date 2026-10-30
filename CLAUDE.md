@@ -131,6 +131,19 @@ the cached values. Older than 100 ms (`INPUT_STALE_MS`) = 0 % torque and neutral
   (owner, 2026-10-28), and precharge needs its pack voltage. Gating it on precharge deadlocked.
   Driving stays gated: 0x210 enable needs `isPreCharged()`. Not HIGH in CHARGING (open item).
 
+## Charger current ramp (can_manager.cpp `sendNLG`, 2026-10-30)
+
+Orion raised P0A08 "charge limit exceeded" at a full pack: CCL dropped to 0 (Orion voltage derate timer was
+0.1 s) while the NLG still delivered ~10 A. NLG DC current command = min(80 A, CCL), 0 without the charge
+flag, now with a ramp: falling follows the limit at once, rising at most `NLG_RAMP_UP_A_PER_S` (5 A/s,
+`config.h`), and it restarts from 0 A whenever the demand is not CHARGE or `sendNLG` paused longer than
+`NLG_RAMP_RESTART_MS`. No charge-end logic on purpose (balancing needs recharge). A log line
+("CCL dropped to 0 +0/1/2s: sent, charger, pack") is written at every CCL drop to 0. Orion side (owner):
+SOC derate on while charging, base 200 A, Voltage Derate CCL To Zero Timer 3-5 s, Restore ~5 s.
+NLG current scale is 0.1 A with -102.4 A offset (`dcHvCurrentAct` is the raw value; the web API divides
+by 100, which is wrong). Not compiled, not tested on hardware: check that the NLG still starts charging
+with the 0 A start value.
+
 ## Open items
 
 - Station WiFi credentials: API `GET|POST /api/config/wifi` exists (used by the next `service on`).

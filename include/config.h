@@ -67,6 +67,10 @@ namespace Constants {
     constexpr uint32_t MODE_CHANGE_DELAY_MS = 2000;
     constexpr uint32_t UNLOCK_TIMEOUT_MS = 3000;
     constexpr uint32_t PRECHARGE_TIMEOUT_MS = 5000;
+    // Charger DC current command: falls with the BMS limit at once, rises at most this fast.
+    constexpr float NLG_RAMP_UP_A_PER_S = 5.0f;
+    // No sendNLG() for this long = new session, the ramp restarts from 0 A.
+    constexpr uint32_t NLG_RAMP_RESTART_MS = 1000;
 }
 
 // BSC Operating Modes
