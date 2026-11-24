@@ -50,7 +50,9 @@ private:
 
     // Last WebSocket broadcast time
     unsigned long lastWSBroadcast;
-    static constexpr unsigned long WS_BROADCAST_INTERVAL = 100;  // 100ms = 10Hz
+    // 200 ms = 5 Hz (was 10 Hz): every live JSON is Ethernet traffic on the SPI bus the MCP2515
+    // shares, and LIVI could not keep up (AsyncWebSocket "Too many messages queued").
+    static constexpr unsigned long WS_BROADCAST_INTERVAL = 200;
 
     // Setup routes
     void setupRoutes();

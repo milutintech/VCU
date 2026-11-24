@@ -428,7 +428,10 @@ bool ErrorMonitor::isSystemHealthy() {
     }
     
     // Check data freshness (basic check)
-    if (millis() - getMonitoringData().timestamp > 5000) { // Data older than 5 seconds
+    // Snapshot first, then the clock: the CAN task (higher priority) can store a newer
+    // timestamp in between, and the plain difference would wrap to ~4e9 ms (false failure).
+    const unsigned long ts = getMonitoringData().timestamp;
+    if (msSince(ts, millis()) > 5000) { // Data older than 5 seconds
         return false;
     }
 
@@ -447,7 +450,8 @@ String ErrorMonitor::getSystemHealthJSON() {
     doc["errors"] = getErrorCount(ErrorSeverity::ERROR);
     doc["warnings"] = getErrorCount(ErrorSeverity::WARNING);
     doc["freeMemory"] = ESP.getFreeHeap();
-    doc["dataAge"] = millis() - getMonitoringData().timestamp;
+    const unsigned long ts = getMonitoringData().timestamp;
+    doc["dataAge"] = msSince(ts, millis());
     doc["uptime"] = millis();
     
     String result;
@@ -534,6 +538,23 @@ void ErrorMonitor::clearFault(ErrorCode code) {
 void ErrorMonitor::clearAllFaults() {
     std::lock_guard<std::mutex> lock(faultMutex);
     for (auto& f : faults) f.active = false;
+}
+
+void ErrorMonitor::forgetInactiveFaults() {
+    std::lock_guard<std::mutex> lock(faultMutex);
+    for (auto it = faults.begin(); it != faults.end();) {
+        if (!it->active) it = faults.erase(it); else ++it;
+    }
+}
+
+size_t ErrorMonitor::snapshotFaults(FaultBrief* out, size_t max) {
+    std::lock_guard<std::mutex> lock(faultMutex);
+    size_t n = 0;
+    for (const auto& f : faults) {
+        if (n >= max) break;
+        out[n++] = {f.code, f.severity, f.count, f.active};
+    }
+    return n;
 }
 
 bool ErrorMonitor::isFaultActive(ErrorCode code) {

@@ -12,8 +12,12 @@ public:
     /** Takes over IO21 (released from its deep-sleep hold) and leaves the Pi without power. */
     void begin();
 
-    /** Call from the web task. Never blocks. */
-    void update();
+    /**
+     * Call from the web task. Never blocks. The Pi follows the ignition only (not charging).
+     * @param lvVolts  12 V rail as measured by the BSC
+     * @param lvFresh  lvVolts comes from a recent BSC frame; if not, it is not looked at
+     */
+    void update(float lvVolts, bool lvFresh);
 
     /** The Pi acknowledged the shutdown request (POST /api/pi/ack). */
     void acknowledge() { ackFlag = true; }
@@ -26,6 +30,7 @@ public:
 
     PiState state() const { return logic.state(); }
     bool shutdownRequested() const { return requested; }
+    bool lvLow() const { return lowVoltage; }
     uint32_t cutInMs() const { return logic.cutInMs(millis()); }
     static const char* name(PiState s);
 
@@ -36,4 +41,5 @@ private:
     volatile bool ackFlag = false;
     volatile bool requested = false;
     bool powered = false;
+    volatile bool lowVoltage = false;   ///< 12 V too low for the Pi, see update()
 };

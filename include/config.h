@@ -1,6 +1,18 @@
 #pragma once
 #include <Arduino.h>
 
+/**
+ * Age of a millis() timestamp that another task may write (CAN frame times). `now` is often taken
+ * before `last` is read; when the CAN task stores a newer frame in between, last > now and the
+ * plain unsigned `now - last` wraps to ~4e9 ms = a false timeout (seen 2026-11-19: NLG "timeout"
+ * while charging -> demand STANDBY). Newer than now counts as age 0. Signed difference keeps
+ * millis() wrap-around right.
+ */
+inline unsigned long msSince(unsigned long last, unsigned long now) {
+    const int32_t d = static_cast<int32_t>(static_cast<uint32_t>(now) - static_cast<uint32_t>(last));
+    return d < 0 ? 0UL : static_cast<unsigned long>(d);
+}
+
 // Pin Definitions
 namespace Pins {
     // SPI Pins
@@ -57,6 +69,12 @@ namespace CANIds {
     constexpr uint16_t NLG_ACT_PLUG = 0x739;
 
     constexpr uint16_t CONFIG_MESSAGE = 0x011; 
+
+    // Diagnostics (UDS over ISO-TP, uds_server.h). Request/response are the standard OBD pair.
+    constexpr uint16_t DIAG_REQ = 0x7E0;     ///< tester -> VCU, physical
+    constexpr uint16_t DIAG_FUNC = 0x7DF;    ///< tester -> all, functional (single frames only)
+    constexpr uint16_t DIAG_RESP = 0x7E8;    ///< VCU -> tester
+    constexpr uint16_t DIAG_STATUS = 0x6E0;  ///< VCU -> bus, 1 Hz fault flag frame (ID confirmed by the owner 2026-11-24)
 }
 
 // Timing Constants
@@ -71,6 +89,9 @@ namespace Constants {
     constexpr float NLG_RAMP_UP_A_PER_S = 5.0f;
     // No sendNLG() for this long = new session, the ramp restarts from 0 A.
     constexpr uint32_t NLG_RAMP_RESTART_MS = 1000;
+    // Charger state (0x728 byte 2) is only taken over after this many consecutive frames
+    // agree: one bad frame (e.g. read as SLEEP) used to cycle the contactor while charging.
+    constexpr uint8_t NLG_STATE_DEBOUNCE_FRAMES = 3;
 }
 
 // BSC Operating Modes

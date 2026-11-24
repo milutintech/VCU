@@ -99,12 +99,7 @@ float VehicleControl::calculateImmediateTorqueFromPedal() {
     rawThrottle = constrain(rawThrottle, 0.0f, 100.0f);
     throttlePercentage = rawThrottle;  // Store for web interface
     //Serial.printf("Raw Throttle: %.1f%%\n", rawThrottle);
-    // Update reverse signals based on gear state
-    // When in REVERSE: IO17 (BCKLIGHT) HIGH, IO46 LOW
-    // When in DRIVE or NEUTRAL: IO17 LOW, IO46 HIGH (inverted logic)
-    bool isReverse = (currentGear == GearState::REVERSE);
-    digitalWrite(Pins::BCKLIGHT, isReverse ? HIGH : LOW);  // IO17 - normal logic
-    digitalWrite(46, isReverse ? LOW : HIGH);              // IO46 - inverted logic
+    setReverseSignals(currentGear == GearState::REVERSE);
 
     // Handle neutral gear - always zero torque
     if (currentGear == GearState::NEUTRAL) {
@@ -114,12 +109,12 @@ float VehicleControl::calculateImmediateTorqueFromPedal() {
     // Apply simplified three-zone pedal mapping
     float baseTorquePercent = applyPedalZones(rawThrottle);
 
-    // Regen charges the pack. With the BMS charge limit at 0 A (full pack, cold cells) or no
-    // fresh BMS data request no regen torque at all: the DMC's 0 A generator current limit
-    // alone lets some current through (Orion P0A06, charge limit exceeded). Not the charge
-    // flag: the Orion only sets it for the charger, never while driving.
+    // Regen charges the pack. With the BMS charge limit at 0 A, charge enable off (full pack,
+    // cold cells) or no fresh BMS data request no regen torque at all: the DMC's 0 A generator
+    // current limit alone lets some current through (Orion P0A06, charge limit exceeded).
     if (baseTorquePercent < 0.0f) {
         const bool regenAllowed = canManager && canManager->bmsPackFresh() &&
+                                  canManager->chargeAllowed() &&
                                   canManager->getBMSData().maxCharge > 0;
         if (!regenAllowed) {
             baseTorquePercent = 0.0f;
@@ -547,6 +542,16 @@ void VehicleControl::setMotorSpeed(float speed) {
  * @brief Set current gear state (UNCHANGED)
  * @param gear New gear state (DRIVE/NEUTRAL/REVERSE)
  */
+/**
+ * Reverse light IO17 (HIGH = reverse) and IO46 (inverted: LOW = reverse). Written in RUN with
+ * the gear, and with false by the StateManager outside RUN: otherwise switching off (or
+ * plugging in) in R left them on, and deep sleep holds every output at its level.
+ */
+void VehicleControl::setReverseSignals(bool reverse) {
+    digitalWrite(Pins::BCKLIGHT, reverse ? HIGH : LOW);
+    digitalWrite(46, reverse ? LOW : HIGH);
+}
+
 void VehicleControl::setCurrentGear(GearState gear) {
     currentGear = gear;
 }

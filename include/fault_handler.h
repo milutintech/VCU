@@ -28,8 +28,8 @@ namespace FaultLimits {
 
     // Inverter/motor are rated to 100 °C. VehicleParams INV_HIGH/MOT_HIGH (45 °C) are
     // cooling-stage thresholds in StateManager and are NOT used for derating.
-    constexpr float TEMP_DERATE_C = 100.0f;      ///< derate (torque x0.5) above this
-    constexpr float TEMP_CUTOFF_C = 105.0f;      ///< torque 0 and DMC disabled above this
+    constexpr float TEMP_DERATE_C = 120.0f;      ///< derate (torque x0.5) above this
+    constexpr float TEMP_CUTOFF_C = 125.0f;      ///< torque 0 and DMC disabled above this
 
     // The charger cuts its own power when it runs hot; this only tells the driver why
     // charging slows down. The charger itself is good to Temperature::NLG_MAX (95 °C).

@@ -26,7 +26,7 @@ public:
     /** Holds the W5500 in reset through deep sleep. Only to be called right before it. */
     static void holdForSleep();
 
-    static constexpr uint8_t SPI_MHZ = 20;   ///< MCP2515 runs at 4 MHz on the same bus
+    static constexpr uint8_t SPI_MHZ = 20;   ///< MCP2515 runs at 10 MHz on the same bus
 
 private:
     bool ok = false;

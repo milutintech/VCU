@@ -10,9 +10,9 @@
  *   OFF ----(ignition on, delays passed)----> ON
  *   ON  ----(ignition off for 3 s)----------> REQUESTED   Pi is asked to shut down
  *   REQUESTED --(Pi acknowledges)-----------> ACKED       Pi has started its shutdown
- *   ACKED --(20 s later)--------------------> OFF         power cut
+ *   ACKED --(50 s later)--------------------> OFF         power cut
  *   REQUESTED --(no answer in 15 s)---------> OFF         power cut (Pi absent or unreachable)
- *   REQUESTED/ACKED --(60 s in total)-------> OFF         power cut whatever happens
+ *   REQUESTED/ACKED --(70 s in total)-------> OFF         power cut whatever happens
  *
  * Once a shutdown is requested it always runs to the end, also when the ignition comes back in
  * the meantime. The Pi is then powered on again after a short off time, so a quick power cycle

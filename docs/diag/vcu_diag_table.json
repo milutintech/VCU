@@ -1,0 +1,1276 @@
+{
+ "title": "VCU diagnostic interface (UDS over ISO-TP)",
+ "source": "include/uds_server.h, src/uds_server.cpp. Keep this file in sync with the DID table there.",
+ "transport": {
+  "bus": "CAN 500 kbit/s, 11 bit",
+  "request": "0x7E0 (physical) / 0x7DF (functional, single frames only)",
+  "response": "0x7E8",
+  "padding": "0xAA, all frames 8 bytes",
+  "flowControlSentByVcu": "BS 0, STmin 2 ms",
+  "flowControlHonoredByVcu": "BS and STmin of the tester, but never below 2 ms between consecutive frames",
+  "timeoutMs": 1000,
+  "maxMessage": 512,
+  "byteOrder": "big endian"
+ },
+ "services": {
+  "0x10": "session: 01 default, 03 extended; response carries P2 50 ms / P2* 5000 ms",
+  "0x3E": "tester present (00, or 80 = no response)",
+  "0x22": "read 1..16 DIDs per request, response = 62 { DID data }...",
+  "0x2E": "write one DID (extended session only); saved to flash ~1 s after the last write (DID 0x0F10 = status)",
+  "0x19": "01 count by mask, 02 list by mask, 04 snapshot (DTC + record 01 or FF), 06 extended data (record 01 occurrences, 02 severity, FF both), 0A all supported DTCs",
+  "0x14": "clear: 14 FF FF FF = all, 14 E0 xx xx = one DTC (extended session only). Faults whose cause is still present come back within a cycle."
+ },
+ "session": "Extended session ends after 5 s without any request (S3): send 0x3E 00 about once per second.",
+ "negativeResponses": {
+  "0x11": "service not supported",
+  "0x12": "sub-function not supported",
+  "0x13": "wrong length",
+  "0x14": "response too long",
+  "0x31": "unknown DID / DTC / value outside the allowed range",
+  "0x7F": "needs the extended session"
+ },
+ "dtcFormat": {
+  "bytes": "E0 hi lo",
+  "status": "0x09 = active (testFailed + confirmed), 0x08 = stored, not active; availability mask 0x09",
+  "note": "DTC = 0xE00000 + VCU error code. A new occurrence is counted when a fault becomes active; the store (max 32) is kept in flash. Snapshot DID 0x0F00 (13 bytes) is taken at the occurrence."
+ },
+ "snapshotDid_0x0F00": [
+  {
+   "name": "packVoltage",
+   "type": "u16",
+   "scale": 1,
+   "unit": "V"
+  },
+  {
+   "name": "packCurrent",
+   "type": "i16",
+   "scale": 0.1,
+   "unit": "A"
+  },
+  {
+   "name": "soc",
+   "type": "u8",
+   "scale": 1,
+   "unit": "%"
+  },
+  {
+   "name": "speed",
+   "type": "i16",
+   "scale": 1,
+   "unit": "rpm"
+  },
+  {
+   "name": "inverterTemp",
+   "type": "i8",
+   "scale": 1,
+   "unit": "degC"
+  },
+  {
+   "name": "motorTemp",
+   "type": "i8",
+   "scale": 1,
+   "unit": "degC"
+  },
+  {
+   "name": "lvVoltage",
+   "type": "u16",
+   "scale": 0.1,
+   "unit": "V"
+  },
+  {
+   "name": "state",
+   "type": "u8",
+   "scale": 1,
+   "unit": "",
+   "note": "0 STANDBY, 1 RUN, 2 CHARGING"
+  },
+  {
+   "name": "gear",
+   "type": "u8",
+   "scale": 1,
+   "unit": "",
+   "note": "0 N, 1 D, 2 R"
+  }
+ ],
+ "statusFrame": {
+  "id": "0x6E0",
+  "rateHz": 1,
+  "note": "ID confirmed by the owner; one frame, no request needed",
+  "bytes": [
+   {
+    "name": "flags",
+    "type": "u8",
+    "scale": 1,
+    "unit": "",
+    "note": "bit0 any fault active, bit1 critical active, bit2 BMS flags ignored, bit3 extended session, bit4 any DTC stored"
+   },
+   {
+    "name": "activeCount",
+    "type": "u8",
+    "scale": 1,
+    "unit": ""
+   },
+   {
+    "name": "storedCount",
+    "type": "u8",
+    "scale": 1,
+    "unit": ""
+   },
+   {
+    "name": "maxActiveSeverity",
+    "type": "u8",
+    "scale": 1,
+    "unit": "",
+    "note": "0xFF none"
+   },
+   {
+    "name": "state",
+    "type": "u8",
+    "scale": 1,
+    "unit": ""
+   },
+   {
+    "name": "reserved",
+    "type": "u8",
+    "scale": 1,
+    "unit": ""
+   },
+   {
+    "name": "counter",
+    "type": "u16",
+    "scale": 1,
+    "unit": "",
+    "note": "rolling, to see a stale frame"
+   }
+  ]
+ },
+ "dids": [
+  {
+   "did": "0xF186",
+   "name": "Active session",
+   "access": "r",
+   "fields": [
+    {
+     "name": "session",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "1 default, 3 extended"
+    }
+   ]
+  },
+  {
+   "did": "0xF189",
+   "name": "Software version",
+   "access": "r",
+   "fields": [
+    {
+     "name": "text",
+     "type": "ascii",
+     "scale": 1,
+     "unit": "",
+     "note": "'VCU <build date> <build time>', variable length"
+    }
+   ]
+  },
+  {
+   "did": "0x0100",
+   "name": "VCU state",
+   "access": "r",
+   "fields": [
+    {
+     "name": "state",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "0 STANDBY, 1 RUN, 2 CHARGING"
+    },
+    {
+     "name": "gear",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "0 N, 1 D, 2 R"
+    },
+    {
+     "name": "driveMode",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "0 LEGACY, 1 REGEN, 2 OPD"
+    },
+    {
+     "name": "flags",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "bit0 batteryArmed, bit1 preCharged, bit2 BSC enabled, bit3 BSC boost, bit4 BMS allow flags ignored"
+    },
+    {
+     "name": "uptime",
+     "type": "u32",
+     "scale": 1,
+     "unit": "s"
+    }
+   ]
+  },
+  {
+   "did": "0x0101",
+   "name": "Limits sent",
+   "access": "r",
+   "fields": [
+    {
+     "name": "dmcDriveLimit",
+     "type": "u16",
+     "scale": 1,
+     "unit": "A",
+     "note": "discharge limit sent to the DMC (incl. DCL pulse)"
+    },
+    {
+     "name": "pulseRemaining",
+     "type": "u16",
+     "scale": 1,
+     "unit": "s"
+    },
+    {
+     "name": "bscHvTarget",
+     "type": "u16",
+     "scale": 1,
+     "unit": "V"
+    }
+   ]
+  },
+  {
+   "did": "0x0102",
+   "name": "CAN receive statistics",
+   "access": "r",
+   "fields": [
+    {
+     "name": "rxFrames",
+     "type": "u32",
+     "scale": 1,
+     "unit": ""
+    },
+    {
+     "name": "rxOverflows",
+     "type": "u32",
+     "scale": 1,
+     "unit": "",
+     "note": "MCP2515 receive overflow passes (frames lost)"
+    },
+    {
+     "name": "queueDrops",
+     "type": "u16",
+     "scale": 1,
+     "unit": "",
+     "note": "saturates"
+    },
+    {
+     "name": "otherIdFrames",
+     "type": "u16",
+     "scale": 1,
+     "unit": "",
+     "note": "frames of IDs beyond the 48 entry table"
+    }
+   ]
+  },
+  {
+   "did": "0x0103",
+   "name": "Frame age per node",
+   "access": "r",
+   "fields": [
+    {
+     "name": "bmsPack",
+     "type": "u16",
+     "scale": 1,
+     "unit": "ms",
+     "note": "0xFFFF = never or older than 65 s"
+    },
+    {
+     "name": "bmsFlags",
+     "type": "u16",
+     "scale": 1,
+     "unit": "ms"
+    },
+    {
+     "name": "dmc",
+     "type": "u16",
+     "scale": 1,
+     "unit": "ms"
+    },
+    {
+     "name": "bsc",
+     "type": "u16",
+     "scale": 1,
+     "unit": "ms"
+    },
+    {
+     "name": "nlg",
+     "type": "u16",
+     "scale": 1,
+     "unit": "ms"
+    }
+   ]
+  },
+  {
+   "did": "0x0104",
+   "name": "CAN timing maxima (last 10 s window)",
+   "access": "r",
+   "fields": [
+    {
+     "name": "intLatency",
+     "type": "u16",
+     "scale": 1,
+     "unit": "us"
+    },
+    {
+     "name": "spiWait",
+     "type": "u16",
+     "scale": 1,
+     "unit": "us"
+    },
+    {
+     "name": "txWait",
+     "type": "u16",
+     "scale": 1,
+     "unit": "us"
+    },
+    {
+     "name": "loop",
+     "type": "u16",
+     "scale": 1,
+     "unit": "us"
+    },
+    {
+     "name": "txFails",
+     "type": "u16",
+     "scale": 1,
+     "unit": ""
+    }
+   ]
+  },
+  {
+   "did": "0x0200",
+   "name": "BMS pack (0x010)",
+   "access": "r",
+   "fields": [
+    {
+     "name": "soc",
+     "type": "u8",
+     "scale": 1,
+     "unit": "%"
+    },
+    {
+     "name": "packVoltage",
+     "type": "u16",
+     "scale": 1,
+     "unit": "V",
+     "note": "whole volts (the VCU stores V, not 0.1 V)"
+    },
+    {
+     "name": "packCurrent",
+     "type": "i16",
+     "scale": 0.1,
+     "unit": "A",
+     "note": "negative = charging"
+    },
+    {
+     "name": "dcl",
+     "type": "u16",
+     "scale": 1,
+     "unit": "A",
+     "note": "discharge current limit"
+    },
+    {
+     "name": "ccl",
+     "type": "u16",
+     "scale": 1,
+     "unit": "A",
+     "note": "charge current limit"
+    }
+   ]
+  },
+  {
+   "did": "0x0201",
+   "name": "BMS min/max (0x001)",
+   "access": "r",
+   "fields": [
+    {
+     "name": "tempHigh",
+     "type": "i8",
+     "scale": 1,
+     "unit": "degC"
+    },
+    {
+     "name": "tempLow",
+     "type": "i8",
+     "scale": 1,
+     "unit": "degC"
+    },
+    {
+     "name": "cellLow",
+     "type": "u16",
+     "scale": 0.1,
+     "unit": "mV"
+    },
+    {
+     "name": "cellHigh",
+     "type": "u16",
+     "scale": 0.1,
+     "unit": "mV"
+    },
+    {
+     "name": "flags",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "bit0 charge relay, bit1 discharge relay (raw flags); bit2 charge allowed, bit3 discharge allowed (as the VCU uses them, incl. override); bit4 0x010 fresh, bit5 0x001 fresh"
+    }
+   ]
+  },
+  {
+   "did": "0x0300",
+   "name": "DMC status (0x258)",
+   "access": "r",
+   "fields": [
+    {
+     "name": "flags",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "bit0 ready, bit1 running"
+    },
+    {
+     "name": "torqueAvailable",
+     "type": "i16",
+     "scale": 0.1,
+     "unit": "Nm"
+    },
+    {
+     "name": "torqueActual",
+     "type": "i16",
+     "scale": 0.1,
+     "unit": "Nm"
+    },
+    {
+     "name": "speed",
+     "type": "i16",
+     "scale": 1,
+     "unit": "rpm"
+    }
+   ]
+  },
+  {
+   "did": "0x0301",
+   "name": "DMC power (0x259)",
+   "access": "r",
+   "fields": [
+    {
+     "name": "dcVoltage",
+     "type": "u16",
+     "scale": 0.1,
+     "unit": "V"
+    },
+    {
+     "name": "dcCurrent",
+     "type": "i16",
+     "scale": 0.1,
+     "unit": "A"
+    },
+    {
+     "name": "acCurrent",
+     "type": "u16",
+     "scale": 0.1,
+     "unit": "A"
+    },
+    {
+     "name": "mechPower",
+     "type": "i32",
+     "scale": 1,
+     "unit": "W"
+    }
+   ]
+  },
+  {
+   "did": "0x0302",
+   "name": "DMC temperatures (0x458)",
+   "access": "r",
+   "fields": [
+    {
+     "name": "inverter",
+     "type": "i16",
+     "scale": 0.1,
+     "unit": "degC"
+    },
+    {
+     "name": "motor",
+     "type": "i16",
+     "scale": 0.1,
+     "unit": "degC"
+    },
+    {
+     "name": "system",
+     "type": "i8",
+     "scale": 1,
+     "unit": "degC"
+    }
+   ]
+  },
+  {
+   "did": "0x0400",
+   "name": "BSC DC-DC (0x26A)",
+   "access": "r",
+   "fields": [
+    {
+     "name": "hvVoltage",
+     "type": "u16",
+     "scale": 0.1,
+     "unit": "V"
+    },
+    {
+     "name": "lvVoltage",
+     "type": "u16",
+     "scale": 0.1,
+     "unit": "V"
+    },
+    {
+     "name": "hvCurrent",
+     "type": "i16",
+     "scale": 0.1,
+     "unit": "A"
+    },
+    {
+     "name": "lvCurrent",
+     "type": "i16",
+     "scale": 1,
+     "unit": "A"
+    },
+    {
+     "name": "mode",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "0 buck, 1 boost (as decoded)"
+    },
+    {
+     "name": "flags",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "bit0 enabled (VCU command), bit1 boost (VCU command)"
+    }
+   ]
+  },
+  {
+   "did": "0x0500",
+   "name": "NLG charger (0x728)",
+   "access": "r",
+   "fields": [
+    {
+     "name": "state",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "debounced: 0 SLEEP, 1 WAKEUP, 2 STANDBY, 3 READY2CHARGE, 4 CHARGE, 5 SHUTDOWN"
+    },
+    {
+     "name": "stateRaw",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "latest frame, not debounced"
+    },
+    {
+     "name": "controlPilot",
+     "type": "u8",
+     "scale": 1,
+     "unit": ""
+    },
+    {
+     "name": "flags",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "bit0 connector locked, bit1 unlock request"
+    },
+    {
+     "name": "dcHvVoltage",
+     "type": "u16",
+     "scale": 1,
+     "unit": "",
+     "note": "RAW value of the 13 bit field, scale to be confirmed"
+    },
+    {
+     "name": "dcHvCurrent",
+     "type": "u16",
+     "scale": 0.1,
+     "unit": "A",
+     "offset": -102.4,
+     "note": "RAW 11 bit field; physical = raw*0.1 - 102.4"
+    },
+    {
+     "name": "demandState",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "0 STANDBY, 1 CHARGE, 6 SLEEP"
+    },
+    {
+     "name": "ledDemand",
+     "type": "u8",
+     "scale": 1,
+     "unit": ""
+    }
+   ]
+  },
+  {
+   "did": "0x0501",
+   "name": "NLG cooling (0x739)",
+   "access": "r",
+   "fields": [
+    {
+     "name": "coolingRequest",
+     "type": "u8",
+     "scale": 1,
+     "unit": ""
+    },
+    {
+     "name": "coolPlate",
+     "type": "i16",
+     "scale": 0.1,
+     "unit": "degC"
+    }
+   ]
+  },
+  {
+   "did": "0x0800",
+   "name": "Fault summary",
+   "access": "r",
+   "fields": [
+    {
+     "name": "active",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "active DTCs"
+    },
+    {
+     "name": "stored",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "stored DTCs"
+    },
+    {
+     "name": "maxActiveSeverity",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "0 info, 1 warning, 2 error, 3 critical, 0xFF none"
+    }
+   ]
+  },
+  {
+   "did": "0x0F10",
+   "name": "Config save status",
+   "access": "r",
+   "fields": [
+    {
+     "name": "status",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "0 nothing written, 1 pending (saved ~1 s after the last write), 2 saved, 3 failed, 4 saving"
+    }
+   ]
+  },
+  {
+   "did": "0x3F00",
+   "name": "CAN IDs seen on the bus",
+   "access": "r",
+   "fields": [
+    {
+     "name": "count",
+     "type": "u8",
+     "scale": 1,
+     "unit": ""
+    },
+    {
+     "name": "entries",
+     "type": "array",
+     "scale": 1,
+     "unit": "",
+     "note": "count x { id u16, frames u32 } since boot"
+    }
+   ]
+  },
+  {
+   "did": "0x4000 + CAN ID (0x4000..0x47FF)",
+   "name": "Last raw frame of a CAN ID",
+   "access": "r",
+   "note": "Any ID the VCU has received, also those it does not decode (all of DMC / BSC / NLG). NRC 0x31 if the ID was never seen. Use 0x3F00 for the list.",
+   "fields": [
+    {
+     "name": "age",
+     "type": "u16",
+     "scale": 1,
+     "unit": "ms",
+     "note": "0xFFFF = 65 s or older"
+    },
+    {
+     "name": "length",
+     "type": "u8",
+     "scale": 1,
+     "unit": ""
+    },
+    {
+     "name": "data",
+     "type": "u8[8]",
+     "scale": 1,
+     "unit": "",
+     "note": "as on the bus, unused bytes 0"
+    }
+   ]
+  },
+  {
+   "did": "0x2001",
+   "name": "Drive mode",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "driveMode",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "0 LEGACY, 1 REGEN, 2 OPD"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2002",
+   "name": "Max torque forward",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "maxTorque",
+     "type": "u16",
+     "scale": 1,
+     "unit": "Nm",
+     "note": "100..850"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2003",
+   "name": "Max torque reverse",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "maxReverseTorque",
+     "type": "u16",
+     "scale": 1,
+     "unit": "Nm",
+     "note": "100..850"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2004",
+   "name": "Max SOC",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "maxSoc",
+     "type": "u8",
+     "scale": 1,
+     "unit": "%",
+     "note": "50..100"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2005",
+   "name": "Max charging current (AC)",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "maxChargingCurrent",
+     "type": "u8",
+     "scale": 1,
+     "unit": "A",
+     "note": "6..32"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2010",
+   "name": "Regen zone end",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "regenZoneEnd",
+     "type": "u16",
+     "scale": 0.1,
+     "unit": "%",
+     "note": "10..50, must stay below coast zone end"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2011",
+   "name": "Coast zone end",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "coastZoneEnd",
+     "type": "u16",
+     "scale": 0.1,
+     "unit": "%",
+     "note": "15..60, above regen zone end"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2012",
+   "name": "Regen progression",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "regenProgression",
+     "type": "u16",
+     "scale": 0.01,
+     "unit": "",
+     "note": "1.00..3.00"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2013",
+   "name": "Accel progression",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "accelProgression",
+     "type": "u16",
+     "scale": 0.01,
+     "unit": "",
+     "note": "1.00..3.00"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2020",
+   "name": "Regen engage time",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "time",
+     "type": "u16",
+     "scale": 1,
+     "unit": "ms",
+     "note": "0..1000"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2021",
+   "name": "Regen release time",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "time",
+     "type": "u16",
+     "scale": 1,
+     "unit": "ms",
+     "note": "0..1000"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2022",
+   "name": "Power engage time",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "time",
+     "type": "u16",
+     "scale": 1,
+     "unit": "ms",
+     "note": "0..1000"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2023",
+   "name": "Power release time",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "time",
+     "type": "u16",
+     "scale": 1,
+     "unit": "ms",
+     "note": "0..1000"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2024",
+   "name": "Crossover time",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "time",
+     "type": "u16",
+     "scale": 1,
+     "unit": "ms",
+     "note": "0..1000"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2030",
+   "name": "Throttle min ADC",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "adc",
+     "type": "u16",
+     "scale": 1,
+     "unit": "",
+     "note": "0..32767, below max"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2031",
+   "name": "Throttle max ADC",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "adc",
+     "type": "u16",
+     "scale": 1,
+     "unit": "",
+     "note": "0..32767, above min"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2040",
+   "name": "Base speed",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "baseSpeed",
+     "type": "u16",
+     "scale": 1,
+     "unit": "rpm",
+     "note": "500..5000"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2041",
+   "name": "Delta speed",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "deltaSpeed",
+     "type": "u16",
+     "scale": 1,
+     "unit": "rpm",
+     "note": "100..2000"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2042",
+   "name": "Nominal power",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "nominalPower",
+     "type": "u16",
+     "scale": 0.1,
+     "unit": "%",
+     "note": "50..100"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2043",
+   "name": "Drive power limits (5 zones)",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "zone0..4",
+     "type": "u16[5]",
+     "scale": 0.1,
+     "unit": "%",
+     "note": "10..120 each; all or nothing"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2044",
+   "name": "Regen power limits (5 zones)",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "zone0..4",
+     "type": "u16[5]",
+     "scale": 0.1,
+     "unit": "%",
+     "note": "10..100 each; all or nothing"
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  },
+  {
+   "did": "0x2050",
+   "name": "BMS allow flags ignored",
+   "access": "rw",
+   "fields": [
+    {
+     "name": "ignore",
+     "type": "u8",
+     "scale": 1,
+     "unit": "",
+     "note": "0/1. Runtime only, never saved, reset by reboot. Safety critical."
+    }
+   ],
+   "writeSession": "extended (0x10 03)"
+  }
+ ],
+ "dtcs": [
+  {
+   "dtc": "0xE00064",
+   "errorCode": 100,
+   "name": "System boot"
+  },
+  {
+   "dtc": "0xE00065",
+   "errorCode": 101,
+   "name": "System shutdown"
+  },
+  {
+   "dtc": "0xE00066",
+   "errorCode": 102,
+   "name": "Watchdog reset"
+  },
+  {
+   "dtc": "0xE00067",
+   "errorCode": 103,
+   "name": "Memory error"
+  },
+  {
+   "dtc": "0xE00068",
+   "errorCode": 104,
+   "name": "12V battery low",
+   "text": "12-V-Spannung unter 11.5 V (Warnung, kommt erst ab 11.8 V zurueck)",
+   "severity": "warning"
+  },
+  {
+   "dtc": "0xE000C8",
+   "errorCode": 200,
+   "name": "CAN init failed"
+  },
+  {
+   "dtc": "0xE000C9",
+   "errorCode": 201,
+   "name": "CAN bus off"
+  },
+  {
+   "dtc": "0xE000CA",
+   "errorCode": 202,
+   "name": "BMS CAN timeout",
+   "text": "Keine BMS-Frames (0x010) innerhalb 1600 ms. Antrieb gesperrt.",
+   "severity": "critical"
+  },
+  {
+   "dtc": "0xE000CB",
+   "errorCode": 203,
+   "name": "DMC CAN timeout",
+   "text": "Keine DMC-Frames innerhalb 500 ms im Fahrbetrieb. Antrieb gesperrt.",
+   "severity": "critical"
+  },
+  {
+   "dtc": "0xE000CC",
+   "errorCode": 204,
+   "name": "BSC CAN timeout",
+   "text": "Keine BSC-Frames innerhalb 1500 ms.",
+   "severity": "warning"
+  },
+  {
+   "dtc": "0xE000CD",
+   "errorCode": 205,
+   "name": "NLG CAN timeout",
+   "text": "Keine Lader-Frames innerhalb 1500 ms beim Laden.",
+   "severity": "warning"
+  },
+  {
+   "dtc": "0xE0012C",
+   "errorCode": 300,
+   "name": "Battery undervoltage",
+   "text": "Packspannung unter 300 V. Drehmoment x0.5.",
+   "severity": "error"
+  },
+  {
+   "dtc": "0xE0012D",
+   "errorCode": 301,
+   "name": "Battery overvoltage",
+   "text": "Packspannung ueber 422 V. Drehmoment 0.",
+   "severity": "critical"
+  },
+  {
+   "dtc": "0xE0012E",
+   "errorCode": 302,
+   "name": "Battery overcurrent"
+  },
+  {
+   "dtc": "0xE0012F",
+   "errorCode": 303,
+   "name": "Precharge failed",
+   "text": "Vorladung 3x gescheitert, keine weiteren Versuche bis Zuendung aus / Ladeende.",
+   "severity": "error"
+  },
+  {
+   "dtc": "0xE00130",
+   "errorCode": 304,
+   "name": "Precharge timeout"
+  },
+  {
+   "dtc": "0xE00131",
+   "errorCode": 305,
+   "name": "SOC out of range"
+  },
+  {
+   "dtc": "0xE00132",
+   "errorCode": 306,
+   "name": "BMS does not allow discharging",
+   "text": "BMS erlaubt kein Entladen (oder Flag-Frame 0x001 fehlt). Antrieb gesperrt.",
+   "severity": "critical"
+  },
+  {
+   "dtc": "0xE00133",
+   "errorCode": 307,
+   "name": "BMS does not allow charging",
+   "text": "BMS erlaubt kein Laden (am Ende der Ladung normal).",
+   "severity": "info"
+  },
+  {
+   "dtc": "0xE00134",
+   "errorCode": 308,
+   "name": "BMS allow flags ignored",
+   "text": "Override der BMS-Freigaben aktiv (bis Neustart).",
+   "severity": "warning"
+  },
+  {
+   "dtc": "0xE00190",
+   "errorCode": 400,
+   "name": "Motor overtemperature",
+   "text": "Motor ueber 120 C: Drehmoment x0.5, ueber 125 C: Antrieb aus.",
+   "severity": "error (critical above cutoff)"
+  },
+  {
+   "dtc": "0xE00191",
+   "errorCode": 401,
+   "name": "Inverter overtemperature",
+   "text": "Umrichter ueber 120 C: Drehmoment x0.5, ueber 125 C: Antrieb aus.",
+   "severity": "error (critical above cutoff)"
+  },
+  {
+   "dtc": "0xE00192",
+   "errorCode": 402,
+   "name": "DMC error"
+  },
+  {
+   "dtc": "0xE00193",
+   "errorCode": 403,
+   "name": "Torque limit exceeded"
+  },
+  {
+   "dtc": "0xE00194",
+   "errorCode": 404,
+   "name": "Speed limit exceeded"
+  },
+  {
+   "dtc": "0xE001F4",
+   "errorCode": 500,
+   "name": "Charger error"
+  },
+  {
+   "dtc": "0xE001F5",
+   "errorCode": 501,
+   "name": "Charger running hot",
+   "text": "Ladegeraet Kuehlplatte ueber 85 C, Ladeleistung reduziert (nur Info).",
+   "severity": "info"
+  },
+  {
+   "dtc": "0xE001F6",
+   "errorCode": 502,
+   "name": "Connector error"
+  },
+  {
+   "dtc": "0xE001F7",
+   "errorCode": 503,
+   "name": "Charge current error"
+  },
+  {
+   "dtc": "0xE00258",
+   "errorCode": 600,
+   "name": "Configuration invalid"
+  },
+  {
+   "dtc": "0xE00259",
+   "errorCode": 601,
+   "name": "Configuration save failed"
+  },
+  {
+   "dtc": "0xE0025A",
+   "errorCode": 602,
+   "name": "Configuration load failed"
+  },
+  {
+   "dtc": "0xE0025B",
+   "errorCode": 603,
+   "name": "Calibration error"
+  },
+  {
+   "dtc": "0xE002BC",
+   "errorCode": 700,
+   "name": "Gear shift error"
+  },
+  {
+   "dtc": "0xE002BD",
+   "errorCode": 701,
+   "name": "Pedal error"
+  },
+  {
+   "dtc": "0xE002BE",
+   "errorCode": 702,
+   "name": "User abort"
+  }
+ ]
+}

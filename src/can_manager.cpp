@@ -19,6 +19,7 @@
 #include <algorithm>
 #include "configuration.h"
 #include "can_monitoring.h"
+#include "event_log.h"
 /**
  * @brief Constructs the CAN manager
  * @param cs_pin SPI chip select pin for CAN controller
@@ -26,6 +27,7 @@
  * Initializes communication buffers and system state.
  */
 volatile uint32_t CANManager::intCount = 0;
+volatile uint32_t CANManager::intPendingUs = 0;
 
 CANManager::CANManager(uint8_t cs_pin)
     : CAN(cs_pin)
@@ -57,7 +59,10 @@ CANManager::~CANManager() {
 
 
 bool LockedMcp2515::readFrame(uint32_t& id, uint8_t& len, uint8_t* buf) {
-    pSPI->beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));   // as the library
+    const uint32_t t0 = static_cast<uint32_t>(esp_timer_get_time());
+    pSPI->beginTransaction(SPISettings(SPI_HZ, MSBFIRST, SPI_MODE0));
+    const uint32_t waitUs = static_cast<uint32_t>(esp_timer_get_time()) - t0;
+    if (waitUs > maxSpiWaitUs) maxSpiWaitUs = waitUs;
 
     digitalWrite(SPICS, LOW);
     pSPI->transfer(MCP_READ_STATUS);
@@ -93,6 +98,73 @@ bool LockedMcp2515::readFrame(uint32_t& id, uint8_t& len, uint8_t* buf) {
     return true;
 }
 
+byte LockedMcp2515::queueFrame(uint32_t id, uint8_t len, const uint8_t* buf) {
+    const uint32_t t0 = static_cast<uint32_t>(esp_timer_get_time());
+    if (len > 8) len = 8;
+    for (uint8_t attempt = 0; attempt < 50; attempt++) {
+        if (attempt > 0) delayMicroseconds(10);
+        pSPI->beginTransaction(SPISettings(SPI_HZ, MSBFIRST, SPI_MODE0));
+
+        digitalWrite(SPICS, LOW);
+        pSPI->transfer(MCP_READ_STATUS);
+        const uint8_t status = pSPI->transfer(0x00);
+        digitalWrite(SPICS, HIGH);
+
+        int8_t n = -1;   // first TX buffer without a pending request
+        if (!(status & MCP_STAT_TX0_PENDING)) n = 0;
+        else if (!(status & MCP_STAT_TX1_PENDING)) n = 1;
+        else if (!(status & MCP_STAT_TX2_PENDING)) n = 2;
+
+        if (n >= 0) {
+            // LOAD TX BUFFER from TXBnSIDH: SIDH, SIDL (standard id, EXIDE 0), EID8, EID0, DLC, data
+            digitalWrite(SPICS, LOW);
+            pSPI->transfer(MCP_LOAD_TX0 + 2 * n);
+            pSPI->transfer(static_cast<uint8_t>(id >> 3));
+            pSPI->transfer(static_cast<uint8_t>((id & 0x07) << 5));
+            pSPI->transfer(0x00);
+            pSPI->transfer(0x00);
+            pSPI->transfer(len);
+            for (uint8_t i = 0; i < len; i++) pSPI->transfer(buf[i]);
+            digitalWrite(SPICS, HIGH);
+
+            // REQUEST TO SEND for that buffer (0x81 / 0x82 / 0x84)
+            digitalWrite(SPICS, LOW);
+            pSPI->transfer(0x80 | (1 << n));
+            digitalWrite(SPICS, HIGH);
+
+            pSPI->endTransaction();
+            const uint32_t us = static_cast<uint32_t>(esp_timer_get_time()) - t0;
+            if (us > maxTxUs) maxTxUs = us;
+            return CAN_OK;
+        }
+        pSPI->endTransaction();
+    }
+    const uint32_t us = static_cast<uint32_t>(esp_timer_get_time()) - t0;
+    if (us > maxTxUs) maxTxUs = us;
+    txFails++;
+    return CAN_GETTXBFTIMEOUT;
+}
+
+uint8_t LockedMcp2515::readClearOverflow() {
+    pSPI->beginTransaction(SPISettings(SPI_HZ, MSBFIRST, SPI_MODE0));
+    digitalWrite(SPICS, LOW);
+    pSPI->transfer(MCP_READ);
+    pSPI->transfer(MCP_EFLG);
+    const uint8_t eflg = pSPI->transfer(0x00);
+    digitalWrite(SPICS, HIGH);
+    if (eflg & (MCP_EFLG_RX0OVR | MCP_EFLG_RX1OVR)) {
+        // BIT MODIFY: only RX0OVR/RX1OVR are writable in EFLG
+        digitalWrite(SPICS, LOW);
+        pSPI->transfer(MCP_BITMOD);
+        pSPI->transfer(MCP_EFLG);
+        pSPI->transfer(MCP_EFLG_RX0OVR | MCP_EFLG_RX1OVR);
+        pSPI->transfer(0x00);
+        digitalWrite(SPICS, HIGH);
+    }
+    pSPI->endTransaction();
+    return eflg;
+}
+
 SPIClass& CANManager::spiBus() {
     customSPI->begin(Pins::SCK, Pins::MISO, Pins::MOSI, Pins::SPI_CS_PIN);  // no-op once started
     return *customSPI;
@@ -106,6 +178,7 @@ SPIClass& CANManager::spiBus() {
  */
 void CANManager::begin() {
     bmsCells.begin();
+    if (!rxQueue) rxQueue = xQueueCreate(RX_QUEUE_LEN, sizeof(RxFrame));
     if (!customSPI) {
         Serial.println("SPI not initialized");
         return;
@@ -151,16 +224,8 @@ void CANManager::update() {
             needsClearError = false;
         }
     }
-    // Process all incoming CAN messages
+    // Process the frames the RX task has queued (overflows are checked there)
     checkAndProcessMessages();
-
-    // Receive overflow = a frame arrived while both RX buffers were full and was lost.
-    // checkError() also clears the flags.
-    uint8_t eflg = 0;
-    CAN.checkError(&eflg);
-    if (eflg & (MCP_EFLG_RX0OVR | MCP_EFLG_RX1OVR)) {
-        rxOverflowCount = rxOverflowCount + 1;
-    }
 
     // Update state manager with latest data
     if (stateManager) {
@@ -196,13 +261,102 @@ void CANManager::update() {
 /**
  * @brief Check for and process incoming CAN messages - FIXED pointer access
  */
+CANManager::CanTiming CANManager::takeTiming() {
+    CanTiming t;
+    t.intLatencyUs = maxIntLatencyUs;
+    t.spiWaitUs = CAN.maxSpiWaitUs;
+    t.txUs = CAN.maxTxUs;
+    t.loopUs = maxLoopUs;
+    t.txFails = CAN.txFails;
+    maxIntLatencyUs = 0;
+    CAN.maxSpiWaitUs = 0;
+    CAN.maxTxUs = 0;
+    maxLoopUs = 0;
+    CAN.txFails = 0;
+    lastTimingWindow = t;
+    return t;
+}
+
+void CANManager::rxTaskLoop(TaskHandle_t consumer) {
+    RxFrame f;
+    for (;;) {
+        // INT edge wakes us at once; the 1-tick timeout is a fallback poll (missed edge).
+        ulTaskNotifyTake(pdTRUE, 1);
+
+        // INT edge -> now: how long the first frame of a burst waited before reading started.
+        const uint32_t pending = intPendingUs;
+        if (pending != 0) {
+            intPendingUs = 0;
+            const uint32_t lat = static_cast<uint32_t>(esp_timer_get_time()) - pending;
+            if (lat > maxIntLatencyUs) maxIntLatencyUs = lat;
+        }
+
+        bool queued = false;
+        while (CAN.readFrame(f.id, f.len, f.buf)) {
+            rxCount = rxCount + 1;
+            if (rxQueue && xQueueSend(rxQueue, &f, 0) == pdTRUE) {
+                queued = true;
+            } else {
+                rxQueueDrops = rxQueueDrops + 1;
+            }
+        }
+
+        // Receive overflow = a frame arrived while both RX buffers were full and was lost.
+        // readClearOverflow() also clears the flags.
+        const uint8_t eflg = CAN.readClearOverflow();
+        if (eflg & (MCP_EFLG_RX0OVR | MCP_EFLG_RX1OVR)) {
+            rxOverflowCount = rxOverflowCount + 1;
+        }
+
+        if (queued && consumer) xTaskNotifyGive(consumer);
+    }
+}
+
+void CANManager::countId(uint32_t id, bool used, const uint8_t* buf, uint8_t len) {
+    const size_t n = idStatCount;
+    for (size_t i = 0; i < n; i++) {
+        if (idStatTable[i].id == id) {
+            idStatTable[i].count++;
+            idStatTable[i].len = len > 8 ? 8 : len;
+            memcpy(idStatTable[i].last, buf, idStatTable[i].len);
+            idStatTable[i].lastMs = millis();
+            return;
+        }
+    }
+    if (n < MAX_ID_STATS) {
+        idStatTable[n].id = id;
+        idStatTable[n].count = 1;
+        idStatTable[n].used = used;
+        idStatTable[n].len = len > 8 ? 8 : len;
+        memcpy(idStatTable[n].last, buf, idStatTable[n].len);
+        idStatTable[n].lastMs = millis();
+        idStatCount = n + 1;   // after the entry is filled: the web task reads [0, n)
+    } else {
+        otherIdFrames = otherIdFrames + 1;
+    }
+}
+
+bool CANManager::rawFrame(uint32_t id, uint8_t* out, uint8_t& len, uint32_t& ageMs) const {
+    const size_t n = idStatCount;
+    for (size_t i = 0; i < n; i++) {
+        if (idStatTable[i].id != id) continue;
+        len = idStatTable[i].len;
+        memcpy(out, idStatTable[i].last, len);
+        ageMs = msSince(idStatTable[i].lastMs, millis());
+        return true;
+    }
+    return false;
+}
+
 void CANManager::checkAndProcessMessages() {
-    uint8_t len;
-    uint8_t buf[8];
-    uint32_t id;
-    while (CAN.readFrame(id, len, buf)) {
-        rxCount = rxCount + 1;
-        
+    if (!rxQueue) return;
+    RxFrame f;
+    while (xQueueReceive(rxQueue, &f, 0) == pdTRUE) {
+        const uint32_t id = f.id;
+        const uint8_t len = f.len;
+        uint8_t* buf = f.buf;
+        bool used = true;
+
         // FIXED: Use pointer access with null checks
         if (canMonitor && canMonitor->isLoggingEnabled()) {
             canMonitor->logMessage(id, buf, len, false);  // false = received
@@ -211,8 +365,18 @@ void CANManager::checkAndProcessMessages() {
             }
         }
         
+        // Diagnostic requests (UDS over ISO-TP): handled by the UdsServer, not decoded here.
+        if (diagRx && (id == CANIds::DIAG_REQ || id == CANIds::DIAG_FUNC)) {
+            diagRx(diagRxCtx, id, buf, len);
+            countId(id, true, buf, len);
+            continue;
+        }
+
         // Orion per-cell broadcast, IDs come from configuration.
-        if (bmsCells.handleFrame(id, buf, len)) continue;
+        if (bmsCells.handleFrame(id, buf, len)) {
+            countId(id, true, buf, len);
+            continue;
+        }
 
         switch(id) {
             case CANIds::BMS_PACK:
@@ -238,7 +402,12 @@ void CANManager::checkAndProcessMessages() {
             case CANIds::NLG_ACT_PLUG:
                 processNLGMessage(id, buf);
                 break;
+
+            default:
+                used = false;
+                break;
         }
+        countId(id, used, buf, len);
     }
 }
 
@@ -276,12 +445,13 @@ void CANManager::processBMSMinMaxMessage(uint8_t* buf, uint8_t len) {
 }
 
 bool CANManager::bmsPackFresh() const {
-    return lastBMSMs != 0 && (millis() - lastBMSMs) <= VehicleParams::Timing::BMS_TIMEOUT_MS;
+    const unsigned long last = lastBMSMs;
+    return last != 0 && msSince(last, millis()) <= VehicleParams::Timing::BMS_TIMEOUT_MS;
 }
 
 bool CANManager::bmsFlagsFresh() const {
     const unsigned long last = lastBMSFlagsMs;
-    return last != 0 && (millis() - last) <= VehicleParams::Timing::BMS_TIMEOUT_MS;
+    return last != 0 && msSince(last, millis()) <= VehicleParams::Timing::BMS_TIMEOUT_MS;
 }
 
 bool CANManager::chargeAllowed() const {
@@ -357,7 +527,35 @@ void CANManager::processNLGMessage(uint32_t id, uint8_t* buf) {
         case CANIds::NLG_ACT_LIM:
             nlgData.stateCtrlPilot = buf[0] >> 5;
             nlgData.dcHvVoltageAct = ((buf[0] & 0x1F) << 8) | buf[1];
-            nlgData.stateAct = buf[2] >> 5;
+            {
+                const uint8_t raw = buf[2] >> 5;
+                if (raw != nlgData.stateActRaw && systemMonitor) {
+                    char msg[96];
+                    snprintf(msg, sizeof(msg),
+                             "NLG stateAct raw %u -> %u (byte2 0x%02X, frame %02X %02X %02X %02X %02X %02X %02X %02X)",
+                             nlgData.stateActRaw, raw, buf[2],
+                             buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]);
+                    systemMonitor->logInfo(msg, "NLG");
+                }
+                nlgData.stateActRaw = raw;
+
+                // Debounce: act on a new state only after it repeats in consecutive frames.
+                if (raw == nlgStateCandidate) {
+                    if (nlgStateCount < 255) nlgStateCount++;
+                } else {
+                    nlgStateCandidate = raw;
+                    nlgStateCount = 1;
+                }
+                if (nlgStateCount >= Constants::NLG_STATE_DEBOUNCE_FRAMES && nlgData.stateAct != raw) {
+                    if (systemMonitor) {
+                        systemMonitor->logInfo("NLG stateAct accepted " + String(nlgData.stateAct) +
+                                               " -> " + String(raw), "NLG");
+                    }
+                    EventLog::add(EventLog::Ev::CHARGER_STATE, nlgData.stateAct, raw,
+                                  bmsData.voltage, bmsData.soc);
+                    nlgData.stateAct = raw;
+                }
+            }
             nlgData.dcHvCurrentAct = ((buf[2] & 0x07) << 8) | buf[3];
             nlgData.connectorLocked = (buf[7] >> 5) & 0x01;
             break;
@@ -496,13 +694,15 @@ void CANManager::sendDMC() {
     int dcVoltLimMotor = VehicleParams::Battery::MIN_VOLTAGE * 10;
     int dcVoltLimGen = (VehicleParams::Battery::MAX_VOLTAGE + 4) * 10;
     // The BMS's own current limits win over the fixed ones. Without fresh BMS data both are 0:
-    // the same rule the charger already follows. Drive also needs the discharge flag. Regen
-    // only the charge limit (CCL): the Orion's charge flag is never set while driving, it is
-    // the charger's enable (owner, 2026-10-29).
+    // the same rule the charger already follows. Drive also needs the discharge flag, and may
+    // pulse above the conservative DCL, never above the DMC's limit (dcl_pulse_logic.h). Regen
+    // the charge flag and the charge limit (CCL) (regen is charging, owner 2026-11-02).
     const bool bmsFresh = bmsPackFresh();
-    const int driveLimitA = bmsFresh && dischargeAllowed() ? std::min<int>(VehicleParams::Battery::MAX_DMC_CURRENT,
-                                                     bmsData.maxDischarge) : 0;
-    const int regenLimitA = bmsFresh ? std::min<int>(VehicleParams::Power::DMC_DC_GEN,
+    const uint32_t dclA = bmsFresh && dischargeAllowed() ? bmsData.maxDischarge : 0;
+    const int driveLimitA = dclPulse.update(millis(), dclA, bmsData.current / 10,
+                                            VehicleParams::Battery::MAX_DMC_CURRENT);
+    dmcDriveLimitA = driveLimitA;
+    const int regenLimitA = bmsFresh && chargeAllowed() ? std::min<int>(VehicleParams::Power::DMC_DC_GEN,
                                                      bmsData.maxCharge) : 0;
     int dcCurrLimMotor = driveLimitA * 10;
     int dcCurrLimGen = regenLimitA * 10;

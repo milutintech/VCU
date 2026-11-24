@@ -71,6 +71,8 @@ public:
      * @param gear New gear state
      */
     void setCurrentGear(GearState gear);
+    /** Reverse light and IO46 signal; false outside RUN (StateManager). */
+    void setReverseSignals(bool reverse);
 
     /**
      * @brief Sets driving mode (Legacy/Regen/OPD)

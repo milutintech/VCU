@@ -2,10 +2,14 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include "mcp2515_can.h"
+#include <esp_timer.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 #include "config.h"
 #include "vehicle_parameters.h"
 #include "state_manager.h"
 #include "bms_cells.h"
+#include "dcl_pulse_logic.h"
 #include <WiFi.h>
 
 /**
@@ -20,18 +24,33 @@ class LockedMcp2515 : public mcp2515_can {
 public:
     using mcp2515_can::mcp2515_can;
 
+    /**
+     * SPI clock for our own accesses (readFrame, queueFrame, readClearOverflow). MCP2515 max is
+     * 10 MHz; the library's remaining calls (init, mode) stay at its hard-coded 4 MHz. If frames
+     * come in garbled after this change, try 8 MHz.
+     */
+    static constexpr uint32_t SPI_HZ = 10000000;
+
     /** One received frame (RX0 first); status and frame are read under one bus lock. */
     bool readFrame(uint32_t& id, uint8_t& len, uint8_t* buf);
 
+    /** Reads EFLG and clears the RX overflow bits, one bus lock. Returns EFLG. */
+    uint8_t readClearOverflow();
+
+    // Timing diagnostics, maxima since CANManager::takeTiming(). maxSpiWaitUs is written by the
+    // RX task, the others by the CAN task; the reset in takeTiming() may race (diagnostics only).
+    uint32_t maxSpiWaitUs = 0;   ///< readFrame: waiting for the shared SPI bus (W5500 holding it)
+    uint32_t maxTxUs = 0;        ///< queueFrame: whole call (waits while all 3 TX buffers are busy)
+    uint32_t txFails = 0;        ///< queueFrame: no free TX buffer within the library timeout
+
     /**
-     * Puts a standard frame into a free TX buffer and returns. The library's sendMsgBuf()
-     * waits until the frame is on the wire (polling, up to ~1.5 ms per frame): with the DMC
-     * and BMS talking, frames arrived faster than the two RX buffers could hold meanwhile
-     * (~100 overflows per 10 s). Only waits if all three TX buffers are still busy.
+     * Puts a standard (11 bit) frame into a free TX buffer and returns; does not wait for the
+     * wire. Own implementation: the library's sendMsgBuf() used ~10 separate 4 MHz bus
+     * transactions per frame (each one possibly waiting behind the W5500). Here: READ STATUS,
+     * LOAD TX BUFFER, RTS in one 10 MHz transaction. Polls (bus released in between) only while
+     * all three TX buffers are busy, like the library (50 x 10 us).
      */
-    byte queueFrame(uint32_t id, uint8_t len, const uint8_t* buf) {
-        return sendMsgBuf(id, 0, 0, len, buf, false);
-    }
+    byte queueFrame(uint32_t id, uint8_t len, const uint8_t* buf);
 };
 
 // Forward declarations
@@ -97,7 +116,8 @@ struct BSCData {
 struct NLGData {
     uint8_t stateCtrlPilot;   ///< Control pilot state
     uint16_t dcHvVoltageAct;  ///< Charging voltage (V)
-    uint8_t stateAct;         ///< Charger state
+    uint8_t stateAct;         ///< Charger state, debounced (NLG_STATE_DEBOUNCE_FRAMES)
+    uint8_t stateActRaw;      ///< Charger state from the latest 0x728 frame
     uint16_t dcHvCurrentAct;  ///< Charging current (A)
     bool connectorLocked;     ///< Charge connector status
     uint8_t coolingRequest;   ///< Cooling demand
@@ -172,13 +192,66 @@ public:
      */
     void sendNLG();
     
-    /** Read every frame waiting in the MCP2515 (also done at the start of update()). */
+    /** Process every frame the RX task has queued (also done at the start of update()). */
     void receive() { checkAndProcessMessages(); }
+
+    /**
+     * Body of the CAN RX task (never returns). Woken by the MCP2515 INT (ISR notifies the task
+     * that runs this), polls every tick as a fallback. Only reads frames into the queue and
+     * checks the overflow flags, so a busy CAN task loop no longer delays reading: the
+     * MCP2515 holds only 2 frames (~500 us at 500 kbit/s in a burst). Notifies `consumer`
+     * (the CAN task) after queuing frames. Start it after begin().
+     */
+    void rxTaskLoop(TaskHandle_t consumer);
+    static constexpr UBaseType_t RX_QUEUE_LEN = 64;   ///< ~160 ms of frames at the current bus load
+
+    /** Frames counted per CAN ID since boot (diagnostics, to choose MCP2515 filters). */
+    struct IdStat {
+        uint32_t id;
+        uint32_t count;
+        bool used;      ///< processed by the VCU (known ID or Orion cell frame)
+        uint8_t len;            ///< length of the last frame
+        uint8_t last[8];        ///< data of the last frame (UDS raw DIDs 0x4000 + ID)
+        uint32_t lastMs;        ///< millis() of the last frame
+    };
+    static constexpr size_t MAX_ID_STATS = 48;
+    /** Entries [0, n) are valid. Written by the CAN task, read by the web task (counts may lag). */
+    const IdStat* idStats(size_t& n) const { n = idStatCount; return idStatTable; }
+    /** Last frame of `id` (CAN task only, no copy race). false = never seen. */
+    bool rawFrame(uint32_t id, uint8_t* out, uint8_t& len, uint32_t& ageMs) const;
+    /** Queue one standard frame for sending. CAN task only (the TX buffers are not shared). */
+    bool sendFrame(uint32_t id, const uint8_t* buf, uint8_t len) {
+        return CAN.queueFrame(id, len, buf) == CAN_OK;
+    }
+    /** Frames to DIAG_REQ / DIAG_FUNC go here instead of the normal decoding (called in the CAN task). */
+    using DiagRxFn = void (*)(void* ctx, uint32_t id, const uint8_t* buf, uint8_t len);
+    void setDiagRx(DiagRxFn fn, void* ctx) { diagRxCtx = ctx; diagRx = fn; }
+    uint32_t getOtherIdFrames() const { return otherIdFrames; }   ///< frames of IDs beyond the table
+    uint32_t getRxQueueDrops() const { return rxQueueDrops; }     ///< frames lost because the queue was full
 
     /// Receive diagnostics (for testing the INT pin and checking for lost frames)
     static volatile uint32_t intCount;   ///< MCP2515 INT falling edges, counted in the ISR
+    /// esp_timer µs (low 32 bit) of the first INT not yet served, 0 = none. Set in the ISR.
+    static volatile uint32_t intPendingUs;
+
+    /**
+     * Where the receive latency comes from. An RX overflow means a frame arrived while both
+     * MCP2515 receive buffers were full, i.e. the frames were not read fast enough.
+     */
+    struct CanTiming {
+        uint32_t intLatencyUs = 0;   ///< INT edge -> start of reading in the RX task
+        uint32_t spiWaitUs = 0;      ///< waiting for the SPI bus before a read (W5500 holding it)
+        uint32_t txUs = 0;           ///< longest queueFrame() call (TX buffers full)
+        uint32_t loopUs = 0;         ///< longest CAN task loop body (frames wait in the queue meanwhile)
+        uint32_t txFails = 0;        ///< frames not sent (no free TX buffer)
+    };
+    /** Maxima since the last call, then reset. CAN task only. */
+    CanTiming takeTiming();
+    /** Last window from takeTiming(), for the web API. */
+    const CanTiming& lastTiming() const { return lastTimingWindow; }
+    void noteLoopUs(uint32_t us) { if (us > maxLoopUs) maxLoopUs = us; }
     uint32_t getRxCount() const { return rxCount; }
-    /// update() cycles in which the MCP2515 reported a receive overflow (frames lost)
+    /// RX task passes in which the MCP2515 reported a receive overflow (frames lost)
     uint32_t getRxOverflowCount() const { return rxOverflowCount; }
 
     // Data access methods
@@ -200,9 +273,12 @@ public:
 
     /// BMS allow flags (0x001) received within the BMS timeout.
     bool bmsFlagsFresh() const;
+    /// Discharge limit last sent to the DMC (A), and acceleration pulse time left (ms).
+    int getDmcDriveLimitA() const { return dmcDriveLimitA; }
+    uint32_t getPulseRemainingMs() const { return dclPulse.remainingMs(); }
     /** 0x010 (pack voltage, current limits) received within BMS_TIMEOUT_MS. */
     bool bmsPackFresh() const;
-    /// Charger allowed: flag set and fresh, or flags ignored. Not used for regen (CCL only).
+    /// Charging (charger and regen) allowed: flag set and fresh, or flags ignored.
     bool chargeAllowed() const;
     /// Discharging (drive current) allowed: flag set and fresh, or flags ignored.
     bool dischargeAllowed() const;
@@ -292,14 +368,30 @@ private:
     void resetMessageBuffers();
 
     /**
-     * @brief Check for and process incoming messages
+     * @brief Process the frames queued by the RX task
      */
     void checkAndProcessMessages();
+    void countId(uint32_t id, bool used, const uint8_t* buf, uint8_t len);
+    DiagRxFn diagRx = nullptr;
+    void* diagRxCtx = nullptr;
+
+    struct RxFrame {
+        uint32_t id;
+        uint8_t len;
+        uint8_t buf[8];
+    };
+    QueueHandle_t rxQueue = nullptr;          ///< RX task -> CAN task
+    volatile uint32_t rxQueueDrops = 0;
+    IdStat idStatTable[MAX_ID_STATS] = {};
+    volatile size_t idStatCount = 0;
+    volatile uint32_t otherIdFrames = 0;
     
     bool needsClearError = false;  // Flag to indicate error clearing needed
     unsigned long errorClearStartTime = 0;  // Timestamp for error clearing
     bool inErrorClearSequence = false;  // Track if we're in the middle of error clearing
     int calculateTaperedDMCCurrent();
+    DclPulseLogic dclPulse;              ///< acceleration pulses above the BMS DCL
+    volatile int dmcDriveLimitA = 0;
 
     // Hardware interfaces
     LockedMcp2515 CAN;       ///< CAN controller instance
@@ -316,7 +408,7 @@ private:
     BMSData bmsData;         ///< Battery system data
     DMCData dmcData;         ///< Motor controller data
     BSCData bscData;         ///< DC-DC converter data
-    NLGData nlgData;         ///< Charging system data
+    NLGData nlgData{};       ///< Charging system data (zeroed: stateAct 0 = SLEEP until debounced)
     BmsCells bmsCells;       ///< Orion BMS per-cell data, decoded from the CAN broadcast
     
     StateManager* stateManager;  ///< Pointer to state manager
@@ -339,8 +431,13 @@ private:
     volatile unsigned long lastDMCMs = 0; ///< Last DMC frame (any of 0x258/0x259/0x458)
     volatile unsigned long lastBSCMs = 0; ///< Last BSC frame
     volatile unsigned long lastNLGMs = 0; ///< Last NLG frame
+    uint8_t nlgStateCandidate = 0xFF;     ///< 0x728 state being debounced (CAN task only)
+    uint8_t nlgStateCount = 0;            ///< consecutive frames with nlgStateCandidate
     volatile uint32_t rxCount = 0;           ///< frames read from the MCP2515
     volatile uint32_t rxOverflowCount = 0;   ///< see getRxOverflowCount()
+    volatile uint32_t maxIntLatencyUs = 0;   ///< written by the RX task
+    uint32_t maxLoopUs = 0;
+    CanTiming lastTimingWindow;
     volatile unsigned long lastBMSFlagsMs = 0; ///< Last BMS_MINMAX frame (allow flags)
     volatile bool ignoreAllowFlags = false;    ///< set from the web task, read in the CAN task
 

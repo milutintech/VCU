@@ -1,6 +1,7 @@
 #include "web_server.h"
 #include "fault_handler.h"
 #include "vehicle_parameters.h"
+#include "event_log.h"
 
 // Helper functions for state/gear conversion
 static String stateToString(VehicleState state) {
@@ -126,6 +127,15 @@ void VCUWebServer::setupRoutes() {
     });
     server.on("/api/pi/ack", HTTP_POST, [this](AsyncWebServerRequest* request) {
         handlePiAck(request);
+    });
+
+    // RTC event log: why a charging session ended, sleep/wake, precharge. Survives deep sleep.
+    server.on("/api/log/events", HTTP_GET, [](AsyncWebServerRequest* request) {
+        JsonDocument doc;
+        EventLog::toJson(doc);
+        String out;
+        serializeJson(doc, out);
+        request->send(200, "application/json", out);
     });
 
     server.on("/api/config/driving", HTTP_GET, [this](AsyncWebServerRequest* request) {
@@ -928,7 +938,9 @@ void VCUWebServer::handleWebSocketEvent(AsyncWebSocket* server, AsyncWebSocketCl
 }
 
 void VCUWebServer::broadcastLiveData() {
-    if (ws.count() > 0) {
+    // Skip a round while a client still has a full send queue: queuing more only ends with
+    // AsyncWebSocket closing the connection ("Too many messages queued").
+    if (ws.count() > 0 && ws.availableForWriteAll()) {
         String json = createLiveDataJSON();
         ws.textAll(json);
     }
@@ -951,10 +963,13 @@ String VCUWebServer::createLiveDataJSON() {
     battery["current"] = bms.current / 10.0f;  // Scale: divide by 10
     battery["maxDischarge"] = bms.maxDischarge;  // the BMS limits the VCU enforces
     battery["maxCharge"] = bms.maxCharge;
+    battery["dmcDriveLimit"] = canManager->getDmcDriveLimitA();  // may be above maxDischarge: pulse
+    battery["pulseRemainingS"] = canManager->getPulseRemainingMs() / 1000;
     if (piPower) {
         JsonObject pi = doc["pi"].to<JsonObject>();
         pi["state"] = PiPower::name(piPower->state());
         pi["shutdownRequested"] = piPower->shutdownRequested();
+        pi["lvLow"] = piPower->lvLow();
     }
     // From BMS_MINMAX (0x001); allow flags as the BMS sends them, "allowed" after the override
     const bool flagsFresh = canManager->bmsFlagsFresh();
@@ -1052,6 +1067,7 @@ String VCUWebServer::createLiveDataJSON() {
     }
 
     charging["state"] = chargerState;
+    charging["stateRaw"] = nlg.stateActRaw;   // latest frame; "state" is debounced
     charging["current"] = nlg.dcHvCurrentAct / 100.0f;  // Scale: divide by 100
     charging["voltage"] = nlg.dcHvVoltageAct;
     charging["connectorLocked"] = nlg.connectorLocked;
@@ -1084,6 +1100,33 @@ String VCUWebServer::createSystemInfoJSON() {
     can["frames"] = canManager->getRxCount();
     can["rxOverflows"] = canManager->getRxOverflowCount();
     can["intPinLow"] = digitalRead(Pins::CAN_INT_PIN) == LOW;
+    {
+        const CANManager::CanTiming& t = canManager->lastTiming();   // max of the last 10 s
+        JsonObject timing = can["timingMaxUs"].to<JsonObject>();
+        timing["intToRead"] = t.intLatencyUs;
+        timing["spiWait"] = t.spiWaitUs;
+        timing["tx"] = t.txUs;
+        timing["loop"] = t.loopUs;
+        timing["txFails"] = t.txFails;
+    }
+    can["queueDrops"] = canManager->getRxQueueDrops();
+    {
+        // Frames per ID since boot (`sinceS`): what is on the bus, and what the VCU does not use
+        // (candidates for MCP2515 filters).
+        size_t n = 0;
+        const CANManager::IdStat* st = canManager->idStats(n);
+        can["sinceS"] = millis() / 1000;
+        can["otherIdFrames"] = canManager->getOtherIdFrames();
+        JsonArray ids = can["ids"].to<JsonArray>();
+        char hex[12];
+        for (size_t i = 0; i < n; i++) {
+            JsonObject o = ids.add<JsonObject>();
+            snprintf(hex, sizeof(hex), "0x%03lX", static_cast<unsigned long>(st[i].id));
+            o["id"] = hex;
+            o["n"] = st[i].count;
+            o["used"] = st[i].used;
+        }
+    }
 
     if (ethernet) ethernet->toJSON(doc["eth"].to<JsonObject>());
     if (wifiManager) doc["wifiServiceMode"] = wifiManager->isStarted();

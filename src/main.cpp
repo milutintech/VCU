@@ -26,6 +26,8 @@
 #include "ethernet_link.h"            // W5500, the cable to the Pi
 #include "pi_power.h"                // Pi power and shutdown sequence
 #include "web_server.h"               // Web server
+#include "event_log.h"                // RTC event log (survives deep sleep)
+#include "uds_server.h"               // UDS diagnostics over CAN (0x7E0 / 0x7E8)
 
 // Global objects - Enhanced
 ADS1115 ads(0x48);
@@ -40,16 +42,18 @@ WiFiManager* wifiManager = nullptr;               // WiFi manager
 EthernetLink* ethernet = nullptr;                 // W5500 Ethernet
 PiPower* piPower = nullptr;                       // Power and shutdown of the infotainment Pi
 VCUWebServer* webServer = nullptr;                // Web server
+UdsServer* udsServer = nullptr;                   // Diagnostic scanner interface on the CAN bus
 
 // Task handles
 TaskHandle_t canTaskHandle = nullptr;
+TaskHandle_t canRxTaskHandle = nullptr;   ///< reads the MCP2515, woken by its INT
 TaskHandle_t controlTaskHandle = nullptr;
 TaskHandle_t adcTaskHandle = nullptr;
 TaskHandle_t webTaskHandle = nullptr;
 
 // Interrupt handling (unchanged)
 volatile bool unlockInterruptTriggered = false;
-unsigned long lastInterruptTime = 0;
+volatile unsigned long lastInterruptTime = 0;   // millis() of the last accepted edge (ISR)
 const unsigned long debounceTime = 500;
 
 void IRAM_ATTR connectorUnlockISR() {
@@ -60,24 +64,37 @@ void IRAM_ATTR connectorUnlockISR() {
     }
 }
 
+// A press counts only if the input is still HIGH this long after the rising edge. The edge
+// alone also fired on a spike right after the contactor closed (2026-11-20), which ended the
+// charging session as if the unlock button had been pressed.
+const unsigned long UNLOCK_CONFIRM_MS = 30;
+
 void checkAndHandleInterrupt() {
-    if (unlockInterruptTriggered) {
-        if (stateManager) {
-            errorMonitor->logInfo("Connector unlock interrupt triggered", "USER");
-            stateManager->handleConnectorUnlockInterrupt();
-        }
-        unlockInterruptTriggered = false;
+    if (!unlockInterruptTriggered) return;
+    if (msSince(lastInterruptTime, millis()) < UNLOCK_CONFIRM_MS) return;   // look again next cycle
+    unlockInterruptTriggered = false;
+    if (digitalRead(Pins::UNLCKCON) != HIGH) {
+        errorMonitor->logInfo("Connector unlock input: short pulse ignored (noise)", "USER");
+        return;
+    }
+    if (stateManager) {
+        errorMonitor->logInfo("Connector unlock interrupt triggered", "USER");
+        stateManager->handleConnectorUnlockInterrupt();
     }
 }
 
 /**
- * @brief MCP2515 INT (active low, IO37): wake the CAN task to read the frame at once.
+ * @brief MCP2515 INT (active low, IO37): wake the CAN RX task to read the frame at once.
  * The chip holds only two frames and the bus has bursts of 3 to 5 within 1 ms.
  */
 static void IRAM_ATTR canIntISR() {
     BaseType_t woken = pdFALSE;
     CANManager::intCount = CANManager::intCount + 1;
-    if (canTaskHandle) vTaskNotifyGiveFromISR(canTaskHandle, &woken);
+    if (CANManager::intPendingUs == 0) {
+        const uint32_t us = static_cast<uint32_t>(esp_timer_get_time());
+        CANManager::intPendingUs = us ? us : 1;
+    }
+    if (canRxTaskHandle) vTaskNotifyGiveFromISR(canRxTaskHandle, &woken);
     portYIELD_FROM_ISR(woken);
 }
 
@@ -121,6 +138,13 @@ void canTask(void* parameter) {
     // Note: CAN logging methods need to be implemented in CANManager
     // canManager->enableCANLogging(true);  // Enable CAN message logging
 
+    // RX task: only reads frames into a queue, above this task (5) on the same core, so this
+    // loop's work (faults, torque, sends, logging: up to ~3 ms) no longer delays reading.
+    xTaskCreatePinnedToCore(
+        [](void* p) { canManager->rxTaskLoop(static_cast<TaskHandle_t>(p)); },
+        "CAN_RX", 4096, xTaskGetCurrentTaskHandle(), 6, &canRxTaskHandle, 1);
+    if (!canRxTaskHandle) errorMonitor->logError("CAN RX task not created", "SYSTEM");
+
     // Attached here so the ISR runs on this task's core
     pinMode(Pins::CAN_INT_PIN, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(Pins::CAN_INT_PIN), canIntISR, FALLING);
@@ -134,12 +158,16 @@ void canTask(void* parameter) {
     const unsigned long MONITOR_UPDATE_INTERVAL = 100; // Update monitoring every 100ms
     
     for(;;) {
+        const uint32_t loopStartUs = static_cast<uint32_t>(esp_timer_get_time());
         // Update CAN communication
         canManager->update();
         
         // Evaluate faults and compute the reaction (torque derate / DMC disable)
         faultHandler->update(*canManager, *stateManager);
         const FaultReaction& reaction = faultHandler->reaction();
+
+        // Diagnostics: ISO-TP pacing, DTC store, status frame (requests arrive via the CAN RX hook)
+        if (udsServer) udsServer->tick();
 
         // Update motor speed from DMC data
         const DMCData& dmcData = canManager->getDMCData();
@@ -189,15 +217,26 @@ void canTask(void* parameter) {
         }
         if (millis() - lastRxReport >= 10000) {
             lastRxReport = millis();
+            const CANManager::CanTiming t = canManager->takeTiming();
             const uint32_t overflows = canManager->getRxOverflowCount();
-            if (overflows != lastOverflows) {
+            const uint32_t drops = canManager->getRxQueueDrops();
+            static uint32_t lastDrops = 0;
+            if (overflows != lastOverflows || t.txFails != 0 || drops != lastDrops) {
+                // Max values of the 10 s window: which one is long says why frames were lost.
                 errorMonitor->logWarning("CAN RX overflow (frames lost) in " + String(overflows - lastOverflows) +
-                                         " cycles in the last 10 s", "CAN");
+                                         " cycles in the last 10 s; max us: INT->read " + String(t.intLatencyUs) +
+                                         ", SPI wait " + String(t.spiWaitUs) + ", TX " + String(t.txUs) +
+                                         ", loop " + String(t.loopUs) + "; TX fails " + String(t.txFails) +
+                                         ", queue drops " + String(drops - lastDrops), "CAN");
                 lastOverflows = overflows;
+                lastDrops = drops;
             }
         }
 
-        // Wait one tick as before, but read frames as soon as the MCP2515 signals one.
+        // Busy part of the loop: frames that arrive now wait until the read below.
+        canManager->noteLoopUs(static_cast<uint32_t>(esp_timer_get_time()) - loopStartUs);
+
+        // Wait one tick as before, but process frames as soon as the RX task has queued some.
         const TickType_t waitStart = xTaskGetTickCount();
         while (xTaskGetTickCount() - waitStart < 1) {
             if (ulTaskNotifyTake(pdTRUE, 1) == 0) break;   // tick over, no frame
@@ -276,6 +315,7 @@ void controlTask(void* parameter) {
  *   service on   WiFi on as before (saved station, else the AP VCU_xxxx), until reboot
  *   service off  WiFi off again
  *   net          Ethernet and WiFi status
+ *   events       RTC event log (charging sessions, sleep, precharge; survives deep sleep)
  */
 static void handleSerialCommands() {
     static String line;
@@ -302,8 +342,22 @@ static void handleSerialCommands() {
             } else {
                 Serial.println("[WiFi] off (service on: start it)");
             }
+        } else if (line == "events") {
+            EventLog::printTo(Serial);
+        } else if (line == "canids") {
+            // Frames per CAN ID since boot, with the rate: what fills the MCP2515 receive buffers.
+            size_t n = 0;
+            const CANManager::IdStat* st = canManager->idStats(n);
+            const float s = max(1UL, millis()) / 1000.0f;
+            Serial.printf("CAN IDs since %.0f s: %u IDs, %lu frames beyond the table, %lu queue drops\n", s,
+                          (unsigned)n, (unsigned long)canManager->getOtherIdFrames(),
+                          (unsigned long)canManager->getRxQueueDrops());
+            for (size_t i = 0; i < n; i++) {
+                Serial.printf("  0x%03lX %8lu  %6.1f/s  %s\n", (unsigned long)st[i].id, (unsigned long)st[i].count,
+                              st[i].count / s, st[i].used ? "used" : "unused");
+            }
         } else if (line.length() > 0) {
-            Serial.println("Commands: service on | service off | net");
+            Serial.println("Commands: service on | service off | net | events | canids");
         }
         line = "";
     }
@@ -328,7 +382,14 @@ void webServerTask(void* parameter) {
 
         // The Pi's power sequence runs here, away from the control task
         if (piPower) {
-            piPower->update();
+            const unsigned long lastBsc = canManager->getLastBSCMs();
+            piPower->update(canManager->getBSCData().lvVoltageAct,
+                            lastBsc != 0 && millis() - lastBsc <= FaultLimits::BSC_TIMEOUT_MS);
+        }
+
+        // Flash writes for the diagnostic interface (config after a UDS write, DTC store)
+        if (udsServer) {
+            udsServer->housekeeping();
         }
 
         // Update web server (WebSocket broadcasts)
@@ -358,6 +419,8 @@ void setup() {
     Serial.println("  Enhanced Vehicle Control Unit Startup  ");
     Serial.println("==========================================");
     Serial.println("ESP32 VCU with JSON Config & Monitoring");
+
+    EventLog::begin();   // logs BOOT with reset reason and wake cause; `events` prints the log
     
     // Initialize error monitor first
     errorMonitor = new ErrorMonitor(1000, 500);
@@ -459,6 +522,13 @@ void setup() {
     vehicleControl->setCrossoverTime(config.getCrossoverTime());
     
     errorMonitor->logInfo("Applied configuration to vehicle control", "CONFIG");
+
+    // Diagnostic interface (UDS over ISO-TP). The CAN task feeds it, so hook it up before the tasks start.
+    udsServer = new UdsServer(*canManager, *errorMonitor, *stateManager, *vehicleControl, config);
+    udsServer->begin();
+    canManager->setDiagRx([](void* ctx, uint32_t id, const uint8_t* buf, uint8_t len) {
+        static_cast<UdsServer*>(ctx)->onFrame(id, buf, len);
+    }, udsServer);
     errorMonitor->logInfo("Transition timing configured", "CONFIG"); 
     errorMonitor->logInfo("Applied configuration to vehicle control", "CONFIG");
     

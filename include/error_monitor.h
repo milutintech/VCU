@@ -110,6 +110,14 @@ struct FaultEntry {
     bool active;
 };
 
+/** Light copy of a FaultEntry (no String), for the UDS diagnostic server. */
+struct FaultBrief {
+    ErrorCode code;
+    ErrorSeverity severity;
+    uint16_t count;
+    bool active;
+};
+
 struct MonitoringData {
     // System Status
     unsigned long timestamp;
@@ -249,6 +257,10 @@ public:
     }
     void clearFault(ErrorCode code);
     void clearAllFaults();
+    /** Drop all inactive entries from the list (UDS 0x14 clear). Active ones stay. */
+    void forgetInactiveFaults();
+    /** Copy up to `max` entries (no heap use). Returns the number copied. */
+    size_t snapshotFaults(FaultBrief* out, size_t max);
     bool isFaultActive(ErrorCode code);
     bool hasActiveFault(ErrorSeverity minSeverity);
     static String errorCodeToString(ErrorCode code);

@@ -14,6 +14,7 @@
 #include <Arduino.h>
 #include "config.h"
 #include "vehicle_parameters.h"
+#include "event_log.h"
 
 class CANManager; // Forward declaration
 class VehicleControl;
@@ -45,7 +46,7 @@ public:
      * @brief Transitions to STANDBY state
      * Disables all systems and prepares for sleep
      */
-    void transitionToStandby();
+    void transitionToStandby(EventLog::StopReason reason = EventLog::StopReason::NONE);
 
     /**
      * @brief Transitions to RUN state
@@ -140,17 +141,21 @@ private:
     void handleChargingState();
     void handleConnectorUnlock();
     void handlePersistentUnlock(unsigned long& unlockTimeout);
-    void removePinFromWakeSources(uint8_t pin);
-    void addPinToWakeSources(uint8_t pin);
+    void configureWakeSources();
+    void updatePlugState();
+    void logEvent(EventLog::Ev ev, uint8_t a = 0, uint16_t b = 0);
     VehicleControl* vehicleControl;
     PiPower* piPower = nullptr;   ///< Pi shutdown sequence, deep sleep waits for it
     ErrorMonitor* errorMonitor = nullptr;   ///< for PRECHARGE_FAILED
     // System references
     CANManager& canManager;
     
-    unsigned long lastNlgWakeupCheck;
-    bool wasNlgWakeupHigh;
-    static constexpr unsigned long NLG_WAKEUP_CHECK_INTERVAL = 500; // Check every 500ms
+    // NLG_HW_Wakeup (plug / charger awake). Unplugged only after it stayed LOW this long: one
+    // LOW reading used to end the session and put the VCU to sleep in the middle of balancing.
+    static constexpr unsigned long NLG_UNPLUG_DEBOUNCE_MS = 2000;
+    unsigned long nlgWakeLowSince = 0;   ///< millis() of the first LOW reading, 0 = HIGH
+    bool plugRemoved = false;            ///< LOW for NLG_UNPLUG_DEBOUNCE_MS
+    bool waitUnplugLogged = false;
     static constexpr unsigned long CHARGER_TRANSITION_TIMEOUT = 5000; // 5 second timeout
     
     // Internal state variables
@@ -202,4 +207,6 @@ private:
 
     bool waitingForUnlockComplete = false;
     unsigned long connectorUnlockStartTime = 0;
+    unsigned long connectorLockDelay = 0;   ///< connector lock held off 5 s at session start
+    bool delayingConnectorLock = true;
 };

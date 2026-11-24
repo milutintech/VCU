@@ -17,7 +17,7 @@ void FaultHandler::evaluate(ErrorCode code, bool bad, bool ok, ErrorSeverity sev
 
 unsigned long FaultHandler::ageMs(unsigned long lastMs, unsigned long since, unsigned long now) {
     unsigned long ref = lastMs > since ? lastMs : since;
-    return now - ref;
+    return msSince(ref, now);   // the CAN task may store a frame newer than `now`
 }
 
 void FaultHandler::update(const CANManager& can, const StateManager& state) {

@@ -6,6 +6,9 @@
 // not running its firmware leaves the Pi without power.
 static constexpr bool PI_POWER_ACTIVE_HIGH = true;
 static constexpr gpio_num_t PI_POWER_GPIO = static_cast<gpio_num_t>(Pins::LWP6);
+static constexpr float LV_OFF_V = 11.5f;        // Pi shuts down below this
+static constexpr float LV_ON_V = 12.5f;         // and may start again from this
+static constexpr float LV_PLAUSIBLE_V = 5.0f;   // below: no real reading, the Pi would not run
 
 void PiPower::begin() {
     gpio_hold_dis(PI_POWER_GPIO);        // it may still be held from before deep sleep
@@ -19,9 +22,23 @@ void PiPower::drive(bool on) {
     Serial.printf("[PiPower] Pi power %s\n", on ? "ON" : "OFF");
 }
 
-void PiPower::update() {
+void PiPower::update(float lvVolts, bool lvFresh) {
+    // 12 V low: the Pi shuts down the normal way (ignition-off path, 3 s debounce). It stays
+    // off until the DC-DC has clearly recovered the rail: a resting battery comes back above
+    // the cutoff once the Pi's load is gone, which would boot and stop the Pi in a loop.
+    if (lvFresh && lvVolts >= LV_PLAUSIBLE_V) {
+        if (!lowVoltage && lvVolts < LV_OFF_V) {
+            lowVoltage = true;
+            Serial.printf("[PiPower] 12 V low (%.1f V), shutting the Pi down\n", lvVolts);
+        } else if (lowVoltage && lvVolts >= LV_ON_V) {
+            lowVoltage = false;
+            Serial.printf("[PiPower] 12 V back (%.1f V)\n", lvVolts);
+        }
+    }
+
     const PiState before = logic.state();
-    const bool ignition = digitalRead(Pins::IGNITION) == HIGH;
+    // Ignition only: charging does not power the Pi (owner, 2026-11-20; screen dark while charging).
+    const bool ignition = !lowVoltage && digitalRead(Pins::IGNITION) == HIGH;
     // Only an acknowledgement given during a request counts.
     const bool ack = ackFlag && (before == PiState::REQUESTED);
     const PiPowerLogic::Out out = logic.update(millis(), ignition, ack);
